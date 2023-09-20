@@ -7,6 +7,7 @@
 \usepackage{caption}
 \usepackage{hyperref}
 \usepackage{listings}
+\usepackage{changepage}
 
 \title{Compost}
 
@@ -53,20 +54,21 @@ This system achieves our goal of being able to extract all fields of a value sim
 \newpage
 \section{Code Example}
 
+\begin{adjustwidth}{-20pt}{-20pt}
 \begin{lstlisting}
-(define-datatype list   ;; example datatype definition of a list of ints
+(define-datatype ilist  ;; example datatype definition of a list of ints
     [cons   ;; the `cons' tag is both the name of the function that introduces
             ;; a value of this variant and the tag used during pattern matching
         (: car int)     ;; the tag is followed by type annotations of the form
                         ;; (: <field-name> <type>)
-        (: cdr list)
+        (: cdr ilist)
     ]
     [nil]
 )
 
 ;; `concat' takes in two lists of integers `xxs' and `ys' and returns another
 ;; list containing all elements in `xxs' followed by all elements in `ys'.
-(: concat (-> (list list) list))    ;; a top-level type annotation
+(: concat (-> (ilist ilist) ilist)) ;; a top-level type annotation
                                     ;; giving a type for `concat',
                                     ;; which is a function that takes in
                                     ;; two lists and returns a list
@@ -83,7 +85,7 @@ This system achieves our goal of being able to extract all fields of a value sim
 
 ;; `filterge' takes in an integer `n' and a list of integers `xxs' and returns
 ;; a list of all elements in `xxs' that are greater than or equal to `n'.
-(: filterge (-> (int list) list)    ;; a top-level type annotation giving
+(: filterge (-> (int ilist) ilist)  ;; a top-level type annotation giving
                                     ;; a type for `filterge'
 (define filterge (n xxs)
     (match xxs  ;; a pattern match. `xxs' is now considered out-of-scope
@@ -102,7 +104,7 @@ This system achieves our goal of being able to extract all fields of a value sim
 
 ;; `filterlt' takes in an integer `n' and list of integers `xxs' and returns
 ;; a list of all elements in `xxs' that are less than `n'.
-(: filterlt (-> (int list) list)    ;; a top-level type annotation giving
+(: filterlt (-> (int ilist) ilist)  ;; a top-level type annotation giving
                                     ;; a type for `filterlt'
 (define filterlt (n xxs)
     (match xxs  ;; a pattern match. `xxs' is now considered out-of-scope
@@ -121,7 +123,7 @@ This system achieves our goal of being able to extract all fields of a value sim
 
 ;; `quicksort' takes in a list of integers `xxs' and returns another list
 ;; with the same elements as `xxs', but sorted in ascending order.
-(: quicksort (-> list list))
+(: quicksort (-> ilist ilist))
 (define quicksort (xxs)
     (match xxs  ;; match expression moves `xxs' goes out of scope
         [(nil)  ;; in this match, we deallocate a `nil'
@@ -134,12 +136,13 @@ This system achieves our goal of being able to extract all fields of a value sim
                 (
                     [lesser
                         (filterlt
-                            (x (dup xs))  ;; `dup' creates a deep copy of
+                            (x (dup xs))    ;; `dup' creates a deep copy of
                                             ;; `xs' so it does NOT go out-of-scope
                         )
                     ]
-                    [greater (filterge (x xs))]   ;; `xs' is consumed here and thus
-                                                    ;; goes out-of-scope
+                    [greater
+                        (filterge (x xs))   ;; `xs' is consumed here and thus
+                    ]                       ;; goes out-of-scope
                 )
                 (concat
                     (quicksort lesser)
@@ -150,6 +153,7 @@ This system achieves our goal of being able to extract all fields of a value sim
     )
 )
 \end{lstlisting}
+\end{adjustwidth}
 
 \newpage
 
