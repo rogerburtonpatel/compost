@@ -6,6 +6,7 @@
 \usepackage{graphicx}
 \usepackage{caption}
 \usepackage{hyperref}
+\usepackage{listings}
 
 \title{Compost}
 
@@ -14,6 +15,11 @@
 \date{September 20, 2023}
 
 \begin{document}
+
+\lstset{
+  language=Lisp,
+  numbers=left
+}
 
 \maketitle
 
@@ -26,122 +32,126 @@ val name_email_map : (string * string) list =
 \end{verbatim}
 
 \section{Introduction}
-
-Here, introduce our readers to the Compost language and give a brief overview on how it may be used.
-
+Compost is a general-purpose functional programming language with a uniqueness type system. That is, the type system guarantees that at most one reference to an object exists at any time. Programs in Compost include no explicit memory management and run without the need for a runtime garbage collector. In a manner akin to Rust, we automatically insert allocate and free directives at compile time, guaranteeing memory safety. The uniqueness type system is an interesting paradigm that leads to unique design decisions, and one that we’re excited to explore in our ambitious project.
 \section{Compost Features}
 
 \subsection{Uniqueness types}
-
+Our type system guarantees that only a single reference exists to any object at a time by moving names out of scope once they have been “consumed” in one of a few ways. A name is consumed when it is passed to a function, passed out as a return value, or pattern matched on. Values of primitive types (char, int, bool), along with functions, are exempt from these rules.
+\\\\
+We imagine that each function has a set of names that it is “responsible for”. A function is initially responsible for all of its parameters, and becomes responsible for any fresh names that it binds, either in pattern matches or let expressions. A function loses responsibility for any name that is consumed. Because Compost is a language of expressions and lacks (at the moment) any kind of sequencing expression, we can compute this set at any point in a function’s code.
+\\\\
+The compiler ensures that deallocation is performed in two scenarios. First, at the end of each of its paths, a function is responsible for freeing the memory associated with all of the names it is still responsible for. Values of primitive types (char, int, bool), along with functions, are exempt from this because they are not heap-allocated. Second, deallocation occurs in a pattern-matching \texttt{match} statement. In this case, the top-level data structure is freed (for example, the top-level cons cell), and its children are bound by new names. In both cases, we can deallocate safely because of the invariant supplied by uniqueness types. In addition, the concept of responsibility ensures that all allocated memory will be freed by the end of a program’s execution. A function either frees a name’s associated memory or hands the responsibility off to another function.
 \subsection{Hindley-Milner Type Inference}
-
+Implementing Hindley-Milner Type Inference allows for users to define functions without explicitly stating the input and output types, avoiding all sorts of pain in defining and applying type constructors. Users can pass inputs into functions, and the compiler would infer the input’s type based on how it is used.
 \subsection{Algebraic Data Types with Top-Level Pattern Matching}
-
-List out 2-3 interesting features of the language.
+With Compost, users can define their own algebraic data types (such as lists and trees) using the \texttt{define-datatype} keyword. A name for the datatype is supplied, along with a series of variant definitions. Each variant definition includes a name (the tag) followed by a series of type annotations which name and type its fields. See lines 1 to 9 of our code example for an example.
+\\\\
+The tag is used in two ways. First, it is used as the name of a function which takes arguments whose types match the types of the variant’s fields and introduces a value of that variant. See line 21 of our code example for a use case. The second is in what we call a “top-level pattern match”. This resembles a match case expression in Haskell or ML but is really just branching on the value of the tag. See line 18 of our code example for an example. Each branch of the expression contains a “pattern”, a tag followed by names to bind each of its fields, and an expression. Informally, the semantics of the top-level pattern match are that the first branch with a tag matching the that of the value being matched on is taken, the names in the pattern are bound to the values of the associated fields of the value, and the expression is evaluated in an environment augmented with the newly bound names.
+\\\\
+This system achieves our goal of being able to extract all fields of a value simultaneously without the complexity of a match compiler. A match expression should compile to a switch instruction, with each branch containing a cast and a series of assignments.
 
 \newpage
 \section{Code Example}
 
-\begin{verbatim}
-    (define-datatype list   ;; example datatype definition of a list of ints
-        [cons   ;; the `cons' tag is both the name of the function that introduces
-                ;; a value of this variant and the tag used during pattern matching
-            (: car int)     ;; the tag is followed by type annotations of the form
-                            ;; (: <field-name> <type>)
-            (: cdr list)
+\begin{lstlisting}
+(define-datatype list   ;; example datatype definition of a list of ints
+    [cons   ;; the `cons' tag is both the name of the function that introduces
+            ;; a value of this variant and the tag used during pattern matching
+        (: car int)     ;; the tag is followed by type annotations of the form
+                        ;; (: <field-name> <type>)
+        (: cdr list)
+    ]
+    [nil]
+)
+
+;; `concat' takes in two lists of integers `xxs' and `ys' and returns another
+;; list containing all elements in `xxs' followed by all elements in `ys'.
+(: concat (-> (list list) list))    ;; a top-level type annotation
+                                    ;; giving a type for `concat',
+                                    ;; which is a function that takes in
+                                    ;; two lists and returns a list
+(define concat (xxs ys)
+    (match xxs  ;; a pattern match. `xxs' is now considered out-of-scope
+        [(cons x xs)    ;; a pattern. this deallocates `xxs''s top level `cons'
+                        ;; and binds `x' to its `car' and `xs' to its `cdr'
+            (cons x (concat xs ys)) ;; `cons' is used to introduce a `(list a)',
+        ]                           ;; corresponding to an allocation
+        [(nil) ys]      ;; in this branch, the `nil' is deallocated,
+                        ;; resulting in the complete destruction of `xxs'
+    )
+)
+
+;; `filterge' takes in an integer `n' and a list of integers `xxs' and returns
+;; a list of all elements in `xxs' that are greater than or equal to `n'.
+(: filterge (-> (int list) list)    ;; a top-level type annotation giving
+                                    ;; a type for `filterge'
+(define filterge (n xxs)
+    (match xxs  ;; a pattern match. `xxs' is now considered out-of-scope
+        [(cons x xs)    ;; deallocates `xxs' top level `cons' and binds
+                        ;; `x' to its `car' and `xs' to its `cdr'
+            (if (>= x n)    ;; `x' is a primitive value,
+                            ;; so does NOT go out-of-scope
+                (cons x (filterge n xs))    ;; we allocate a `cons'
+                (filterge n xs)
+            )
         ]
-        [nil]
+        [(nil) (nil)]   ;; in this match, we deallocate a `nil' but
+                        ;; allocate a new `nil'
     )
+)
 
-    ;; `concat' takes in two lists of integers `xxs' and `ys' and returns another 
-    ;; list containing all elements in `xxs' followed by all elements in `ys'.
-    (: concat (-> (list list) list))    ;; a top-level type annotation
-                                        ;; giving a type for `concat',
-                                        ;; which is a function that takes in 
-                                        ;; two lists and returns a list
-    (define concat (xxs ys)
-        (match xxs  ;; a pattern match. `xxs' is now considered out-of-scope
-            [(cons x xs)    ;; a pattern. this deallocates `xxs''s top level `cons'
-                            ;; and binds `x' to its `car' and `xs' to its `cdr'
-                (cons x (concat xs ys)) ;; `cons' is used to introduce a `(list a)',
-            ]                           ;; corresponding to an allocation
-            [(nil) ys]      ;; in this branch, the `nil' is deallocated,
-                            ;; resulting in the complete destruction of `xxs'
-        )
+;; `filterlt' takes in an integer `n' and list of integers `xxs' and returns
+;; a list of all elements in `xxs' that are less than `n'.
+(: filterlt (-> (int list) list)    ;; a top-level type annotation giving
+                                    ;; a type for `filterlt'
+(define filterlt (n xxs)
+    (match xxs  ;; a pattern match. `xxs' is now considered out-of-scope
+        [(cons x xs)    ;; deallocates `xxs' top level `cons' and binds
+                        ;; `x' to its `car' and `xs' to its `cdr'
+            (if (< x n)     ;; `x' is a primitive value,
+                            ;; so does NOT go out-of-scope
+                (cons x (filterlt n xs))    ;; we allocate a `cons'
+                (filterlt n xs)
+            )
+        ]
+        [(nil) (nil)]   ;; in this match, we deallocate a `nil' but
+                        ;; allocate a new `nil'
     )
+)
 
-    ;; `filterge' takes in an integer `n' and a list of integers `xxs' and returns 
-    ;; a list of all elements in `xxs' that are greater than or equal to `n'.
-    (: filterge (-> (int list) list)    ;; a top-level type annotation giving
-                                        ;; a type for `filterge'
-    (define filterge (n xxs)
-        (match xxs  ;; a pattern match. `xxs' is now considered out-of-scope
-            [(cons x xs)    ;; deallocates `xxs' top level `cons' and binds
-                            ;; `x' to its `car' and `xs' to its `cdr'
-                (if (>= x n)    ;; `x' is a primitive value,
-                                ;; so does NOT go out-of-scope
-                    (cons x (filterge n xs))    ;; we allocate a `cons'
-                    (filterge n xs)
+;; `quicksort' takes in a list of integers `xxs' and returns another list
+;; with the same elements as `xxs', but sorted in ascending order.
+(: quicksort (-> list list))
+(define quicksort (xxs)
+    (match xxs  ;; match expression moves `xxs' goes out of scope
+        [(nil)  ;; in this match, we deallocate a `nil'
+            (nil)   ;; here, we allocate a new `nil'
+        ]
+        [(cons x xs)    ;; in this match, we deallocate a `cons',
+                        ;; bind its `car' to `x', and bind its `cdr'
+                        ;; to `xs'
+            (let*
+                (
+                    [lesser
+                        (filterlt
+                            (x (dup xs))  ;; `dup' creates a deep copy of
+                                            ;; `xs' so it does NOT go out-of-scope
+                        )
+                    ]
+                    [greater (filterge (x xs))]   ;; `xs' is consumed here and thus
+                                                    ;; goes out-of-scope
                 )
-            ]
-            [(nil) (nil)]   ;; in this match, we deallocate a `nil' but 
-                            ;; allocate a new `nil'
-        )
-    )
-
-    ;; `filterlt' takes in an integer `n' and list of integers `xxs' and returns 
-    ;; a list of all elements in `xxs' that are less than `n'.
-    (: filterlt (-> (int list) list)    ;; a top-level type annotation giving
-                                        ;; a type for `filterlt'
-    (define filterlt (n xxs)
-        (match xxs  ;; a pattern match. `xxs' is now considered out-of-scope
-            [(cons x xs)    ;; deallocates `xxs' top level `cons' and binds
-                            ;; `x' to its `car' and `xs' to its `cdr'
-                (if (< x n)     ;; `x' is a primitive value,
-                                ;; so does NOT go out-of-scope
-                    (cons x (filterlt n xs))    ;; we allocate a `cons'
-                    (filterlt n xs)
+                (concat
+                    (quicksort lesser)
+                    (cons x (quicksort greater))    ;; allocate a `cons'
                 )
-            ]
-            [(nil) (nil)]   ;; in this match, we deallocate a `nil' but 
-                            ;; allocate a new `nil'
-        )
+            )
+        ]
     )
+)
+\end{lstlisting}
 
-    ;; `quicksort' takes in a list of integers `xxs' and returns another list 
-    ;; with the same elements as `xxs', but sorted in ascending order.
-    (: quicksort (-> list list))
-    (define quicksort (xxs)
-        (match xxs  ;; match expression moves `xxs' goes out of scope
-            [(nil)  ;; in this match, we deallocate a `nil'
-                (nil)   ;; here, we allocate a new `nil'
-            ]
-            [(cons x xs)    ;; in this match, we deallocate a `cons',
-                            ;; bind its `car' to `x', and bind its `cdr'
-                            ;; to `xs'
-                (let*
-                    (
-                        [lesser
-                            (filterlt
-                                (x (dup xs))  ;; `dup' creates a deep copy of
-                                              ;; `xs' so it does NOT go out-of-scope
-                            )
-                        ]
-                        [greater (filterge (x xs))]   ;; `xs' is consumed here and thus
-                                                      ;; goes out-of-scope
-                    )
-                    (concat
-                        (quicksort lesser)
-                        (cons x (quicksort greater))    ;; allocate a `cons'
-                    )
-                )
-            ]
-        )
-    )
-\end{verbatim}
-
-\emph{Note: Some example proposals interleave features with mini-code examples of that feature. We 
-may want to consider that.}
+\newpage
 
 \section{Additional Sections}
 
