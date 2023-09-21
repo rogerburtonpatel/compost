@@ -157,13 +157,12 @@ This system achieves our goal of being able to extract all fields of a value sim
 
 \newpage
 
-\section{Additional Sections}
-
-Additional sections may include unique challenges for our language, background information, etc.
-
 \section{Reach Goals}
 
 \subsection{Polymorphism}
 Our proposal assumes monomorphic types for Compost's type system. This is an intentional choice to minimize complexity of implementation. We would, however, love to enable polymorphism by parameterizing Compost's ADTs. To do so, the language specified until this point would become an intermediate representation, and we would implement a new frontend supporting ``polymorphic Compost''. A monomorphizing pass would determine every monomorphic instantiation of each function and datatype and create monomorphic copies of them with names prefixed based on type arguments. We would reuse the rest of the compiler downstream from monomorphic Compost.
+
+\subsection{Closures}
+Anonymous functions which capture their environment are a key feature of many functional programming languages and one which we'd like very much to implement in Compost. However, these present a few challenges with our type system. At the moment, the programmer is free to apply a function multiple times without having to invoke \texttt{dup}, as they are just function pointers under the hood. Closures, however, must store captures values from the environment, some of which may be heap objects that must be freed. How exactly to handle these is its own challenge and not one that we want to get in the way of implementing the core of Compost.
 
 \end{document}
