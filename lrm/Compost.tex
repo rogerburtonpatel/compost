@@ -1,0 +1,50 @@
+\documentclass[11pt]{article}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{fullpage}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{changepage}
+
+\title{Compost: Language Reference Manual}
+
+\author{}
+
+\date{October 18, 2023}
+
+\begin{document}
+
+\lstset{
+  language=Lisp,
+  numbers=left
+}
+
+\maketitle
+
+\begin{verbatim}
+val name_email_map : (string * string) list =
+[("Roger Burtonpatel", "roger.burtonpatel@tufts.edu");
+ ("Randy Dang", "randy.dang@tufts.edu");
+ ("Jasper Geer", "jasper.geer@tufts.edu");
+ ("Jackson Warhover", "jackson.warhover@tufts.edu")]  
+\end{verbatim}
+
+\section{Introduction}
+Briefly explain our language and the LRM.
+
+\section{Notation Conventions}
+
+Describe how to read notation in manual (how we are formatting prose vs. code vs. grammar stuff)
+
+\section{Syntax and Semantics}
+
+Describe syntax and semantics of each ``thing'' in our language, including a full-fledged grammar.
+
+\section{Standard Library}
+
+Describe what we plan to include in a standard library (initial basis in our case?).
+
+\end{document}

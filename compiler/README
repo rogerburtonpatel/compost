@@ -1,0 +1,20 @@
+Names and email addresses:
+val name_email_map : (string * string) list =
+[("Roger Burtonpatel", "roger.burtonpatel@tufts.edu");
+ ("Randy Dang", "randy.dang@tufts.edu");
+ ("Jasper Geer", "jasper.geer@tufts.edu");
+ ("Jackson Warhover", "jackson.warhover@tufts.edu")]  
+
+
+How to compile / execute compiler: 
+
+
+How to run test script:
+
+
+Syntax that still needs to be added:
+
+
+Additional packages to install:
+
+
