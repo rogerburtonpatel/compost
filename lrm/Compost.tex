@@ -8,6 +8,7 @@
 \usepackage{hyperref}
 \usepackage{listings}
 \usepackage{changepage}
+\usepackage{syntax}
 
 \title{Compost: Language Reference Manual}
 
@@ -42,6 +43,53 @@ Describe how to read notation in manual (how we are formatting prose vs. code vs
 \section{Syntax and Semantics}
 
 Describe syntax and semantics of each ``thing'' in our language, including a full-fledged grammar.
+
+\begin{grammar}
+  <def> ::= (\texttt{val} <name> <exp>)
+    \alt (\texttt{define} <name> (\{<name>\}) <exp>)
+    \alt (\texttt{datatype} <name> (\{<variant>\}))
+    \alt (\texttt{:} <name> <type>)
+    \alt (\texttt{use} <filename>)
+
+  <variant> ::= (<name> (\{<type>\}))
+
+  <type> ::= (\texttt{->} (\{<type>\}) <type>)
+    \alt \texttt{int}
+    \alt \texttt{char}
+    \alt \texttt{bool}
+    \alt \texttt{unit}
+    \alt \texttt{sym}
+    \alt <name>
+
+  <expr> ::= <literal>
+    \alt <name>
+    \alt (\texttt{case} <expr> (\{<case-branch>\}))
+    \alt (\texttt{if} <expr> <expr> <expr>)
+    \alt (\texttt{begin} \{<expr>\})
+    \alt (<expr> \{<expr>\})
+    \alt (\texttt{let} (\{(<name> <expr>)\}) <expr>)
+
+  <case-branch> ::= (<pattern> <expr>)
+
+  <pattern> ::= (<name> (\{<name> | \texttt{_}\}))
+    \alt \texttt{_}
+
+  <literal> ::= <int-lit>
+    \alt <sym-lit>
+    \alt <bool-lit>
+    \alt \texttt{unit}
+
+  <int-lit> ::= token composed only of digits, possibly prefixed with a \texttt{+} or \texttt{-}.
+
+  <bool-lit> ::= \texttt{true} | \texttt{false}
+
+  <sym-lit> ::= \texttt{'}\{<sym-char>\}\texttt{'}
+
+  <sym-char> ::= any unicode code point other than \texttt{'} unless escaped with a \texttt{\textbackslash}.
+
+  <name> ::= any token that is not an \textit{int-lit}, does not contain a \texttt{'} or bracket, and is not one of the reserved words shown in typewriter font
+
+\end{grammar}
 
 \section{Standard Library}
 
