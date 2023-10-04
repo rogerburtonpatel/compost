@@ -4,3 +4,11 @@
 proposal/proposal.aux 
 proposal/proposal.log 
 proposal/proposal.out
+
+# lrm 
+lrm/Compost.aux
+lrm/Compost.log
+lrm/Compost.out 
+
+# compiler 
+compiler/_build/

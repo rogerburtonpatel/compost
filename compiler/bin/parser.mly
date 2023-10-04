@@ -1,11 +1,20 @@
 /* Ocamlyacc parser for MicroC */
 
 %{
-open Ast
+  open Ast
 %}
 
-%token LPAREN RPAREN
-%token EOF
+%token LPAREN RPAREN LBRACKET RBRACKET 
+%token QUOTE ESCAPE BACKSLASH 
+%token VAL DEFINE DATATYPE USE COLON 
+%token CASE IF BEGIN LET 
+%token INTTYPE BOOLTYPE UNITTYPE SYMTYPE 
+%token EOF 
+
+%token <string> NAME
+%token <int> INTLIT
+%token <bool> BOOLLIT
+%token 
 
 %start program
 %type <Ast.program> program
