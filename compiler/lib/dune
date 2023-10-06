@@ -1,0 +1,7 @@
+(library
+ (name compost)
+ (libraries llvm llvm.analysis))
+
+;; Drives scanning and parsing 
+(library 
+ (name toplevel))

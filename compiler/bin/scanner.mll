@@ -7,7 +7,8 @@ let digits = digit+
 
 let boolean = "true" | "false" 
 
-let string_contents = "(?:[^'\\]|\\.)*"
+let string_char = [ ^ '\'' '\\' ] | "\\'"
+let string_contents = string_char+
 
 rule token = parse
   [' ' '\t' '\r' '\n'] { token lexbuf } (* Whitespace *)
@@ -17,7 +18,7 @@ rule token = parse
 | '['      { LBRACKET }
 | ']'      { RBRACKET }
 | ':'      { COLON }
-| '\''     { symbol lexbuf }
+| '\''     { symbol_start lexbuf }
 | '\\'     { BACKSLASH }
 | "if"     { IF }
 | "val"    { VAL }
@@ -27,9 +28,9 @@ rule token = parse
 | "case"   { CASE }
 | "begin"  { BEGIN }
 | "let"    { LET }
-| "int"    { INTTYPE }
-| "bool"   { BOOLTYPE }
-| "sym"    { SYMTYPE }
+| "int"    { INT }
+| "bool"   { BOOL }
+| "sym"    { SYM }
 | digits as lxm { INTLIT(int_of_string lxm) }
 | boolean as lxm { BOOLLIT(bool_of_string lxm) }
 | [^'(' ')' '[' ']' '\'' ' ']+ as lxm { NAME(lxm) }
@@ -40,7 +41,10 @@ and comment = parse
   "\n" { token lexbuf }
 | _    { comment lexbuf }
 
-and symbol = parse 
+(* NEEDSWORK: Symbol parsing is nonfunctional. Also needs to be changed to 
+ * allow empty strings *)
+and symbol_start = parse 
+  string_contents as lxm { SYMLIT(lxm) }
 | '\'' { token lexbuf }
-| string_contents as lxm { SYM(lxm) }
-| _ { raise (Failure("invalid string")) }
+| _ { raise (Failure("invalid symbol")) }
+

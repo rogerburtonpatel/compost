@@ -15,7 +15,13 @@
   (flags
    (:standard -warn-error -A))))
 
-(executable
- (public_name compost)
- (name compost)
- (libraries compost))
+;; (executable
+;;  (public_name compost)
+;;  (name compost)
+;;  (libraries compost))
+
+;; drives scanning/parsing
+(executable 
+ (public_name toplevel)
+ (name toplevel)
+ (libraries toplevel))

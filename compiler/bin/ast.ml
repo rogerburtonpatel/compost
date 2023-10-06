@@ -1,14 +1,79 @@
 (* Abstract Syntax Tree and functions for printing it *)
 
-(* Types definitions formatted as follows: 
- * type _type_ = 
-      _rule_ [ optional "of type" ]
-    | _rule_ [ optional "of type" ] 
- *)
+type name = string 
 
-(* Pretty printing functions, formatted as follows:
- * let string_of__type_ = function 
-   _rule_ [ optional "of type" ] -> _string_ 
- | _rule_ [ optional "of type" ] -> _string_ 
- *)
+type ty = Int | Char | Bool | Unit | Sym | CustomTy of name 
 
+type literal = 
+    IntLit of int 
+  | BoolLit of bool 
+  | SymLit of string 
+  | UnitLit 
+
+type pattern = 
+    Pattern of name * name list 
+  | Wildcard
+
+type casebranch = CaseBranch of pattern * expr 
+
+and bind = name * expr 
+
+and expr = 
+    Literal of literal 
+  | NameExpr of name 
+  | Case of expr * (casebranch list) 
+  | If of expr * expr * expr 
+  | Begin of expr list 
+  | Let of (bind list) * expr 
+  | Block of expr list 
+
+type variant = Variant of name * (ty list) 
+
+type def = 
+    Val of name * expr
+  | Define of name * (name list) * expr 
+  | Datatype of name * (variant list) 
+  | TyAnnotation of name * ty 
+  (* NEEDSWORK: Determine if we're allowing "use" on filename *)
+
+type program = def list 
+
+(* Pretty printing functions *)
+
+let rec string_of_namelist = function 
+   [] -> ""
+ | name :: names -> name ^ " " ^ string_of_namelist names 
+
+let string_of_lit = function 
+   IntLit(lit) -> string_of_int lit 
+ | BoolLit(lit) -> string_of_bool lit 
+ | SymLit(lit) -> "'" ^ lit ^ "'"
+ | UnitLit -> "unit"
+
+let rec string_of_expr = function 
+   Literal(lit) -> string_of_lit lit 
+ | NameExpr(name) -> name 
+ | If(expr1, expr2, expr3) -> 
+     "(if " ^ string_of_expr expr1 ^ " " ^ string_of_expr expr2 ^ " " ^ string_of_expr expr3 ^ ")"
+ | Begin(exprlist) -> 
+     "(begin " ^ String.concat " " (List.map string_of_expr exprlist) ^ ")"
+ | Let(bindlist, expr) ->
+     "(let " ^ "(" ^ String.concat " " (List.map string_of_bind bindlist) ^ ") " ^ string_of_expr expr ^ ")"
+ | Block(exprlist) -> 
+     "(" ^ String.concat " " (List.map string_of_expr exprlist) ^ ")"
+ | _ ->
+     "unimplemented"
+ (* NEEDSWORK: Implement pretty printing for case *)
+
+and string_of_bind = function 
+   (name, expr) -> "[" ^ name ^ " " ^ string_of_expr expr ^ "]"
+
+let string_of_def = function 
+   Val(name, expr) -> "(val " ^ name ^ " " ^ string_of_expr expr ^ ")"
+ | Define(name, namelist, expr) -> 
+     "(define " ^ name ^ " (" ^ String.concat " " namelist ^ ") " ^ string_of_expr expr ^ ")"
+ | _ ->
+     "unimplemented"
+ (* NEEDSWORK: Implement pretty printing for other defines *)
+
+let string_of_program deflist = String.concat "\n" (List.map string_of_def deflist)
