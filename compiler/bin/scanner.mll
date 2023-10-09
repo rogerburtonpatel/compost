@@ -7,8 +7,10 @@ let digits = digit+
 
 let boolean = "true" | "false" 
 
-let string_char = [ ^ '\'' '\\' ] | "\\'"
+let string_char = [^'\'' '\\' ] | "\\\'" | "\\\\"
 let string_contents = string_char+
+
+let symlit = '\'' string_contents '\''
 
 rule token = parse
   [' ' '\t' '\r' '\n'] { token lexbuf } (* Whitespace *)
@@ -18,7 +20,6 @@ rule token = parse
 | '['      { LBRACKET }
 | ']'      { RBRACKET }
 | ':'      { COLON }
-| '\''     { symbol_start lexbuf }
 | '\\'     { BACKSLASH }
 | "if"     { IF }
 | "val"    { VAL }
@@ -33,18 +34,14 @@ rule token = parse
 | "sym"    { SYM }
 | digits as lxm { INTLIT(int_of_string lxm) }
 | boolean as lxm { BOOLLIT(bool_of_string lxm) }
+| symlit as lxm { SYMLIT(String.sub lxm 1 (String.length lxm - 2)) } (* Trim out quote characters *)
 | [^'(' ')' '[' ']' '\'' ' ']+ as lxm { NAME(lxm) }
 | eof { EOF }
 | _ as char { raise (Failure("illegal character " ^ Char.escaped char)) }
 
+(* NEEDSWORK: Comments currently only work if there is a space character after the semicolon, but not 
+ * with any other character immediately following the semicolon for some reason *)
 and comment = parse
-  "\n" { token lexbuf }
+  '\n' { token lexbuf }
 | _    { comment lexbuf }
-
-(* NEEDSWORK: Symbol parsing is nonfunctional. Also needs to be changed to 
- * allow empty strings *)
-and symbol_start = parse 
-  string_contents as lxm { SYMLIT(lxm) }
-| '\'' { token lexbuf }
-| _ { raise (Failure("invalid symbol")) }
 
