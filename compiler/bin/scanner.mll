@@ -8,7 +8,7 @@ let digits = digit+
 let boolean = "true" | "false" 
 
 let string_char = [^'\'' '\\' ] | "\\\'" | "\\\\"
-let string_contents = string_char+
+let string_contents = string_char*
 
 let symlit = '\'' string_contents '\''
 
@@ -35,12 +35,10 @@ rule token = parse
 | digits as lxm { INTLIT(int_of_string lxm) }
 | boolean as lxm { BOOLLIT(bool_of_string lxm) }
 | symlit as lxm { SYMLIT(String.sub lxm 1 (String.length lxm - 2)) } (* Trim out quote characters *)
-| [^'(' ')' '[' ']' '\'' ' ']+ as lxm { NAME(lxm) }
+| [^'(' ')' '[' ']' '\'' ' ' ';']+ as lxm { NAME(lxm) }
 | eof { EOF }
 | _ as char { raise (Failure("illegal character " ^ Char.escaped char)) }
 
-(* NEEDSWORK: Comments currently only work if there is a space character after the semicolon, but not 
- * with any other character immediately following the semicolon for some reason *)
 and comment = parse
   '\n' { token lexbuf }
 | _    { comment lexbuf }
