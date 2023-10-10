@@ -9,6 +9,7 @@
 %token VAL DEFINE DATATYPE USE COLON 
 %token CASE IF BEGIN LET 
 %token INT BOOL UNIT SYM 
+%token WILDCARD 
 %token EOF 
 
 %token <string> NAME SYMLIT 
@@ -19,7 +20,9 @@
 %start program
 %type <Ast.program> program
 
-/* Associativity and precedence of tokens encoded here */
+/* No need to specify any associativity or precedence in our syntax because 
+   our parenthesized syntax makes everything explicit
+ */
 
 %%
 
@@ -49,9 +52,9 @@ expr:
  | NAME { NameExpr($1) } 
  | lbracket IF expr expr expr rbracket { If($3, $4, $5) }
  | lbracket BEGIN exprlist rbracket { Begin($3)}
- | lbracket exprlist rbracket { Block($2) }
+ | lbracket expr exprlist rbracket { Apply($2, $3) }
  | lbracket LET lbracket bindlist rbracket expr rbracket { Let($4, $6) }
-   /* NEEDSWORK: Implement case */
+ | lbracket CASE expr lbracket casebranchlist rbracket rbracket { Case($3, $5) }
 
 exprlist:
    /* nothing */ { [] }
@@ -60,6 +63,24 @@ exprlist:
 bindlist:
    /* nothing */ { [] }
  | lbracket NAME expr rbracket bindlist { ($2, $3) :: $5 }
+
+casebranch: lbracket pattern expr rbracket { CaseBranch($2, $3) }
+
+casebranchlist:
+   /* nothing */ { [] }
+ | casebranch casebranchlist { $1 :: $2 }
+
+pattern:
+   lbracket NAME nameorwildcardlist rbracket { Pattern($2, $3) }
+ | WILDCARD { WildcardPattern }
+
+nameorwildcardlist:
+   /* nothing */ { [] }
+ | nameorwildcard nameorwildcardlist { $1 :: $2 }
+
+nameorwildcard:
+   NAME { PatternBindVar($1) }
+ | WILDCARD { WildcardBind }
 
 literal:
    INTLIT { IntLit($1) }

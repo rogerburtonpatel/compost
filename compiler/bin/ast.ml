@@ -10,9 +10,13 @@ type literal =
   | SymLit of string 
   | UnitLit 
 
+type nameorwildcard = 
+    PatternBindVar of name 
+  | WildcardBind
+
 type pattern = 
-    Pattern of name * name list 
-  | Wildcard
+    Pattern of name * nameorwildcard list 
+  | WildcardPattern
 
 type casebranch = CaseBranch of pattern * expr 
 
@@ -25,7 +29,7 @@ and expr =
   | If of expr * expr * expr 
   | Begin of expr list 
   | Let of (bind list) * expr 
-  | Block of expr list 
+  | Apply of expr * (expr list) 
 
 type variant = Variant of name * (ty list) 
 
@@ -50,6 +54,15 @@ let string_of_lit = function
  | SymLit(lit) -> "'" ^ lit ^ "'"
  | UnitLit -> "unit"
 
+let string_of_nameorwildcard = function 
+   PatternBindVar(name) -> name 
+ | WildcardBind -> "_"
+
+let string_of_pattern = function 
+   Pattern(name, nameorwildcardlist) -> 
+     "(" ^ name ^ " " ^ String.concat " " (List.map string_of_nameorwildcard nameorwildcardlist) ^ ")"
+ | WildcardPattern -> "_"
+
 let rec string_of_expr = function 
    Literal(lit) -> string_of_lit lit 
  | NameExpr(name) -> name 
@@ -59,14 +72,16 @@ let rec string_of_expr = function
      "(begin " ^ String.concat " " (List.map string_of_expr exprlist) ^ ")"
  | Let(bindlist, expr) ->
      "(let " ^ "(" ^ String.concat " " (List.map string_of_bind bindlist) ^ ") " ^ string_of_expr expr ^ ")"
- | Block(exprlist) -> 
-     "(" ^ String.concat " " (List.map string_of_expr exprlist) ^ ")"
- | _ ->
-     "unimplemented"
- (* NEEDSWORK: Implement pretty printing for case *)
+ | Apply(expr, exprlist) -> 
+     "(" ^ string_of_expr expr ^ " " ^ String.concat " " (List.map string_of_expr exprlist) ^ ")"
+ | Case(expr, casebranchlist) ->
+     "(case " ^ string_of_expr expr ^ " (" ^ String.concat " " (List.map string_of_casebranch casebranchlist) ^ "))"
 
 and string_of_bind = function 
    (name, expr) -> "[" ^ name ^ " " ^ string_of_expr expr ^ "]"
+  
+and string_of_casebranch = function 
+   CaseBranch(pattern, expr) -> "[" ^ string_of_pattern pattern ^ " " ^ string_of_expr expr ^ "]"
 
 let string_of_def = function 
    Val(name, expr) -> "(val " ^ name ^ " " ^ string_of_expr expr ^ ")"

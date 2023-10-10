@@ -21,6 +21,7 @@ rule token = parse
 | ']'      { RBRACKET }
 | ':'      { COLON }
 | '\\'     { BACKSLASH }
+| '_'      { WILDCARD }
 | "if"     { IF }
 | "val"    { VAL }
 | "define" { DEFINE }
