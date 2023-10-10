@@ -10,6 +10,14 @@
 \usepackage{changepage}
 \usepackage{syntax}
 
+\renewcommand{\syntleft}{\normalfont\itshape}
+\renewcommand{\syntright}{}
+
+\setlength{\grammarparsep}{20pt plus 1pt minus 1pt} % increase separation between rules
+\setlength{\grammarindent}{12em} % increase separation between LHS/RHS
+
+\setlength{\parindent}{0cm}
+
 \title{Compost: Language Reference Manual}
 
 \author{}
@@ -36,42 +44,105 @@ val name_email_map : (string * string) list =
 \section{Introduction}
 Briefly explain our language and the LRM.
 
-\section{Notation Conventions}
+\section{Conventions}
 
-Describe how to read notation in manual (how we are formatting prose vs. code vs. grammar stuff)
+Code listings will appear as follows:
 
+\begin{verbatim}
+(define foo ()
+  bar)
+\end{verbatim}
+Grammar rules are written in extended Backus-Naur format, as follows:
+\begin{grammar}
+  <rule> ::= <nonterminal> \texttt{terminal}
+    \alt ::= \{ <other-rule> \}
+
+\end{grammar}
+Note that terms enclosed in brackets, as seen in the second line of our example grammar, may be omitted or repeated.
+
+\newpage
 \section{Syntax and Semantics}
 
-Describe syntax and semantics of each ``thing'' in our language, including a full-fledged grammar.
+\subsection{Types}
 
 \begin{grammar}
-  <def> ::= (\texttt{val} <name> <exp>)
-    \alt (\texttt{define} <name> (\{<name>\}) <exp>)
-    \alt (\texttt{datatype} <name> (\{<variant>\}))
-    \alt (\texttt{:} <name> <type>)
-    \alt (\texttt{use} <filename>)
 
-  <variant> ::= (<name> (\{<type>\}))
-
-  <type> ::= (\texttt{->} (\{<type>\}) <type>)
+  <type> ::= (\texttt{->} (\{ <type> \}) <type>)
     \alt \texttt{int}
-    \alt \texttt{char}
     \alt \texttt{bool}
-    \alt \texttt{unit}
     \alt \texttt{sym}
     \alt <name>
 
+\end{grammar}
+
+Compost provides three primitive types.
+These are \texttt{int}: 32-bit signed integers, \texttt{bool}: boolean values \texttt{true} or \texttt{false}, and \texttt{sym}: interned immutable strings.
+In addition, there is a single type constructor, the \texttt{->} (arrow) type, which is used to construct the types of functions.
+For example, the type of the \texttt{+} function, which returns the sum of two integers, would be:
+
+\begin{verbatim}
+(-> (int int) int)
+\end{verbatim}
+
+Within the pair of parentheses following the arrow are the types of the function's arguments, and the type following the closing parenthesis is the function's return type.
+\\\\
+Note that a type may be a name other than those of the primtive types.
+Here the programmer can name a datatype, declared by the \texttt{datatype} form discussed in section 3.2.
+
+\subsection{Definitions}
+Syntactic forms in the $def$ category are allowed only at the top level of a Compost program.
+
+\begin{grammar}
+  <def> ::= (\texttt{val} <name> <exp>)
+    \alt (\texttt{define} <name> (\{ <name> \}) <exp>)
+    \alt (\texttt{datatype} <name> (\{ <variant> \}))
+    \alt (\texttt{:} <name> <type>)
+    \alt (\texttt{use} <filename>)
+
+  <variant> ::= (<name> (\{ <type> \}))
+\end{grammar}
+
+The \texttt{val} form introduces an immutable globally scoped binding.
+Note that the bound name is in scope only in code located below the declaration.
+For example the programmer may declare a global constant:
+
+\begin{verbatim}
+(val triangle-sides 3)
+\end{verbatim}
+
+Now, any following code may reference \texttt{triangle-sides} in place of the literal \texttt{3}.
+
+\newpage
+The \texttt{define} form introduces a function in the global scope.
+Note that the order of function declarations does not matter.
+Any function may be referenced from any location in the program.
+For example, the following introduces a function that returns the greater of its two arguments:
+
+\begin{verbatim}
+(define max (x y)
+  (if (> x y)
+      x
+      y
+  )
+)
+\end{verbatim}
+
+The name directly following the \texttt{define} keyword is bound to the function in the global scope, and the sequence of names within the parentheses are bound within the function body to its arguments.
+
+\subsection{Expressions}
+\begin{grammar}
   <expr> ::= <literal>
     \alt <name>
-    \alt (\texttt{case} <expr> (\{<case-branch>\}))
+    \alt (\texttt{case} <expr> (\{ <case-branch> \}))
     \alt (\texttt{if} <expr> <expr> <expr>)
-    \alt (\texttt{begin} \{<expr>\})
-    \alt (<expr> \{<expr>\})
-    \alt (\texttt{let} (\{(<name> <expr>)\}) <expr>)
+    \alt (\texttt{begin} \{ <expr> \})
+    \alt (<expr> \{ <expr> \})
+    \alt (\texttt{let} (\{ (<name> <expr>) \}) <expr>)
+    \alt (\texttt{dup} <name>)
 
   <case-branch> ::= (<pattern> <expr>)
 
-  <pattern> ::= (<name> (\{<name> | \texttt{_}\}))
+  <pattern> ::= (<name> \{ <name> | \texttt{_} \})
     \alt \texttt{_}
 
   <literal> ::= <int-lit>
@@ -83,7 +154,7 @@ Describe syntax and semantics of each ``thing'' in our language, including a ful
 
   <bool-lit> ::= \texttt{true} | \texttt{false}
 
-  <sym-lit> ::= \texttt{'}\{<sym-char>\}\texttt{'}
+  <sym-lit> ::= \texttt{'}\{ <sym-char> \}\texttt{'}
 
   <sym-char> ::= any unicode code point other than \texttt{'} unless escaped with a \texttt{\textbackslash}.
 
