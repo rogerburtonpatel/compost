@@ -5,11 +5,10 @@
 %}
 
 %token LPAREN RPAREN LBRACKET RBRACKET 
-%token QUOTE ESCAPE BACKSLASH 
 %token VAL DEFINE DATATYPE USE COLON 
 %token CASE IF BEGIN LET 
 %token INT BOOL UNIT SYM 
-%token WILDCARD 
+%token WILDCARD ARROW DUP 
 %token EOF 
 
 %token <string> NAME SYMLIT 
@@ -41,11 +40,34 @@ defs:
 def:
    lbracket VAL NAME expr rbracket { Val($3, $4) }
  | lbracket DEFINE NAME lbracket namelist rbracket expr rbracket { Define($3, $5, $7) }
-   /* NEEDSWORK: Implement rest of defines */
+ | lbracket DATATYPE NAME lbracket variantlist rbracket rbracket { Datatype($3, $5) }
+ | lbracket COLON NAME ty rbracket { TyAnnotation($3, $4) }
+ | lbracket USE filename rbracket { Use($3) }
 
 namelist:
    /* nothing */  { [] }
  | NAME namelist { $1 :: $2 }
+
+variantlist:
+   /* nothing */ { [] }
+ | variant variantlist { $1 :: $2 }
+
+variant: lbracket NAME lbracket tylist rbracket rbracket { Variant($2, $4) }
+
+tylist:
+   /* nothing */ { [] }
+ | ty tylist { $1 :: $2 }
+
+ty: 
+   lbracket ARROW lbracket tylist rbracket ty rbracket { FunTy($4, $6) }
+ | INT { Int }
+ | BOOL { Bool }
+ | UNIT { Unit }
+ | SYM { Sym }
+ | NAME { CustomTy($1) }
+
+/* NEEDSWORK: Decide if we want more specific restrictions on filenames */
+filename: NAME { $1 } 
 
 expr:
    literal { Literal($1) }
@@ -55,6 +77,7 @@ expr:
  | lbracket expr exprlist rbracket { Apply($2, $3) }
  | lbracket LET lbracket bindlist rbracket expr rbracket { Let($4, $6) }
  | lbracket CASE expr lbracket casebranchlist rbracket rbracket { Case($3, $5) }
+ | lbracket DUP NAME rbracket { Dup($3) }
 
 exprlist:
    /* nothing */ { [] }

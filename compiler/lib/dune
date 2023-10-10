@@ -1,7 +1,8 @@
 (library
  (name compost)
- (libraries llvm llvm.analysis))
+ (libraries llvm llvm.analysis str))
 
 ;; Drives scanning and parsing 
 (library 
- (name toplevel))
+ (name toplevel)
+ (libraries str))
