@@ -43,6 +43,7 @@ rule token = parse
 | "int"    { INT }
 | "bool"   { BOOL }
 | "sym"    { SYM }
+| "unit"   { UNITLIT }
 | digits as lxm { INTLIT(int_of_string lxm) }
 | boolean as lxm { BOOLLIT(bool_of_string lxm) }
 | symlit as lxm { SYMLIT(format_sym_lit lxm) }
