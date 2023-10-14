@@ -12,7 +12,7 @@
 }
 
 let digit = ['0' - '9']
-let digits = digit+
+let digits = ('+' | '-' | "") digit+
 
 let boolean = "true" | "false" 
 
@@ -29,8 +29,8 @@ rule token = parse
 | '['      { LBRACKET }
 | ']'      { RBRACKET }
 | ':'      { COLON }
-| '\\'     { BACKSLASH }
 | '_'      { WILDCARD }
+| "->"     { ARROW }
 | "if"     { IF }
 | "val"    { VAL }
 | "define" { DEFINE }
@@ -39,9 +39,11 @@ rule token = parse
 | "case"   { CASE }
 | "begin"  { BEGIN }
 | "let"    { LET }
+| "dup"    { DUP }
 | "int"    { INT }
 | "bool"   { BOOL }
 | "sym"    { SYM }
+| "unit"   { UNITLIT }
 | digits as lxm { INTLIT(int_of_string lxm) }
 | boolean as lxm { BOOLLIT(bool_of_string lxm) }
 | symlit as lxm { SYMLIT(format_sym_lit lxm) }

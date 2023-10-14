@@ -1,4 +1,5 @@
 (* Top level file that drives scanner and parser *)
+open Toplevel
 let () =
     let usage_msg = "usage: ./compost.native [file.compost]" in
     let channel = ref stdin in
