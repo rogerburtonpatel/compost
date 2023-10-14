@@ -65,6 +65,8 @@ Note that terms enclosed in brackets, as seen in the second line of our example 
 
 \subsection{Types}
 
+Syntactic forms in the \textit{type} category may appear in type annotations (see section 3.2.2) or to type datatype fields (see section 3.2.3).
+
 \begin{grammar}
 
   <type> ::= (\texttt{->} (\{ <type> \}) <type>)
@@ -90,17 +92,19 @@ Note that a type may be a name other than those of the primtive types.
 Here the programmer can name a datatype, declared by the \texttt{datatype} form discussed in section 3.2.
 
 \subsection{Definitions}
-Syntactic forms in the $def$ category are allowed only at the top level of a Compost program.
+Syntactic forms in the \textit{def} category are allowed only at the top level of a Compost program.
 
 \begin{grammar}
   <def> ::= (\texttt{val} <name> <exp>)
     \alt (\texttt{define} <name> (\{ <name> \}) <exp>)
-    \alt (\texttt{datatype} <name> (\{ <variant> \}))
+    \alt (\texttt{datatype} <name> (\{ <cons-decl> \}))
     \alt (\texttt{:} <name> <type>)
     \alt (\texttt{use} <filename>)
 
-  <variant> ::= (<name> (\{ <type> \}))
+  <cons-decl> ::= (<name> (\{ <type> \}))
 \end{grammar}
+
+\subsubsection{Global Bindings}
 
 The \texttt{val} form introduces an immutable globally scoped binding.
 Note that the bound name is in scope only in code located below the declaration.
@@ -110,11 +114,11 @@ For example the programmer may declare a global constant:
 (val triangle-sides 3)
 \end{verbatim}
 
-Now, any following code may reference \texttt{triangle-sides} in place of the literal \texttt{3}.
+Now, any successive code may use \texttt{triangle-sides} in place of the literal \texttt{3}.
 
-\newpage
-The \texttt{define} form introduces a function in the global scope.
-Note that the order of function declarations does not matter.
+\subsubsection{Function Definitions}
+
+The \texttt{define} form defines a function in the global scope.
 Any function may be referenced from any location in the program.
 For example, the following introduces a function that returns the greater of its two arguments:
 
@@ -127,9 +131,120 @@ For example, the following introduces a function that returns the greater of its
 )
 \end{verbatim}
 
-The name directly following the \texttt{define} keyword is bound to the function in the global scope, and the sequence of names within the parentheses are bound within the function body to its arguments.
+The name directly following the \texttt{define} keyword is bound to the function in the global scope, and the list of names within the parentheses are bound, within the function body, to its arguments.
+\\\\
+Note that the order of function declarations does not matter.
+Thus, the programmer may write mutually recursive programs like so:
+
+\begin{verbatim}
+(: is-even (-> (int) bool))
+(define is-even (x)
+  (if (= x 0)
+      true
+      (not (is-odd (- x 1)))
+  )
+)
+
+(: is-odd (-> (int) bool))
+(define is-odd (x)
+  (if (= x 1)
+      true
+      (is-even (- x 1))
+  )
+)
+\end{verbatim}
+
+That is, despite \texttt{is-odd} being declared after \texttt{is-even}, \texttt{is-even} is in scope within the body of \texttt{is-odd}.
+
+\subsubsection{Type Annotations}
+
+Type annotations constrain the type of globally bound names.
+In Compost, such names appear in two forms: the names of functions and names bound globally by \texttt{val}.
+Take the definition of function \texttt{max} from the previous section.
+We left out one key point, that this definition cannot stand on its own.
+Each function definition must have a corresponding type annotation that gives its type.
+This annotation may appear before or after its corresponding definition, but it must exist. For example, the definition of \texttt{max} may be succeeded by the following annotation:
+
+\begin{verbatim}
+(: max (-> (int int) int))
+\end{verbatim}
+
+That is, \texttt{max} is a function that takes two integer arguments and returns an integer.
+Though the type of a function must be an ``arrow'' type, \texttt{->} may appear more than once in a function's type annotation.
+For example, consider the following:
+
+\begin{verbatim}
+(: add-or-sub (-> (bool) (-> (int int) int)))
+(define add-or-sub (cond)
+  (if cond
+      +
+      -
+  )
+)
+\end{verbatim}
+
+Given that \texttt{+} and \texttt{-} are binary addition and subtraction on integers as defined in the initial basis, \texttt{add-or-sub} is a function that, given a boolean argument, returns a functions from pairs of integers to integers.
+Note that Compost has no support for closures, so we cannot express the full range of higher-order functions.
+\\\\
+As mentioned, the other use of a type annotation is to type a \texttt{val}-bound name.
+As with function definitions, all \texttt{val} bindings must have an associated type annotation.
+However, the scoping rules here are more subtle.
+Although a \texttt{val} binding's type annotation may be located before or after the binding itself, the bound name is in scope only after the \texttt{val} binding itself.
+The location of the associated type annotation has no effect in this regard.
+
+\subsubsection{Datatypes}
+
+Datatypes are declared using the \texttt{datatype} form.
+Like functions, the placement of datatype's declaration has no bearing on where it can be referenced, introduced, or eliminated.
+In fact, datatypes may be defined recursively, as in the following example:
+
+\begin{verbatim}
+(datatype int-list
+  (cons (int int-list))
+  (nil ())
+)
+\end{verbatim}
+
+This declaration can be read as: ``an \texttt{int-list} is either a cons-cell containing an \texttt{int} and an \texttt{int-list}, or the empty list, \texttt{nil}''.
+The name of the type appears directly following the \texttt{datatype} keyword, and this is followed by a list of constructor declarations.
+Each constructor declaration provides a constructor name, which we refer to as the ``tag'', followed by a list of types.
+\\\\
+Tags serve two purposes.
+For every tag there exists a function of the same name which constructs a value of the corresponding datatype.
+In addition, when top-level pattern matching on a value of a datatype, the pattern in each branch is prefixed by a different tag.
+We will discuss top-level pattern matches in more detail in section 4, but here is an example using our already defined \texttt{int-list} datatype:
+
+\begin{verbatim}
+(: car (-> (intlist) int))
+(define car (xxs)
+  (case xxs
+    ((cons x xs) x)
+    ((nil) (error 'tried to take car of nil'))
+  )
+)
+
+(: main (-> () unit)
+(define main ()
+  (let
+    (
+      [xs (cons 1 nil)]
+      [y (car xs)]
+    )
+    (print-int y)
+  )
+)
+\end{verbatim}
+
+Here, \texttt{car} performs a top-level pattern match on its argument \texttt{xxs}.
+If \texttt{xxs} was constructed with a call to \texttt{cons}, then the first element of that \texttt{cons} is returned.
+Otherwise, if \texttt{xxs} was constructed with a call to \texttt{nil}, we err.
+\texttt{main} then uses \texttt{cons} to construct an \texttt{intlist} from \texttt{1} and \texttt{nil} and calls \texttt{car} on the result.
 
 \subsection{Expressions}
+
+Meaningful computation is encoded in Compost as \textit{expr} syntactic forms, or expressions.
+These appear either as the right-hand side of \texttt{val} declarations or as the bodies of functions.
+
 \begin{grammar}
   <expr> ::= <literal>
     \alt <name>
@@ -162,8 +277,7 @@ The name directly following the \texttt{define} keyword is bound to the function
 
 \end{grammar}
 
-\section{Standard Library}
+\section{Initial Basis}
 
-Describe what we plan to include in a standard library (initial basis in our case?).
 
 \end{document}
