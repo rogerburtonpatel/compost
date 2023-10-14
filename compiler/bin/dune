@@ -21,7 +21,21 @@
 ;;  (libraries compost))
 
 ;; drives scanning/parsing
+; (test
+;  (name mytest)
+;  (modules mytest)
+; )
+
+; (executable 
+;  (public_name mytest)
+;  (name mytest)
+;  (modules mytest)
+;  (libraries toplevel))
+
+
+;; drives scanning/parsing
 (executable 
  (public_name toplevel)
  (name toplevel)
+;  (modules toplevel)
  (libraries toplevel))
