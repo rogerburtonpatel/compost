@@ -60,10 +60,17 @@ let rec string_of_ty = function
  | Sym -> "sym" 
  | CustomTy(name) -> name 
 
+let string_of_symlit lit = 
+   let escape_backslashes = String.concat "\\\\" (String.split_on_char '\\' lit) 
+   in 
+   let escape_quotes = String.concat "\\\'" (String.split_on_char '\'' escape_backslashes)
+   in 
+   "'" ^ escape_quotes ^ "'"
+
 let string_of_lit = function 
    IntLit(lit) -> string_of_int lit 
  | BoolLit(lit) -> string_of_bool lit 
- | SymLit(lit) -> "'" ^ lit ^ "'"
+ | SymLit(lit) -> string_of_symlit lit 
  | UnitLit -> "unit"
 
 let string_of_nameorwildcard = function 
