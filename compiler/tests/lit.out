@@ -1,0 +1,14 @@
+(val x 123456789964q3456789064345678909643235790964)
+(val x 5)
+(val x -5)
+(val x true)
+(val x false)
+(val x 'a')
+(val x '1984')
+(val x '1b2b3b4b')
+(val x 'hello\\world')
+(val x 'hello\'world\'')
+(val x unit)
+(val x 'this
+that
+everything?')
