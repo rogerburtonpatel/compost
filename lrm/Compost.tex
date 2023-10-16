@@ -18,7 +18,7 @@
 
 \setlength{\parindent}{0cm}
 
-\title{Compost: Language Reference Manual}
+\title{Pure Garbage: The Compost Language Reference Manual}
 
 \author{}
 
@@ -42,11 +42,11 @@ val name_email_map : (string * string) list =
 \end{verbatim}
 
 \section{Introduction}
-Briefly explain our language and the LRM.
+Compost is a statically-typed pure functional programming language with automatic compile-time memory management enabled by its uniqueness type system.
 
-\section{Conventions}
+\section{Notational Conventions}
 
-Code listings will appear as follows:
+Code listings will appear in ``verbatim'' as follows:
 
 \begin{verbatim}
 (define foo ()
@@ -60,12 +60,13 @@ Grammar rules are written in extended Backus-Naur format, as follows:
 \end{grammar}
 Note that terms enclosed in brackets, as seen in the second line of our example grammar, may be omitted or repeated.
 
-\newpage
+\section{Lexical Conventions}
+
 \section{Syntax and Semantics}
 
 \subsection{Types}
 
-Syntactic forms in the \textit{type} category may appear in type annotations (see section 3.2.2) or to type datatype fields (see section 3.2.3).
+Syntactic forms in the \textit{type} category may appear in type annotations (see section 4.2.2) or to type datatype fields (see section 4.2.3).
 
 \begin{grammar}
 
@@ -89,7 +90,7 @@ For example, the type of the \texttt{+} function, which returns the sum of two i
 Within the pair of parentheses following the arrow are the types of the function's arguments, and the type following the closing parenthesis is the function's return type.
 \\\\
 Note that a type may be a name other than those of the primtive types.
-Here the programmer can name a datatype, declared by the \texttt{datatype} form discussed in section 3.2.
+Here the programmer can name a datatype, declared by the \texttt{datatype} form discussed in section 4.2.
 
 \subsection{Definitions}
 Syntactic forms in the \textit{def} category are allowed only at the top level of a Compost program.
@@ -254,11 +255,16 @@ These appear either as the right-hand side of \texttt{val} declarations or as th
     \alt (<expr> \{ <expr> \})
     \alt (\texttt{let} (\{ (<name> <expr>) \}) <expr>)
     \alt (\texttt{dup} <name>)
+\end{grammar}
 
-  <case-branch> ::= (<pattern> <expr>)
+The grammar for expressions is somewhat more complex and requires some explanation, so we have divided it among our subsections.
+The grammar above contains only those top-level rules.
 
-  <pattern> ::= (<name> \{ <name> | \texttt{_} \})
-    \alt \texttt{_}
+\subsection{Literals}
+
+The simplest expressions are literals, which introduce values of our primitive types.
+
+\begin{grammar}
 
   <literal> ::= <int-lit>
     \alt <sym-lit>
@@ -275,6 +281,20 @@ These appear either as the right-hand side of \texttt{val} declarations or as th
 
   <name> ::= any token that is not an \textit{int-lit}, does not contain a \texttt{'} or bracket, and is not one of the reserved words shown in typewriter font
 
+\end{grammar}
+
+Note the definitions of \textit{sym-char} and \textit{name}.
+Unlike some common languages, there are very few restrictions on what constitutes a valid name.
+For example, \texttt{.}, \texttt{1+1}, and \texttt{\$\#@!} are all valid names for functions, variables, and value constructors.
+For characters found in symbols, we permit unicode code points along with the standard set of ASCII values.
+
+\subsection{Top-Level Pattern Matching}
+
+\begin{grammar}
+  <case-branch> ::= (<pattern> <expr>)
+
+  <pattern> ::= (<name> \{ <name> | \texttt{_} \})
+    \alt \texttt{_}
 \end{grammar}
 
 \section{Initial Basis}
