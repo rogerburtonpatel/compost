@@ -8,13 +8,41 @@ val name_email_map : (string * string) list =
 
 How to compile / execute compiler: 
 
+All of the scanner and parser files required for this deliverable are in 
+the bin/ subdirectory. They are named as such:
+ - scanner.mll
+ - parser.mly
+ - ast.ml
+ - toplevel.ml (the driver file)
+
+To compile, run the following command from the top directory (the directory 
+containing this README).
+    dune build
+After compiling, execute the driver file running the scanner and parser with 
+the following command:
+    dune exec toplevel
+Doing so would allow one to pipe in or type Compost code on standard input. When 
+the driver program receives the end-of-file indicator (a user can press CTRL+D 
+to send the end-of-file indicator on the command line), it will either output 
+a pretty-printed abstract syntax tree (formatted similar to the inputted 
+code) if the input was valid Compost syntax, or raise an error if the input 
+was not valid syntax. The driver program will then exit. 
+
 
 How to run test script:
 
+To run our test script, run the following command from the top directory:
+    ./run_tests.bash
+This script will iterate through all tests in the tests/ subdirectory, 
+input each test into our toplevel program, and compare the output against 
+the expected output. For test input that is valid Compost syntax, the 
+expected output will be the pretty-printed AST; for invalid Compost syntax,
+the expected output is the error raised by our toplevel program. The script 
+will then report details of each test and how many tests passed. 
 
-Syntax that still needs to be added:
 
-
-Additional packages to install:
+We do not anticipate adding additional syntax to our compiler, and it should 
+not be necessary to install any additional packages beyond the packages 
+used in microC.
 
 
