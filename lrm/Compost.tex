@@ -26,11 +26,6 @@
 
 \begin{document}
 
-\lstset{
-  language=Lisp,
-  numbers=left
-}
-
 \maketitle
 
 \begin{verbatim}
@@ -55,16 +50,23 @@ Code listings will appear in ``verbatim'' as follows:
 Grammar rules are written in extended Backus-Naur format, as follows:
 \begin{grammar}
   <rule> ::= <nonterminal> \texttt{terminal}
-    \alt ::= \{ <other-rule> \}
+    \alt \{ <other-rule> \}
 
 \end{grammar}
+
 Note that terms enclosed in brackets, as seen in the second line of our example grammar, may be omitted or repeated.
 
 \section{Lexical Conventions}
 
-\section{Syntax and Semantics}
+% VALUES
 
-\subsection{Types}
+\section{Values}
+
+% TYPES
+
+\section{Types}
+
+\subsection{Type Expressions}
 
 Syntactic forms in the \textit{type} category may appear in type annotations (see section 4.2.2) or to type datatype fields (see section 4.2.3).
 
@@ -92,20 +94,118 @@ Within the pair of parentheses following the arrow are the types of the function
 Note that a type may be a name other than those of the primtive types.
 Here the programmer can name a datatype, declared by the \texttt{datatype} form discussed in section 4.2.
 
-\subsection{Definitions}
+% EXPRESSIONS
+
+\section{Expressions}
+
+Meaningful computation is encoded in Compost as \textit{expr} syntactic forms, or expressions.
+These appear either as the right-hand side of \texttt{val} declarations or as the bodies of functions.
+
+\begin{grammar}
+  <expr> ::= <literal>
+    \alt <name>
+    \alt <case-expression>
+    \alt <if-expression>
+    \alt <begin-expression>
+    \alt <apply-expression>
+    \alt <let-expression>
+    \alt <dup-expression>
+\end{grammar}
+
+The grammar for expressions is somewhat more complex and requires some explanation, so we have divided it among our subsections.
+The grammar above contains only those top-level rules.
+
+\subsection{Literals}
+
+The simplest expressions are literals, which introduce values of our primitive types.
+
+\begin{grammar}
+
+  <literal> ::= <int-lit>
+    \alt <sym-lit>
+    \alt <bool-lit>
+    \alt \texttt{unit}
+
+  <int-lit> ::= token composed only of digits, possibly prefixed with a \texttt{+} or \texttt{-}.
+
+  <bool-lit> ::= \texttt{true} | \texttt{false}
+
+  <sym-lit> ::= \texttt{'}\{ <sym-char> \}\texttt{'}
+
+  <sym-char> ::= any unicode code point other than \texttt{'} unless escaped with a \texttt{\textbackslash}.
+
+  <name> ::= any token that is not an \textit{int-lit}, does not contain a \texttt{'} or bracket, and is not one of the reserved words shown in typewriter font
+
+\end{grammar}
+
+Note the definitions of \textit{sym-char} and \textit{name}.
+Unlike some common languages, there are very few restrictions on what constitutes a valid name.
+For example, \texttt{.}, \texttt{1+1}, and \texttt{\$\#@!} are all valid names for functions, variables, and value constructors.
+For characters found in symbols, we permit unicode code points along with the standard set of ASCII values.
+
+\subsection{Case Expressions}
+
+\begin{grammar}
+  <case-expression> ::= (\texttt{case} <expr> (\{ <case-branch> \}))
+\end{grammar}
+
+\begin{grammar}
+  <case-branch> ::= (<pattern> <expr>)
+
+  <pattern> ::= (<name> \{ <name> | \texttt{_} \})
+    \alt \texttt{_}
+\end{grammar}
+
+\subsection{If Expressions}
+
+\begin{grammar}
+  <if-expression> ::= (\texttt{if} <expr> <expr> <expr>)
+\end{grammar}
+
+\subsection{Begin Expressions}
+
+\begin{grammar}
+  <begin-expression> ::= (\texttt{begin} \{ <expr> \})
+\end{grammar}
+
+\subsection{Apply Expressions}
+
+\begin{grammar}
+  <apply-expression> ::= (<expr> \{ <expr> \})
+\end{grammar}
+
+\subsection{Let Expressions}
+
+\begin{grammar}
+  <let-expression> ::= (\texttt{let} (\{ <let-binding> \}) <expr>)
+
+  <let-binding> ::= (<name> <expr>)
+\end{grammar}
+
+\subsection{Dup Expressions}
+
+\begin{grammar}
+  <dup-expression> ::= (\texttt{dup} <name>)
+\end{grammar}
+
+% DEFINITIONS
+
+\section{Definitions}
 Syntactic forms in the \textit{def} category are allowed only at the top level of a Compost program.
 
 \begin{grammar}
-  <def> ::= (\texttt{val} <name> <exp>)
-    \alt (\texttt{define} <name> (\{ <name> \}) <exp>)
-    \alt (\texttt{datatype} <name> (\{ <cons-decl> \}))
-    \alt (\texttt{:} <name> <type>)
-    \alt (\texttt{use} <filename>)
-
-  <cons-decl> ::= (<name> (\{ <type> \}))
+  <def> ::= <val-binding>
+    \alt <function-definition>
+    \alt <datatype-definition>
+    \alt <type-annotation>
+    \alt <use-declaration>
 \end{grammar}
 
-\subsubsection{Global Bindings}
+\subsection{Global Bindings}
+
+\begin{grammar}
+  <val-binding> ::= (\texttt{val} <name> <exp>)
+\end{grammar}
 
 The \texttt{val} form introduces an immutable globally scoped binding.
 Note that the bound name is in scope only in code located below the declaration.
@@ -117,7 +217,11 @@ For example the programmer may declare a global constant:
 
 Now, any successive code may use \texttt{triangle-sides} in place of the literal \texttt{3}.
 
-\subsubsection{Function Definitions}
+\subsection{Function Definitions}
+
+\begin{grammar}
+  <function-definition> ::= (\texttt{define} <name> (\{ <name> \}) <exp>)
+\end{grammar}
 
 The \texttt{define} form defines a function in the global scope.
 Any function may be referenced from any location in the program.
@@ -157,7 +261,11 @@ Thus, the programmer may write mutually recursive programs like so:
 
 That is, despite \texttt{is-odd} being declared after \texttt{is-even}, \texttt{is-even} is in scope within the body of \texttt{is-odd}.
 
-\subsubsection{Type Annotations}
+\subsection{Type Annotations}
+
+\begin{grammar}
+  <type-annotation> ::= (\texttt{:} <name> <type>)
+\end{grammar}
 
 Type annotations constrain the type of globally bound names.
 In Compost, such names appear in two forms: the names of functions and names bound globally by \texttt{val}.
@@ -193,10 +301,18 @@ However, the scoping rules here are more subtle.
 Although a \texttt{val} binding's type annotation may be located before or after the binding itself, the bound name is in scope only after the \texttt{val} binding itself.
 The location of the associated type annotation has no effect in this regard.
 
-\subsubsection{Datatypes}
+\subsection{Datatype Definitions}
 
-Datatypes are declared using the \texttt{datatype} form.
-Like functions, the placement of datatype's declaration has no bearing on where it can be referenced, introduced, or eliminated.
+\begin{grammar}
+    <datatype-definition> ::= (\texttt{datatype} <name> (\{ <variant-constructor-definition> \}))
+
+    <variant-constructor-definition> ::= (<name> (\{ <type> \}))
+\end{grammar}
+
+The \texttt{datatype} form allows the programmer to introduce new types.
+The name of the new type appears directly following the \texttt{datatype} keyword, and this is followed by a list of variant constructor definitions.
+Each of these provides a name for the constructor, followed by a list of types for its arguments.
+Like functions, the placement of a datatype's definition has no bearing on where it can be referenced, introduced, or eliminated.
 In fact, datatypes may be defined recursively, as in the following example:
 
 \begin{verbatim}
@@ -207,8 +323,6 @@ In fact, datatypes may be defined recursively, as in the following example:
 \end{verbatim}
 
 This declaration can be read as: ``an \texttt{int-list} is either a cons-cell containing an \texttt{int} and an \texttt{int-list}, or the empty list, \texttt{nil}''.
-The name of the type appears directly following the \texttt{datatype} keyword, and this is followed by a list of constructor declarations.
-Each constructor declaration provides a constructor name, which we refer to as the ``tag'', followed by a list of types.
 \\\\
 Tags serve two purposes.
 For every tag there exists a function of the same name which constructs a value of the corresponding datatype.
@@ -241,61 +355,13 @@ If \texttt{xxs} was constructed with a call to \texttt{cons}, then the first ele
 Otherwise, if \texttt{xxs} was constructed with a call to \texttt{nil}, we err.
 \texttt{main} then uses \texttt{cons} to construct an \texttt{intlist} from \texttt{1} and \texttt{nil} and calls \texttt{car} on the result.
 
-\subsection{Expressions}
-
-Meaningful computation is encoded in Compost as \textit{expr} syntactic forms, or expressions.
-These appear either as the right-hand side of \texttt{val} declarations or as the bodies of functions.
+\subsection{Use Declarations}
 
 \begin{grammar}
-  <expr> ::= <literal>
-    \alt <name>
-    \alt (\texttt{case} <expr> (\{ <case-branch> \}))
-    \alt (\texttt{if} <expr> <expr> <expr>)
-    \alt (\texttt{begin} \{ <expr> \})
-    \alt (<expr> \{ <expr> \})
-    \alt (\texttt{let} (\{ (<name> <expr>) \}) <expr>)
-    \alt (\texttt{dup} <name>)
+  <use-declaration> ::= (\texttt{use} <filename>)
 \end{grammar}
 
-The grammar for expressions is somewhat more complex and requires some explanation, so we have divided it among our subsections.
-The grammar above contains only those top-level rules.
-
-\subsection{Literals}
-
-The simplest expressions are literals, which introduce values of our primitive types.
-
-\begin{grammar}
-
-  <literal> ::= <int-lit>
-    \alt <sym-lit>
-    \alt <bool-lit>
-    \alt \texttt{unit}
-
-  <int-lit> ::= token composed only of digits, possibly prefixed with a \texttt{+} or \texttt{-}.
-
-  <bool-lit> ::= \texttt{true} | \texttt{false}
-
-  <sym-lit> ::= \texttt{'}\{ <sym-char> \}\texttt{'}
-
-  <sym-char> ::= any unicode code point other than \texttt{'} unless escaped with a \texttt{\textbackslash}.
-
-  <name> ::= any token that is not an \textit{int-lit}, does not contain a \texttt{'} or bracket, and is not one of the reserved words shown in typewriter font
-
-\end{grammar}
-
-Note the definitions of \textit{sym-char} and \textit{name}.
-Unlike some common languages, there are very few restrictions on what constitutes a valid name.
-For example, \texttt{.}, \texttt{1+1}, and \texttt{\$\#@!} are all valid names for functions, variables, and value constructors.
-For characters found in symbols, we permit unicode code points along with the standard set of ASCII values.
-
-\subsection{Top-Level Pattern Matching}
-
-\begin{grammar}
-  <case-branch> ::= (<pattern> <expr>)
-
-  <pattern> ::= (<name> \{ <name> | \texttt{_} \})
-    \alt \texttt{_}
-\end{grammar}
+\section{Scoping Rules}
 
 \section{Initial Basis}
 
