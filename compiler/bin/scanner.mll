@@ -47,7 +47,7 @@ rule token = parse
 | digits as lxm { INTLIT(int_of_string lxm) }
 | boolean as lxm { BOOLLIT(bool_of_string lxm) }
 | symlit as lxm { SYMLIT(format_sym_lit lxm) }
-| [^'(' ')' '[' ']' '\'' ' ' ';']+ as lxm { NAME(lxm) }
+| [^'(' ')' '[' ']' '\'' ' ' '\t' '\r' '\n' ';']+ as lxm { NAME(lxm) }
 | eof { EOF }
 | _ as char { raise (Failure("illegal character " ^ Char.escaped char)) }
 
