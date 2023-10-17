@@ -36,8 +36,12 @@ val name_email_map : (string * string) list =
  ("Jackson Warhover", "jackson.warhover@tufts.edu")]  
 \end{verbatim}
 
+% INTRODUCTION
+
 \section{Introduction}
 Compost is a statically-typed pure functional programming language with automatic compile-time memory management enabled by its uniqueness type system.
+
+% NOTATIONAL CONVENTIONS
 
 \section{Notational Conventions}
 
@@ -54,13 +58,20 @@ Grammar rules are written in extended Backus-Naur format, as follows:
 
 \end{grammar}
 
-Note that terms enclosed in brackets, as seen in the second line of our example grammar, may be omitted or repeated.
+Note that braces are used in a manner akin to the Kleene closure, that is, a term enclosed in brackets may be omitted or arbitrarily repeated.
+
+% LEXICAL CONVENTIONS
 
 \section{Lexical Conventions}
 
 % VALUES
 
 \section{Values}
+
+This section describes the kinds of values manipulated by Compost programs.
+
+\subsection{Base Values}
+
 
 % TYPES
 
@@ -98,9 +109,6 @@ Here the programmer can name a datatype, declared by the \texttt{datatype} form 
 
 \section{Expressions}
 
-Meaningful computation is encoded in Compost as \textit{expr} syntactic forms, or expressions.
-These appear either as the right-hand side of \texttt{val} declarations or as the bodies of functions.
-
 \begin{grammar}
   <expr> ::= <literal>
     \alt <name>
@@ -112,8 +120,8 @@ These appear either as the right-hand side of \texttt{val} declarations or as th
     \alt <dup-expression>
 \end{grammar}
 
-The grammar for expressions is somewhat more complex and requires some explanation, so we have divided it among our subsections.
-The grammar above contains only those top-level rules.
+Meaningful computation is encoded in Compost as \textit{expr} syntactic forms, or expressions.
+These appear either as the right-hand side of \texttt{val} declarations or as the bodies of functions.
 
 \subsection{Literals}
 
@@ -139,7 +147,7 @@ The simplest expressions are literals, which introduce values of our primitive t
 \end{grammar}
 
 Note the definitions of \textit{sym-char} and \textit{name}.
-Unlike some common languages, there are very few restrictions on what constitutes a valid name.
+Compost imposes very few restrictions on the set of valid names.
 For example, \texttt{.}, \texttt{1+1}, and \texttt{\$\#@!} are all valid names for functions, variables, and value constructors.
 For characters found in symbols, we permit unicode code points along with the standard set of ASCII values.
 
@@ -317,8 +325,10 @@ In fact, datatypes may be defined recursively, as in the following example:
 
 \begin{verbatim}
 (datatype int-list
-  (cons (int int-list))
-  (nil ())
+  (
+    [cons (int int-list)]
+    [nil ()]
+  )
 )
 \end{verbatim}
 
