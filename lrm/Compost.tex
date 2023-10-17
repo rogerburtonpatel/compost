@@ -155,16 +155,18 @@ Symbol values are interned immutable strings of unicode characters.
 
 \subsection{Booleans}
 
-Boolean values are either the boolean \texttt{true} or the boolean \texttt{false}.
+Boolean values are either the boolean $true$ or the boolean $false$.
 
 \subsection{Unit}
 
-Unit values are all the value \texttt{unit}.
+Unit values are the value $unit$.
 
 \subsection{Variant Values}
 
-Variant values are either a constant constructor or a non-cosntant constructor applied to a series of value arguments.
+Variant values are either a constant constructor or a non-constant constructor applied to a series of value arguments.
 We write an arbitrary constant constructor $const$ as $(const)$ and an arbitrary non-constant constructor $nonconst$ applied to arguments $v_1...v_{n}$ as $(nonconst\ v_{1}\ ...\ v_{n})$.
+\\\\
+Variant constructors are monomorphic, that is, for any constructor $nonconst$, there exist types $\tau_{1}...\tau_{n}$ such that for any application of constructor $nonconst$ to arguments $v_{1}...v_{n}$, $v_{i}$ must have type $\tau_{i}$ for all $i\in1...n$.
 
 % NAMES
 
