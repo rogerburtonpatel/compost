@@ -26,10 +26,10 @@ update_failure () {
     
     if [[ "$failure" -ne "0" ]]; then 
         >&2 echo "Failed test $testname"
-        # >&2 echo "Output: "
-        # >&2 echo "$pout"
-        # >&2 echo "Expected: "
-        # >&2 echo "$eout"
+        >&2 echo "Output: "
+        >&2 echo "$pout"
+        >&2 echo "Expected: "
+        >&2 echo "$eout"
         >&2 echo "Difference: "
         >&2 echo "$out"
         numfail=$((numfail + 1))
@@ -40,7 +40,7 @@ update_failure () {
 
 run_tests () {
 
-    for inFile in $(find $BASEDIR/tests -type f -iname "*.in") ; do
+    for inFile in $(find $BASEDIR/tests -type p,f,l -iname "*.in") ; do
         
         numtests=$((numtests + 1))
         inBase=$(basename $inFile)
