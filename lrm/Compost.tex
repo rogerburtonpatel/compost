@@ -53,10 +53,18 @@ Code listings will appear in ``verbatim'' as follows:
 \end{verbatim}
 Grammar rules are written in extended Backus-Naur format, as follows:
 \begin{grammar}
-  <rule> ::= <nonterminal> \texttt{terminal}
+  <rule> ::= (<nonterminal> \texttt{terminal})
     \alt \{ <other-rule> \}
-
 \end{grammar}
+
+Parentheses are concrete syntax, but any pair of balanced parentheses may be freely exchanged for a pair of square brackets.
+For example, the following two declarations are indistinguishable in the abstract syntax:
+
+\begin{verbatim}
+(val x 1)
+
+[val x 1]
+\end{verbatim}
 
 Note that braces are used in a manner akin to the Kleene closure, that is, a term enclosed in brackets may be omitted or arbitrarily repeated.
 
@@ -64,13 +72,107 @@ Note that braces are used in a manner akin to the Kleene closure, that is, a ter
 
 \section{Lexical Conventions}
 
+\subsection{Whitespace}
+
+The following characters are considered as whitespace and, with one exception, ignored during tokenization:
+spaces, tabs, carriage returns, and newlines.
+
+\subsection{Comments}
+
+Comments are introduced by the character \texttt{;} and terminated by the newline character.
+Comments are treated as whitespace.
+
+\subsection{Literals}
+
+\begin{grammar}
+  <literal> ::= <integer-literal>
+  \alt <symbol-literal>
+  \alt <boolean-literal>
+  \alt <unit-literal>
+\end{grammar}
+
+Literals introduce values of Compost's primitive types.
+All literals are valid expressions.
+
+\subsection{Integer Literals}
+
+\begin{grammar}
+  <integer-literal> ::= token composed only of digits, possibly prefixed with a \texttt{+} or \texttt{-}.
+\end{grammar}
+
+The \texttt{+} prefix denotes a positive integer and the \texttt{-} prefix denotes a negative integer.
+The characters \texttt{1 2 3 4 5 6 7 8 9 0} are considered digits.
+
+\subsection{Symbol Literals}
+
+\begin{grammar}
+  <symbol-literal> ::= \texttt{'}\{ <symbol-character> \}\texttt{'}
+
+  <symbol-character> ::= any unicode code point other than \texttt{'} and the backslash character unless escaped with a backslash.
+\end{grammar}
+
+That is, any sequence of \texttt{'}-delimited unicode characters is a valid symbol literal, as long as every instance of \texttt{'} or backslash are preceded by a backslash.
+These escape sequences are replaced by their unescaped counterparts in the introduced symbol value.
+For example, the following are valid symbol literals:
+
+\begin{verbatim}
+'\'hello, world\''
+
+'\\ is a backslash'
+
+'I exist
+on multiple lines'
+\end{verbatim}
+
+\subsection{Other Literals}
+
+\begin{grammar}
+  <boolean-literal> ::= \texttt{true} | \texttt{false}
+
+  <unit-literal> ::= \texttt{unit}
+\end{grammar}
+
+\subsection{Reserved Words}
+
+The following tokens are considered reserved:
+\begin{verbatim}
+; ( ) [  ] : _ -> if val define datatype use case begin let dup int bool sym unit
+\end{verbatim}
+
 % VALUES
 
 \section{Values}
 
 This section describes the kinds of values manipulated by Compost programs.
 
-\subsection{Base Values}
+\subsection{Integers}
+
+Integer values are 32-bit signed integers with a range of -2,147,483,648 to 2,147,483,647.
+
+\subsection{Symbols}
+
+Symbol values are interned immutable strings of unicode characters.
+
+\subsection{Booleans}
+
+Boolean values are either the boolean \texttt{true} or the boolean \texttt{false}.
+
+\subsection{Unit}
+
+Unit values are all the value \texttt{unit}.
+
+\subsection{Variant Values}
+
+Variant values are either a constant constructor or a non-cosntant constructor applied to a series of value arguments.
+We write an arbitrary constant constructor $const$ as $(const)$ and an arbitrary non-constant constructor $nonconst$ applied to arguments $v_1...v_{n}$ as $(nonconst\ v_{1}\ ...\ v_{n})$.
+
+% NAMES
+
+\section{Names}
+
+\begin{grammar}
+  <name> ::= any token that is not an \textit{int-lit}, does not contain a \texttt{'} or bracket, and is not a reserved word.
+\end{grammar}
 
 
 % TYPES
@@ -87,6 +189,7 @@ Syntactic forms in the \textit{type} category may appear in type annotations (se
     \alt \texttt{int}
     \alt \texttt{bool}
     \alt \texttt{sym}
+    \alt \texttt{unit}
     \alt <name>
 
 \end{grammar}
