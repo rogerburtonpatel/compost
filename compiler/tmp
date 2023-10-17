@@ -1,0 +1,844 @@
+++ realpath ./run_tests.bash
++ SCRIPT=/Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/run_tests.bash
+++ dirname /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/run_tests.bash
++ BASEDIR=/Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler
++ TESTDIR=/Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/
++ shopt -s nullglob
+++ uname
++ '[' Darwin = Darwin ']'
++ SED=/opt/homebrew/bin/gsed
++ numtests=0
++ numfail=0
++ main
++ build
++ cd /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler
++ dune build
++ run_tests
+++ find /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests -type f -iname '*.in'
++ for inFile in '$(find $BASEDIR/tests -type f -iname "*.in")'
++ numtests=1
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/defineArgs.in
++ inBase=defineArgs.in
++ outFile=tests/defineArgs.out
++++ dirname /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/defineArgs.in
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/defineArgs.in
++ inFile=tests/defineArgs.in
++ '[' '!' -f tests/defineArgs.out ']'
++ outFile=tests/defineArgs.in
++ echo 'Running test: diff' tests/defineArgs.in tests/defineArgs.in
+Running test: diff tests/defineArgs.in tests/defineArgs.in
+++ dune exec toplevel tests/defineArgs.in
++ toplevelOut='(define foo (x y) x)'
+++ cat outfile
+++ /opt/homebrew/bin/gsed 's#\n# # g'
+cat: outfile: No such file or directory
++ toplevelExpected=
++++ echo '(define foo (x y) x)'
+++ diff -wy /dev/fd/63 /dev/fd/62
++++ echo ''
++ out='(define foo (x y) x)						|       '
++ update_failure 1 tests/defineArgs.in '(define foo (x y) x)' '' '(define foo (x y) x)						|       '
++ failure=1
++ testname=tests/defineArgs.in
++ pout='(define foo (x y) x)'
++ eout=
++ out='(define foo (x y) x)						|       '
++ [[ 1 -ne 0 ]]
++ echo 'Failed test tests/defineArgs.in'
+Failed test tests/defineArgs.in
++ echo 'Difference: '
+Difference: 
++ echo '(define foo (x y) x)						|       '
+(define foo (x y) x)						|       
++ numfail=1
++ for inFile in '$(find $BASEDIR/tests -type f -iname "*.in")'
++ numtests=2
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/lit.in
++ inBase=lit.in
++ outFile=tests/lit.out
++++ dirname /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/lit.in
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/lit.in
++ inFile=tests/lit.in
++ '[' '!' -f tests/lit.out ']'
++ echo 'Running test: diff' tests/lit.in tests/lit.out
+Running test: diff tests/lit.in tests/lit.out
+++ dune exec toplevel tests/lit.in
++ toplevelOut='(val x 123456789964q3456789064345678909643235790964)
+(val x 5)
+(val x -5)
+(val x true)
+(val x false)
+(val x '\''a'\'')
+(val x '\''1984'\'')
+(val x '\''1b2b3b4b'\'')
+(val x '\''hello\\world'\'')
+(val x '\''hello\'\''world\'\'''\'')
+(val x unit)
+(val x '\''this
+that
+everything?'\'')'
+++ cat outfile
+++ /opt/homebrew/bin/gsed 's#\n# # g'
+cat: outfile: No such file or directory
++ toplevelExpected=
++++ echo '(val x 123456789964q3456789064345678909643235790964)
+(val x 5)
+(val x -5)
+(val x true)
+(val x false)
+(val x '\''a'\'')
+(val x '\''1984'\'')
+(val x '\''1b2b3b4b'\'')
+(val x '\''hello\\world'\'')
+(val x '\''hello\'\''world\'\'''\'')
+(val x unit)
+(val x '\''this
+that
+everything?'\'')'
+++ diff -wy /dev/fd/63 /dev/fd/62
++++ echo ''
++ out='(val x 123456789964q3456789064345678909643235790964)		|       
+(val x 5)							<       
+(val x -5)							<       
+(val x true)							<       
+(val x false)							<       
+(val x '\''a'\'')							<       
+(val x '\''1984'\'')							<       
+(val x '\''1b2b3b4b'\'')						<       
+(val x '\''hello\\world'\'')						<       
+(val x '\''hello\'\''world\'\'''\'')					<       
+(val x unit)							<       
+(val x '\''this							<       
+that								<       
+everything?'\'')							<       '
++ update_failure 1 tests/lit.in '(val x 123456789964q3456789064345678909643235790964)
+(val x 5)
+(val x -5)
+(val x true)
+(val x false)
+(val x '\''a'\'')
+(val x '\''1984'\'')
+(val x '\''1b2b3b4b'\'')
+(val x '\''hello\\world'\'')
+(val x '\''hello\'\''world\'\'''\'')
+(val x unit)
+(val x '\''this
+that
+everything?'\'')' '' '(val x 123456789964q3456789064345678909643235790964)		|       
+(val x 5)							<       
+(val x -5)							<       
+(val x true)							<       
+(val x false)							<       
+(val x '\''a'\'')							<       
+(val x '\''1984'\'')							<       
+(val x '\''1b2b3b4b'\'')						<       
+(val x '\''hello\\world'\'')						<       
+(val x '\''hello\'\''world\'\'''\'')					<       
+(val x unit)							<       
+(val x '\''this							<       
+that								<       
+everything?'\'')							<       '
++ failure=1
++ testname=tests/lit.in
++ pout='(val x 123456789964q3456789064345678909643235790964)
+(val x 5)
+(val x -5)
+(val x true)
+(val x false)
+(val x '\''a'\'')
+(val x '\''1984'\'')
+(val x '\''1b2b3b4b'\'')
+(val x '\''hello\\world'\'')
+(val x '\''hello\'\''world\'\'''\'')
+(val x unit)
+(val x '\''this
+that
+everything?'\'')'
++ eout=
++ out='(val x 123456789964q3456789064345678909643235790964)		|       
+(val x 5)							<       
+(val x -5)							<       
+(val x true)							<       
+(val x false)							<       
+(val x '\''a'\'')							<       
+(val x '\''1984'\'')							<       
+(val x '\''1b2b3b4b'\'')						<       
+(val x '\''hello\\world'\'')						<       
+(val x '\''hello\'\''world\'\'''\'')					<       
+(val x unit)							<       
+(val x '\''this							<       
+that								<       
+everything?'\'')							<       '
++ [[ 1 -ne 0 ]]
++ echo 'Failed test tests/lit.in'
+Failed test tests/lit.in
++ echo 'Difference: '
+Difference: 
++ echo '(val x 123456789964q3456789064345678909643235790964)		|       
+(val x 5)							<       
+(val x -5)							<       
+(val x true)							<       
+(val x false)							<       
+(val x '\''a'\'')							<       
+(val x '\''1984'\'')							<       
+(val x '\''1b2b3b4b'\'')						<       
+(val x '\''hello\\world'\'')						<       
+(val x '\''hello\'\''world\'\'''\'')					<       
+(val x unit)							<       
+(val x '\''this							<       
+that								<       
+everything?'\'')							<       '
+(val x 123456789964q3456789064345678909643235790964)		|       
+(val x 5)							<       
+(val x -5)							<       
+(val x true)							<       
+(val x false)							<       
+(val x 'a')							<       
+(val x '1984')							<       
+(val x '1b2b3b4b')						<       
+(val x 'hello\\world')						<       
+(val x 'hello\'world\'')					<       
+(val x unit)							<       
+(val x 'this							<       
+that								<       
+everything?')							<       
++ numfail=2
++ for inFile in '$(find $BASEDIR/tests -type f -iname "*.in")'
++ numtests=3
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/litfbool.in
++ inBase=litfbool.in
++ outFile=tests/litfbool.out
++++ dirname /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/litfbool.in
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/litfbool.in
++ inFile=tests/litfbool.in
++ '[' '!' -f tests/litfbool.out ']'
++ echo 'Running test: diff' tests/litfbool.in tests/litfbool.out
+Running test: diff tests/litfbool.in tests/litfbool.out
+++ dune exec toplevel tests/litfbool.in
++ toplevelOut='Fatal error: exception Dune__exe__Parser.MenhirBasics.Error'
+++ cat outfile
+++ /opt/homebrew/bin/gsed 's#\n# # g'
+cat: outfile: No such file or directory
++ toplevelExpected=
++++ echo 'Fatal error: exception Dune__exe__Parser.MenhirBasics.Error'
+++ diff -wy /dev/fd/63 /dev/fd/62
++++ echo ''
++ out='Fatal error: exception Dune__exe__Parser.MenhirBasics.Err       |       '
++ update_failure 1 tests/litfbool.in 'Fatal error: exception Dune__exe__Parser.MenhirBasics.Error' '' 'Fatal error: exception Dune__exe__Parser.MenhirBasics.Err       |       '
++ failure=1
++ testname=tests/litfbool.in
++ pout='Fatal error: exception Dune__exe__Parser.MenhirBasics.Error'
++ eout=
++ out='Fatal error: exception Dune__exe__Parser.MenhirBasics.Err       |       '
++ [[ 1 -ne 0 ]]
++ echo 'Failed test tests/litfbool.in'
+Failed test tests/litfbool.in
++ echo 'Difference: '
+Difference: 
++ echo 'Fatal error: exception Dune__exe__Parser.MenhirBasics.Err       |       '
+Fatal error: exception Dune__exe__Parser.MenhirBasics.Err       |       
++ numfail=3
++ for inFile in '$(find $BASEDIR/tests -type f -iname "*.in")'
++ numtests=4
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/litfintlit.in
++ inBase=litfintlit.in
++ outFile=tests/litfintlit.out
++++ dirname /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/litfintlit.in
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/litfintlit.in
++ inFile=tests/litfintlit.in
++ '[' '!' -f tests/litfintlit.out ']'
++ echo 'Running test: diff' tests/litfintlit.in tests/litfintlit.out
+Running test: diff tests/litfintlit.in tests/litfintlit.out
+++ dune exec toplevel tests/litfintlit.in
++ toplevelOut='Fatal error: exception Dune__exe__Parser.MenhirBasics.Error'
+++ cat outfile
+++ /opt/homebrew/bin/gsed 's#\n# # g'
+cat: outfile: No such file or directory
++ toplevelExpected=
++++ echo 'Fatal error: exception Dune__exe__Parser.MenhirBasics.Error'
+++ diff -wy /dev/fd/63 /dev/fd/62
++++ echo ''
++ out='Fatal error: exception Dune__exe__Parser.MenhirBasics.Err       |       '
++ update_failure 1 tests/litfintlit.in 'Fatal error: exception Dune__exe__Parser.MenhirBasics.Error' '' 'Fatal error: exception Dune__exe__Parser.MenhirBasics.Err       |       '
++ failure=1
++ testname=tests/litfintlit.in
++ pout='Fatal error: exception Dune__exe__Parser.MenhirBasics.Error'
++ eout=
++ out='Fatal error: exception Dune__exe__Parser.MenhirBasics.Err       |       '
++ [[ 1 -ne 0 ]]
++ echo 'Failed test tests/litfintlit.in'
+Failed test tests/litfintlit.in
++ echo 'Difference: '
+Difference: 
++ echo 'Fatal error: exception Dune__exe__Parser.MenhirBasics.Err       |       '
+Fatal error: exception Dune__exe__Parser.MenhirBasics.Err       |       
++ numfail=4
++ for inFile in '$(find $BASEDIR/tests -type f -iname "*.in")'
++ numtests=5
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/annotation.in
++ inBase=annotation.in
++ outFile=tests/annotation.out
++++ dirname /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/annotation.in
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/annotation.in
++ inFile=tests/annotation.in
++ '[' '!' -f tests/annotation.out ']'
++ outFile=tests/annotation.in
++ echo 'Running test: diff' tests/annotation.in tests/annotation.in
+Running test: diff tests/annotation.in tests/annotation.in
+++ dune exec toplevel tests/annotation.in
++ toplevelOut='(: add-or-sub (-> (bool) (-> (int int) int)))
+(: funnyfun (-> ((-> (very odd) function) (-> () (-> (words) int))) (-> (final) (-> (sike) real))))'
+++ cat outfile
+++ /opt/homebrew/bin/gsed 's#\n# # g'
+cat: outfile: No such file or directory
++ toplevelExpected=
++++ echo '(: add-or-sub (-> (bool) (-> (int int) int)))
+(: funnyfun (-> ((-> (very odd) function) (-> () (-> (words) int))) (-> (final) (-> (sike) real))))'
+++ diff -wy /dev/fd/63 /dev/fd/62
++++ echo ''
++ out='(: add-or-sub (-> (bool) (-> (int int) int)))			|       
+(: funnyfun (-> ((-> (very odd) function) (-> () (-> (wor       <       '
++ update_failure 1 tests/annotation.in '(: add-or-sub (-> (bool) (-> (int int) int)))
+(: funnyfun (-> ((-> (very odd) function) (-> () (-> (words) int))) (-> (final) (-> (sike) real))))' '' '(: add-or-sub (-> (bool) (-> (int int) int)))			|       
+(: funnyfun (-> ((-> (very odd) function) (-> () (-> (wor       <       '
++ failure=1
++ testname=tests/annotation.in
++ pout='(: add-or-sub (-> (bool) (-> (int int) int)))
+(: funnyfun (-> ((-> (very odd) function) (-> () (-> (words) int))) (-> (final) (-> (sike) real))))'
++ eout=
++ out='(: add-or-sub (-> (bool) (-> (int int) int)))			|       
+(: funnyfun (-> ((-> (very odd) function) (-> () (-> (wor       <       '
++ [[ 1 -ne 0 ]]
++ echo 'Failed test tests/annotation.in'
+Failed test tests/annotation.in
++ echo 'Difference: '
+Difference: 
++ echo '(: add-or-sub (-> (bool) (-> (int int) int)))			|       
+(: funnyfun (-> ((-> (very odd) function) (-> () (-> (wor       <       '
+(: add-or-sub (-> (bool) (-> (int int) int)))			|       
+(: funnyfun (-> ((-> (very odd) function) (-> () (-> (wor       <       
++ numfail=5
++ for inFile in '$(find $BASEDIR/tests -type f -iname "*.in")'
++ numtests=6
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/illegal.in
++ inBase=illegal.in
++ outFile=tests/illegal.out
++++ dirname /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/illegal.in
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/illegal.in
++ inFile=tests/illegal.in
++ '[' '!' -f tests/illegal.out ']'
++ echo 'Running test: diff' tests/illegal.in tests/illegal.out
+Running test: diff tests/illegal.in tests/illegal.out
+++ dune exec toplevel tests/illegal.in
++ toplevelOut='Fatal error: exception Failure("illegal character \'\''")'
+++ cat outfile
+++ /opt/homebrew/bin/gsed 's#\n# # g'
+cat: outfile: No such file or directory
++ toplevelExpected=
++++ echo 'Fatal error: exception Failure("illegal character \'\''")'
+++ diff -wy /dev/fd/63 /dev/fd/62
++++ echo ''
++ out='Fatal error: exception Failure("illegal character \'\''")		|       '
++ update_failure 1 tests/illegal.in 'Fatal error: exception Failure("illegal character \'\''")' '' 'Fatal error: exception Failure("illegal character \'\''")		|       '
++ failure=1
++ testname=tests/illegal.in
++ pout='Fatal error: exception Failure("illegal character \'\''")'
++ eout=
++ out='Fatal error: exception Failure("illegal character \'\''")		|       '
++ [[ 1 -ne 0 ]]
++ echo 'Failed test tests/illegal.in'
+Failed test tests/illegal.in
++ echo 'Difference: '
+Difference: 
++ echo 'Fatal error: exception Failure("illegal character \'\''")		|       '
+Fatal error: exception Failure("illegal character \'")		|       
++ numfail=6
++ for inFile in '$(find $BASEDIR/tests -type f -iname "*.in")'
++ numtests=7
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/hello.in
++ inBase=hello.in
++ outFile=tests/hello.out
++++ dirname /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/hello.in
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/hello.in
++ inFile=tests/hello.in
++ '[' '!' -f tests/hello.out ']'
++ outFile=tests/hello.in
++ echo 'Running test: diff' tests/hello.in tests/hello.in
+Running test: diff tests/hello.in tests/hello.in
+++ dune exec toplevel tests/hello.in
++ toplevelOut='(val h '\''hello world'\'')'
+++ cat outfile
+++ /opt/homebrew/bin/gsed 's#\n# # g'
+cat: outfile: No such file or directory
++ toplevelExpected=
++++ echo '(val h '\''hello world'\'')'
+++ diff -wy /dev/fd/63 /dev/fd/62
++++ echo ''
++ out='(val h '\''hello world'\'')						|       '
++ update_failure 1 tests/hello.in '(val h '\''hello world'\'')' '' '(val h '\''hello world'\'')						|       '
++ failure=1
++ testname=tests/hello.in
++ pout='(val h '\''hello world'\'')'
++ eout=
++ out='(val h '\''hello world'\'')						|       '
++ [[ 1 -ne 0 ]]
++ echo 'Failed test tests/hello.in'
+Failed test tests/hello.in
++ echo 'Difference: '
+Difference: 
++ echo '(val h '\''hello world'\'')						|       '
+(val h 'hello world')						|       
++ numfail=7
++ for inFile in '$(find $BASEDIR/tests -type f -iname "*.in")'
++ numtests=8
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/define.in
++ inBase=define.in
++ outFile=tests/define.out
++++ dirname /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/define.in
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/define.in
++ inFile=tests/define.in
++ '[' '!' -f tests/define.out ']'
++ outFile=tests/define.in
++ echo 'Running test: diff' tests/define.in tests/define.in
+Running test: diff tests/define.in tests/define.in
+++ dune exec toplevel tests/define.in
++ toplevelOut='(define foo (x) x)'
+++ cat outfile
+++ /opt/homebrew/bin/gsed 's#\n# # g'
+cat: outfile: No such file or directory
++ toplevelExpected=
++++ echo '(define foo (x) x)'
+++ diff -wy /dev/fd/63 /dev/fd/62
++++ echo ''
++ out='(define foo (x) x)						|       '
++ update_failure 1 tests/define.in '(define foo (x) x)' '' '(define foo (x) x)						|       '
++ failure=1
++ testname=tests/define.in
++ pout='(define foo (x) x)'
++ eout=
++ out='(define foo (x) x)						|       '
++ [[ 1 -ne 0 ]]
++ echo 'Failed test tests/define.in'
+Failed test tests/define.in
++ echo 'Difference: '
+Difference: 
++ echo '(define foo (x) x)						|       '
+(define foo (x) x)						|       
++ numfail=8
++ for inFile in '$(find $BASEDIR/tests -type f -iname "*.in")'
++ numtests=9
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/begin.in
++ inBase=begin.in
++ outFile=tests/begin.out
++++ dirname /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/begin.in
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/begin.in
++ inFile=tests/begin.in
++ '[' '!' -f tests/begin.out ']'
++ outFile=tests/begin.in
++ echo 'Running test: diff' tests/begin.in tests/begin.in
+Running test: diff tests/begin.in tests/begin.in
+++ dune exec toplevel tests/begin.in
++ toplevelOut='(val x (begin (dup one) (dup two) (dup three) four five))'
+++ cat outfile
+++ /opt/homebrew/bin/gsed 's#\n# # g'
+cat: outfile: No such file or directory
++ toplevelExpected=
++++ echo '(val x (begin (dup one) (dup two) (dup three) four five))'
+++ diff -wy /dev/fd/63 /dev/fd/62
++++ echo ''
++ out='(val x (begin (dup one) (dup two) (dup three) four five))       |       '
++ update_failure 1 tests/begin.in '(val x (begin (dup one) (dup two) (dup three) four five))' '' '(val x (begin (dup one) (dup two) (dup three) four five))       |       '
++ failure=1
++ testname=tests/begin.in
++ pout='(val x (begin (dup one) (dup two) (dup three) four five))'
++ eout=
++ out='(val x (begin (dup one) (dup two) (dup three) four five))       |       '
++ [[ 1 -ne 0 ]]
++ echo 'Failed test tests/begin.in'
+Failed test tests/begin.in
++ echo 'Difference: '
+Difference: 
++ echo '(val x (begin (dup one) (dup two) (dup three) four five))       |       '
+(val x (begin (dup one) (dup two) (dup three) four five))       |       
++ numfail=9
++ for inFile in '$(find $BASEDIR/tests -type f -iname "*.in")'
++ numtests=10
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/defineErr.in
++ inBase=defineErr.in
++ outFile=tests/defineErr.out
++++ dirname /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/defineErr.in
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/defineErr.in
++ inFile=tests/defineErr.in
++ '[' '!' -f tests/defineErr.out ']'
++ echo 'Running test: diff' tests/defineErr.in tests/defineErr.out
+Running test: diff tests/defineErr.in tests/defineErr.out
+++ dune exec toplevel tests/defineErr.in
++ toplevelOut='Fatal error: exception Dune__exe__Parser.MenhirBasics.Error'
+++ cat outfile
+++ /opt/homebrew/bin/gsed 's#\n# # g'
+cat: outfile: No such file or directory
++ toplevelExpected=
++++ echo 'Fatal error: exception Dune__exe__Parser.MenhirBasics.Error'
+++ diff -wy /dev/fd/63 /dev/fd/62
++++ echo ''
++ out='Fatal error: exception Dune__exe__Parser.MenhirBasics.Err       |       '
++ update_failure 1 tests/defineErr.in 'Fatal error: exception Dune__exe__Parser.MenhirBasics.Error' '' 'Fatal error: exception Dune__exe__Parser.MenhirBasics.Err       |       '
++ failure=1
++ testname=tests/defineErr.in
++ pout='Fatal error: exception Dune__exe__Parser.MenhirBasics.Error'
++ eout=
++ out='Fatal error: exception Dune__exe__Parser.MenhirBasics.Err       |       '
++ [[ 1 -ne 0 ]]
++ echo 'Failed test tests/defineErr.in'
+Failed test tests/defineErr.in
++ echo 'Difference: '
+Difference: 
++ echo 'Fatal error: exception Dune__exe__Parser.MenhirBasics.Err       |       '
+Fatal error: exception Dune__exe__Parser.MenhirBasics.Err       |       
++ numfail=10
++ for inFile in '$(find $BASEDIR/tests -type f -iname "*.in")'
++ numtests=11
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/litfintlit2.in
++ inBase=litfintlit2.in
++ outFile=tests/litfintlit2.out
++++ dirname /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/litfintlit2.in
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/litfintlit2.in
++ inFile=tests/litfintlit2.in
++ '[' '!' -f tests/litfintlit2.out ']'
++ echo 'Running test: diff' tests/litfintlit2.in tests/litfintlit2.out
+Running test: diff tests/litfintlit2.in tests/litfintlit2.out
+++ dune exec toplevel tests/litfintlit2.in
++ toplevelOut='Fatal error: exception Dune__exe__Parser.MenhirBasics.Error'
+++ cat outfile
+++ /opt/homebrew/bin/gsed 's#\n# # g'
+cat: outfile: No such file or directory
++ toplevelExpected=
++++ echo 'Fatal error: exception Dune__exe__Parser.MenhirBasics.Error'
+++ diff -wy /dev/fd/63 /dev/fd/62
++++ echo ''
++ out='Fatal error: exception Dune__exe__Parser.MenhirBasics.Err       |       '
++ update_failure 1 tests/litfintlit2.in 'Fatal error: exception Dune__exe__Parser.MenhirBasics.Error' '' 'Fatal error: exception Dune__exe__Parser.MenhirBasics.Err       |       '
++ failure=1
++ testname=tests/litfintlit2.in
++ pout='Fatal error: exception Dune__exe__Parser.MenhirBasics.Error'
++ eout=
++ out='Fatal error: exception Dune__exe__Parser.MenhirBasics.Err       |       '
++ [[ 1 -ne 0 ]]
++ echo 'Failed test tests/litfintlit2.in'
+Failed test tests/litfintlit2.in
++ echo 'Difference: '
+Difference: 
++ echo 'Fatal error: exception Dune__exe__Parser.MenhirBasics.Err       |       '
+Fatal error: exception Dune__exe__Parser.MenhirBasics.Err       |       
++ numfail=11
++ for inFile in '$(find $BASEDIR/tests -type f -iname "*.in")'
++ numtests=12
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/datatype.in
++ inBase=datatype.in
++ outFile=tests/datatype.out
++++ dirname /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/datatype.in
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/datatype.in
++ inFile=tests/datatype.in
++ '[' '!' -f tests/datatype.out ']'
++ outFile=tests/datatype.in
++ echo 'Running test: diff' tests/datatype.in tests/datatype.in
+Running test: diff tests/datatype.in tests/datatype.in
+++ dune exec toplevel tests/datatype.in
++ toplevelOut='(datatype cons ([car ((-> (int cons) int))] [cdr ((-> (int cons) cons))]))'
+++ cat outfile
+++ /opt/homebrew/bin/gsed 's#\n# # g'
+cat: outfile: No such file or directory
++ toplevelExpected=
++++ echo '(datatype cons ([car ((-> (int cons) int))] [cdr ((-> (int cons) cons))]))'
+++ diff -wy /dev/fd/63 /dev/fd/62
++++ echo ''
++ out='(datatype cons ([car ((-> (int cons) int))] [cdr ((-> (in       |       '
++ update_failure 1 tests/datatype.in '(datatype cons ([car ((-> (int cons) int))] [cdr ((-> (int cons) cons))]))' '' '(datatype cons ([car ((-> (int cons) int))] [cdr ((-> (in       |       '
++ failure=1
++ testname=tests/datatype.in
++ pout='(datatype cons ([car ((-> (int cons) int))] [cdr ((-> (int cons) cons))]))'
++ eout=
++ out='(datatype cons ([car ((-> (int cons) int))] [cdr ((-> (in       |       '
++ [[ 1 -ne 0 ]]
++ echo 'Failed test tests/datatype.in'
+Failed test tests/datatype.in
++ echo 'Difference: '
+Difference: 
++ echo '(datatype cons ([car ((-> (int cons) int))] [cdr ((-> (in       |       '
+(datatype cons ([car ((-> (int cons) int))] [cdr ((-> (in       |       
++ numfail=12
++ for inFile in '$(find $BASEDIR/tests -type f -iname "*.in")'
++ numtests=13
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/ifnest.in
++ inBase=ifnest.in
++ outFile=tests/ifnest.out
++++ dirname /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/ifnest.in
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/ifnest.in
++ inFile=tests/ifnest.in
++ '[' '!' -f tests/ifnest.out ']'
++ outFile=tests/ifnest.in
++ echo 'Running test: diff' tests/ifnest.in tests/ifnest.in
+Running test: diff tests/ifnest.in tests/ifnest.in
+++ dune exec toplevel tests/ifnest.in
++ toplevelOut='(val x (if (if hello yo cya) (if up jump crouch) (if in enter leave)))'
+++ cat outfile
+++ /opt/homebrew/bin/gsed 's#\n# # g'
+cat: outfile: No such file or directory
++ toplevelExpected=
++++ echo '(val x (if (if hello yo cya) (if up jump crouch) (if in enter leave)))'
+++ diff -wy /dev/fd/63 /dev/fd/62
++++ echo ''
++ out='(val x (if (if hello yo cya) (if up jump crouch) (if in e       |       '
++ update_failure 1 tests/ifnest.in '(val x (if (if hello yo cya) (if up jump crouch) (if in enter leave)))' '' '(val x (if (if hello yo cya) (if up jump crouch) (if in e       |       '
++ failure=1
++ testname=tests/ifnest.in
++ pout='(val x (if (if hello yo cya) (if up jump crouch) (if in enter leave)))'
++ eout=
++ out='(val x (if (if hello yo cya) (if up jump crouch) (if in e       |       '
++ [[ 1 -ne 0 ]]
++ echo 'Failed test tests/ifnest.in'
+Failed test tests/ifnest.in
++ echo 'Difference: '
+Difference: 
++ echo '(val x (if (if hello yo cya) (if up jump crouch) (if in e       |       '
+(val x (if (if hello yo cya) (if up jump crouch) (if in e       |       
++ numfail=13
++ for inFile in '$(find $BASEDIR/tests -type f -iname "*.in")'
++ numtests=14
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/litfsym.in
++ inBase=litfsym.in
++ outFile=tests/litfsym.out
++++ dirname /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/litfsym.in
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/litfsym.in
++ inFile=tests/litfsym.in
++ '[' '!' -f tests/litfsym.out ']'
++ echo 'Running test: diff' tests/litfsym.in tests/litfsym.out
+Running test: diff tests/litfsym.in tests/litfsym.out
+++ dune exec toplevel tests/litfsym.in
++ toplevelOut='Fatal error: exception Dune__exe__Parser.MenhirBasics.Error'
+++ cat outfile
+++ /opt/homebrew/bin/gsed 's#\n# # g'
+cat: outfile: No such file or directory
++ toplevelExpected=
++++ echo 'Fatal error: exception Dune__exe__Parser.MenhirBasics.Error'
+++ diff -wy /dev/fd/63 /dev/fd/62
++++ echo ''
++ out='Fatal error: exception Dune__exe__Parser.MenhirBasics.Err       |       '
++ update_failure 1 tests/litfsym.in 'Fatal error: exception Dune__exe__Parser.MenhirBasics.Error' '' 'Fatal error: exception Dune__exe__Parser.MenhirBasics.Err       |       '
++ failure=1
++ testname=tests/litfsym.in
++ pout='Fatal error: exception Dune__exe__Parser.MenhirBasics.Error'
++ eout=
++ out='Fatal error: exception Dune__exe__Parser.MenhirBasics.Err       |       '
++ [[ 1 -ne 0 ]]
++ echo 'Failed test tests/litfsym.in'
+Failed test tests/litfsym.in
++ echo 'Difference: '
+Difference: 
++ echo 'Fatal error: exception Dune__exe__Parser.MenhirBasics.Err       |       '
+Fatal error: exception Dune__exe__Parser.MenhirBasics.Err       |       
++ numfail=14
++ for inFile in '$(find $BASEDIR/tests -type f -iname "*.in")'
++ numtests=15
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/let.in
++ inBase=let.in
++ outFile=tests/let.out
++++ dirname /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/let.in
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/let.in
++ inFile=tests/let.in
++ '[' '!' -f tests/let.out ']'
++ outFile=tests/let.in
++ echo 'Running test: diff' tests/let.in tests/let.in
+Running test: diff tests/let.in tests/let.in
+++ dune exec toplevel tests/let.in
++ toplevelOut='(define let-fun () (let ([x 3]) x))'
+++ cat outfile
+++ /opt/homebrew/bin/gsed 's#\n# # g'
+cat: outfile: No such file or directory
++ toplevelExpected=
++++ echo '(define let-fun () (let ([x 3]) x))'
+++ diff -wy /dev/fd/63 /dev/fd/62
++++ echo ''
++ out='(define let-fun () (let ([x 3]) x))				|       '
++ update_failure 1 tests/let.in '(define let-fun () (let ([x 3]) x))' '' '(define let-fun () (let ([x 3]) x))				|       '
++ failure=1
++ testname=tests/let.in
++ pout='(define let-fun () (let ([x 3]) x))'
++ eout=
++ out='(define let-fun () (let ([x 3]) x))				|       '
++ [[ 1 -ne 0 ]]
++ echo 'Failed test tests/let.in'
+Failed test tests/let.in
++ echo 'Difference: '
+Difference: 
++ echo '(define let-fun () (let ([x 3]) x))				|       '
+(define let-fun () (let ([x 3]) x))				|       
++ numfail=15
++ for inFile in '$(find $BASEDIR/tests -type f -iname "*.in")'
++ numtests=16
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/funCall.in
++ inBase=funCall.in
++ outFile=tests/funCall.out
++++ dirname /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/funCall.in
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/funCall.in
++ inFile=tests/funCall.in
++ '[' '!' -f tests/funCall.out ']'
++ outFile=tests/funCall.in
++ echo 'Running test: diff' tests/funCall.in tests/funCall.in
+Running test: diff tests/funCall.in tests/funCall.in
+++ dune exec toplevel tests/funCall.in
++ toplevelOut='(define add-1-to-all (xs) (map ((curry +) 1) xs))'
+++ cat outfile
+++ /opt/homebrew/bin/gsed 's#\n# # g'
+cat: outfile: No such file or directory
++ toplevelExpected=
++++ echo '(define add-1-to-all (xs) (map ((curry +) 1) xs))'
+++ diff -wy /dev/fd/63 /dev/fd/62
++++ echo ''
++ out='(define add-1-to-all (xs) (map ((curry +) 1) xs))		|       '
++ update_failure 1 tests/funCall.in '(define add-1-to-all (xs) (map ((curry +) 1) xs))' '' '(define add-1-to-all (xs) (map ((curry +) 1) xs))		|       '
++ failure=1
++ testname=tests/funCall.in
++ pout='(define add-1-to-all (xs) (map ((curry +) 1) xs))'
++ eout=
++ out='(define add-1-to-all (xs) (map ((curry +) 1) xs))		|       '
++ [[ 1 -ne 0 ]]
++ echo 'Failed test tests/funCall.in'
+Failed test tests/funCall.in
++ echo 'Difference: '
+Difference: 
++ echo '(define add-1-to-all (xs) (map ((curry +) 1) xs))		|       '
+(define add-1-to-all (xs) (map ((curry +) 1) xs))		|       
++ numfail=16
++ for inFile in '$(find $BASEDIR/tests -type f -iname "*.in")'
++ numtests=17
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/exprlist.in
++ inBase=exprlist.in
++ outFile=tests/exprlist.out
++++ dirname /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/exprlist.in
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/exprlist.in
++ inFile=tests/exprlist.in
++ '[' '!' -f tests/exprlist.out ']'
++ outFile=tests/exprlist.in
++ echo 'Running test: diff' tests/exprlist.in tests/exprlist.in
+Running test: diff tests/exprlist.in tests/exprlist.in
+++ dune exec toplevel tests/exprlist.in
++ toplevelOut='(val x (x x x x x x x x x x x x x x x))'
+++ cat outfile
+++ /opt/homebrew/bin/gsed 's#\n# # g'
+cat: outfile: No such file or directory
++ toplevelExpected=
++++ echo '(val x (x x x x x x x x x x x x x x x))'
+++ diff -wy /dev/fd/63 /dev/fd/62
++++ echo ''
++ out='(val x (x x x x x x x x x x x x x x x))				|       '
++ update_failure 1 tests/exprlist.in '(val x (x x x x x x x x x x x x x x x))' '' '(val x (x x x x x x x x x x x x x x x))				|       '
++ failure=1
++ testname=tests/exprlist.in
++ pout='(val x (x x x x x x x x x x x x x x x))'
++ eout=
++ out='(val x (x x x x x x x x x x x x x x x))				|       '
++ [[ 1 -ne 0 ]]
++ echo 'Failed test tests/exprlist.in'
+Failed test tests/exprlist.in
++ echo 'Difference: '
+Difference: 
++ echo '(val x (x x x x x x x x x x x x x x x))				|       '
+(val x (x x x x x x x x x x x x x x x))				|       
++ numfail=17
++ for inFile in '$(find $BASEDIR/tests -type f -iname "*.in")'
++ numtests=18
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/litfunit.in
++ inBase=litfunit.in
++ outFile=tests/litfunit.out
++++ dirname /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/litfunit.in
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/litfunit.in
++ inFile=tests/litfunit.in
++ '[' '!' -f tests/litfunit.out ']'
++ echo 'Running test: diff' tests/litfunit.in tests/litfunit.out
+Running test: diff tests/litfunit.in tests/litfunit.out
+++ dune exec toplevel tests/litfunit.in
++ toplevelOut='Fatal error: exception Dune__exe__Parser.MenhirBasics.Error'
+++ cat outfile
+++ /opt/homebrew/bin/gsed 's#\n# # g'
+cat: outfile: No such file or directory
++ toplevelExpected=
++++ echo 'Fatal error: exception Dune__exe__Parser.MenhirBasics.Error'
+++ diff -wy /dev/fd/63 /dev/fd/62
++++ echo ''
++ out='Fatal error: exception Dune__exe__Parser.MenhirBasics.Err       |       '
++ update_failure 1 tests/litfunit.in 'Fatal error: exception Dune__exe__Parser.MenhirBasics.Error' '' 'Fatal error: exception Dune__exe__Parser.MenhirBasics.Err       |       '
++ failure=1
++ testname=tests/litfunit.in
++ pout='Fatal error: exception Dune__exe__Parser.MenhirBasics.Error'
++ eout=
++ out='Fatal error: exception Dune__exe__Parser.MenhirBasics.Err       |       '
++ [[ 1 -ne 0 ]]
++ echo 'Failed test tests/litfunit.in'
+Failed test tests/litfunit.in
++ echo 'Difference: '
+Difference: 
++ echo 'Fatal error: exception Dune__exe__Parser.MenhirBasics.Err       |       '
+Fatal error: exception Dune__exe__Parser.MenhirBasics.Err       |       
++ numfail=18
++ for inFile in '$(find $BASEDIR/tests -type f -iname "*.in")'
++ numtests=19
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/case.in
++ inBase=case.in
++ outFile=tests/case.out
++++ dirname /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/case.in
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests
+++ basename /Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler/tests/case.in
++ inFile=tests/case.in
++ '[' '!' -f tests/case.out ']'
++ outFile=tests/case.in
++ echo 'Running test: diff' tests/case.in tests/case.in
+Running test: diff tests/case.in tests/case.in
+++ dune exec toplevel tests/case.in
++ toplevelOut='(val x (case x ([(cons x xs) 2] [_ 1])))'
+++ cat outfile
+++ /opt/homebrew/bin/gsed 's#\n# # g'
+cat: outfile: No such file or directory
++ toplevelExpected=
++++ echo '(val x (case x ([(cons x xs) 2] [_ 1])))'
+++ diff -wy /dev/fd/63 /dev/fd/62
++++ echo ''
++ out='(val x (case x ([(cons x xs) 2] [_ 1])))			|       '
++ update_failure 1 tests/case.in '(val x (case x ([(cons x xs) 2] [_ 1])))' '' '(val x (case x ([(cons x xs) 2] [_ 1])))			|       '
++ failure=1
++ testname=tests/case.in
++ pout='(val x (case x ([(cons x xs) 2] [_ 1])))'
++ eout=
++ out='(val x (case x ([(cons x xs) 2] [_ 1])))			|       '
++ [[ 1 -ne 0 ]]
++ echo 'Failed test tests/case.in'
+Failed test tests/case.in
++ echo 'Difference: '
+Difference: 
++ echo '(val x (case x ([(cons x xs) 2] [_ 1])))			|       '
+(val x (case x ([(cons x xs) 2] [_ 1])))			|       
++ numfail=19
++ [[ 19 -eq 0 ]]
++ [[ 19 -eq 0 ]]
++ numpassed=0
++ echo '0 / 19 tests passed. See above output for details.'
+0 / 19 tests passed. See above output for details.
++ exit 1

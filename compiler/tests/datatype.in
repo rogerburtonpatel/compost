@@ -1,1 +1,1 @@
-(datatype cons ([car ((-> (int list) int))] [cdr ((-> (int list) int list))]))
+(datatype cons ([car ((-> (int cons) int))] [cdr ((-> (int cons) cons))]))

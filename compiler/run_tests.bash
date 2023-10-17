@@ -7,6 +7,12 @@ TESTDIR=$BASEDIR/tests/
 
 shopt -s nullglob
 
+# change if your sed is different! on halligan this will be /usr/bin/sed. 
+if [ `uname` = "Darwin" ]; then
+    SED=/opt/homebrew/bin/gsed
+else 
+    SED=sed
+fi
 
 build ()
 {
