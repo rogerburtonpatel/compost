@@ -7,14 +7,13 @@
 %token LPAREN RPAREN LBRACKET RBRACKET 
 %token VAL DEFINE DATATYPE USE COLON 
 %token CASE IF BEGIN LET 
-%token INT BOOL SYM 
+%token INT BOOL SYM UNIT 
 %token WILDCARD ARROW DUP 
 %token EOF 
 
 %token <string> NAME SYMLIT 
 %token <int> INTLIT
 %token <bool> BOOLLIT
-%token UNITLIT
 
 %start program
 %type <Ast.program> program
@@ -79,6 +78,7 @@ ty:
  | INT { Int }
  | BOOL { Bool }
  | SYM { Sym }
+ | UNIT { Unit }
  | NAME { CustomTy($1) }
 
 funtyinternal:
@@ -147,5 +147,5 @@ literal:
    INTLIT { IntLit($1) }
  | SYMLIT { SymLit($1) }
  | BOOLLIT { BoolLit($1) }
- | UNITLIT { UnitLit }
+ | UNIT { UnitLit }
 
