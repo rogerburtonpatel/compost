@@ -51,7 +51,9 @@ Code listings will appear in ``verbatim'' as follows:
 (define foo ()
   bar)
 \end{verbatim}
+
 Grammar rules are written in extended Backus-Naur format, as follows:
+
 \begin{grammar}
   <rule> ::= (<nonterminal> \texttt{terminal})
     \alt \{ <other-rule> \}
@@ -164,51 +166,145 @@ Unit values are the value $unit$.
 \subsection{Variant Values}
 
 Variant values are either a constant constructor or a non-constant constructor applied to a series of value arguments.
-We write an arbitrary constant constructor $const$ as $(const)$ and an arbitrary non-constant constructor $nonconst$ applied to arguments $v_1...v_{n}$ as $(nonconst\ v_{1}\ ...\ v_{n})$.
+We write an arbitrary constant constructor $c$ as $(c)$ and an arbitrary non-constant constructor $d$ applied to arguments $v_1...v_{n}$ as $(d\ v_{1}\ ...\ v_{n})$.
 \\\\
-Variant constructors are monomorphic, that is, for any constructor $nonconst$, there exist types $\tau_{1}...\tau_{n}$ such that for any application of constructor $nonconst$ to arguments $v_{1}...v_{n}$, $v_{i}$ must have type $\tau_{i}$ for all $i\in1...n$.
+Variant constructors are monomorphic, that is, for any constructor $c$, there exist types $\tau_{1}...\tau_{n}$ such that for any application of constructor $c$ to arguments $v_{1}...v_{n}$, $v_{i}$ must have type $\tau_{i}$ for all $i\in1...n$.
+
+\subsection{Functions}
+
+Functions in Compost are first-class objects.
+Function values are mappings from ordered sets of values, to values.
+That is, a function $f$, when applied to values $v_{1}...v_{n}$, produces a value $v_{r}$.
+Like variant constructors, functions are monomorphic, so the types of $v_{1}...v_{n}$ and $v_{r}$ are fixed.
 
 % NAMES
 
 \section{Names}
 
-\begin{grammar}
-  <name> ::= any token that is not an \textit{int-lit}, does not contain a \texttt{'} or bracket, and is not a reserved word.
-\end{grammar}
-
-
-% TYPES
-
-\section{Types}
-
-\subsection{Type Expressions}
-
-Syntactic forms in the \textit{type} category may appear in type annotations (see section 4.2.2) or to type datatype fields (see section 4.2.3).
+Compost places relatively liberal constraints on the sequences of characters considered valid names.
 
 \begin{grammar}
+  <name> ::= any token that is not an \textit{int-lit}, does not contain whitespace, a \texttt{'}, bracket, or parenthesis, and is not a reserved word.
+\end{grammar}
 
-  <type> ::= (\texttt{->} (\{ <type> \}) <type>)
-    \alt \texttt{int}
-    \alt \texttt{bool}
-    \alt \texttt{sym}
-    \alt \texttt{unit}
-    \alt <name>
+Names are bound to types, values, and variant constructors, and used to refer to them at various points in a program.
+Names are also used in the \textit{use-declaration} syntactic form to refer to files.
+
+% TYPE EXPRESSIONS
+
+\section{Type Expressions}
+
+
+\begin{grammar}
+
+  <type-expression> ::= <function-type>
+    \alt <int-type>
+    \alt <bool-type>
+    \alt <sym-type>
+    \alt <unit-type>
+    \alt <datatype>
 
 \end{grammar}
 
-Compost provides three primitive types.
-These are \texttt{int}: 32-bit signed integers, \texttt{bool}: boolean values \texttt{true} or \texttt{false}, and \texttt{sym}: interned immutable strings.
-In addition, there is a single type constructor, the \texttt{->} (arrow) type, which is used to construct the types of functions.
-For example, the type of the \texttt{+} function, which returns the sum of two integers, would be:
+\subsection{Primitive Types}
+
+\begin{grammar}
+  <int-type> ::= \texttt{int}
+
+  <bool-type> ::= \texttt{bool}
+
+  <sym-type> ::= \texttt{sym}
+
+  <unit-type> ::= \texttt{unit}
+\end{grammar}
+
+\texttt{int} is the type of integer values.
+\\\\
+\texttt{bool} is the type of boolean values.
+\\\\
+\texttt{sym} is the type of symbol values.
+\\\\
+\texttt{unit} is the type of unit values.
+
+\subsection{Function Types}
+
+\begin{grammar}
+  <function-type> ::= (\texttt{->} (\{ <type> \}) <type>)
+\end{grammar}
+
+$(\rightarrow (\tau_{1}\ ...\ \tau_{n})\ \tau_{r})$ is the type of function values which map ordered sets of values $v_{1}...v_{n}$ of types $\tau_{1}...\tau_{n}$ to values $v_{r}$ of type $\tau_{r}$.
+
+\subsection{Datatypes}
+
+\begin{grammar}
+  <datatype> ::= <name>
+\end{grammar}
+
+Datatypes are the types of variant constructor values.
+Multiple variant constructors may share the same type.
+Datatypes and their constructors can be defined by the programmer with the following syntax:
+
+\begin{grammar}
+    <datatype-definition> ::= (\texttt{datatype} <name> (\{ <variant-constructor-definition> \}))
+
+    <variant-constructor-definition> ::= (<name> (\{ <type-expression> \}))
+\end{grammar}
+
+A \textit{name} bound to the new type $\tau_{d}$ appears directly following the \texttt{datatype} keyword, and this is followed by a list of variant constructor definitions.
+Each of these provides a \textit{name} bound to the constructor, $c$, followed by a list of \textit{type-expression}s $\tau_{1}...\tau_{n}$ typing its arguments.
+Given this definition, a variant value $(c\ v_{1}\ ...\ v_{n})$ of type $\tau_{d} $ may be introduced by applying function value $c$ to $v_{1}...v_{n}$, where the type of $v_{i}$ is $\tau_{i}$ for all $i\in1...n$
+\\\\
+The placement of a datatype or variant constructor's definition has no bearing on where it can be referenced, introduced, or eliminated.
+In fact, datatypes may be defined recursively, as in the following example:
 
 \begin{verbatim}
-(-> (int int) int)
+(datatype int-list
+  (
+    [cons (int int-list)]
+    [nil ()]
+  )
+)
 \end{verbatim}
 
-Within the pair of parentheses following the arrow are the types of the function's arguments, and the type following the closing parenthesis is the function's return type.
-\\\\
-Note that a type may be a name other than those of the primtive types.
-Here the programmer can name a datatype, declared by the \texttt{datatype} form discussed in section 4.2.
+This declaration can be read as: ``an \texttt{int-list} is either \texttt{cons} applied to an \texttt{int} and an \texttt{int-list}, or \texttt{nil} applied to nothing''.
+
+\section{Type System}
+
+Compost is statically typed, with a monomorphic
+
+% Tags serve two purposes.
+% For every tag there exists a function of the same name which produces a variant constructor value.
+% In this case, \texttt{cons}, when applied to values $v_{1},v_{2}$, produces $(\texttt{cons}\ v_{1}\ v_{2})$.
+% In addition, when top-level pattern matching on a value of a datatype, the pattern in each branch is prefixed by a different tag.
+% We will discuss top-level pattern matches in more detail in section 4, but here is an example using our already defined \texttt{int-list} datatype:
+
+% \begin{verbatim}
+% (: car (-> (intlist) int))
+% (define car (xxs)
+%   (case xxs
+%     ((cons x xs) x)
+%     ((nil) (error 'tried to take car of nil'))
+%   )
+% )
+
+% (: main (-> () unit)
+% (define main ()
+%   (let
+%     (
+%       [xs (cons 1 nil)]
+%       [y (car xs)]
+%     )
+%     (print-int y)
+%   )
+% )
+% \end{verbatim}
+
+% Here, \texttt{car} performs a top-level pattern match on its argument \texttt{xxs}.
+% If \texttt{xxs} was constructed with a call to \texttt{cons}, then the first element of that \texttt{cons} is returned.
+% Otherwise, if \texttt{xxs} was constructed with a call to \texttt{nil}, we err.
+% \texttt{main} then uses \texttt{cons} to construct an \texttt{intlist} from \texttt{1} and \texttt{nil} and calls \texttt{car} on the result.
+
+
 
 % EXPRESSIONS
 
@@ -227,53 +323,67 @@ Here the programmer can name a datatype, declared by the \texttt{datatype} form 
 
 Meaningful computation is encoded in Compost as \textit{expr} syntactic forms, or expressions.
 These appear either as the right-hand side of \texttt{val} declarations or as the bodies of functions.
-
-\subsection{Literals}
-
-The simplest expressions are literals, which introduce values of our primitive types.
-
-\begin{grammar}
-
-  <literal> ::= <int-lit>
-    \alt <sym-lit>
-    \alt <bool-lit>
-    \alt \texttt{unit}
-
-  <int-lit> ::= token composed only of digits, possibly prefixed with a \texttt{+} or \texttt{-}.
-
-  <bool-lit> ::= \texttt{true} | \texttt{false}
-
-  <sym-lit> ::= \texttt{'}\{ <sym-char> \}\texttt{'}
-
-  <sym-char> ::= any unicode code point other than \texttt{'} unless escaped with a \texttt{\textbackslash}.
-
-  <name> ::= any token that is not an \textit{int-lit}, does not contain a \texttt{'} or bracket, and is not one of the reserved words shown in typewriter font
-
-\end{grammar}
-
-Note the definitions of \textit{sym-char} and \textit{name}.
-Compost imposes very few restrictions on the set of valid names.
-For example, \texttt{.}, \texttt{1+1}, and \texttt{\$\#@!} are all valid names for functions, variables, and value constructors.
-For characters found in symbols, we permit unicode code points along with the standard set of ASCII values.
+\\\\
+We describe the semantics and typing rules of expressions largely informally but use formal notation to aid conciseness.
+Expressions are evaluated in an environment $\rho$ mapping names to values.
+Initially, these environments contain the values and types of all globally bound names (functions, \texttt{val}-bound names).
+$\rho[x\mapsto v]$ is the modified environment $\rho$ in which name $x$ is bound to value $v$.
+$\rho[x]$ is the value mapped to by $x$ in $\rho$.
+\\\\
+Certain expressions will ``consume'' names, though note that only names mapped to variant values are consumed.
+That is, if a subsection states that ``if \texttt{e} is a name, it is consumed'', this should be interpreted as: ``if \texttt{e} is a name bound to a''
+Consumption is defined inductively on the structure of expressions by the following subsections.
 
 \subsection{Case Expressions}
 
 \begin{grammar}
   <case-expression> ::= (\texttt{case} <expr> (\{ <case-branch> \}))
-\end{grammar}
 
-\begin{grammar}
   <case-branch> ::= (<pattern> <expr>)
 
   <pattern> ::= (<name> \{ <name> | \texttt{_} \})
     \alt \texttt{_}
 \end{grammar}
+Values of the form $(c\ v_{1}\ ..\ v_{n})$ are eliminated by the \textit{case-expression} syntactic form.
+Consider a case expression with $n$ branches of the form:
+
+\begin{verbatim}
+(case e
+  (
+    [(c1 v11 v12 ...) e1]
+    ...
+    [(cn vn1 vn2 ...) en]
+  )
+)
+\end{verbatim}
+
+Suppose evaluation of \texttt{e} in environment $\rho$ yields a value $v=(c\ v_{i}\ ...\ v_{m})$.
+We assert that the type of \texttt{e} must be a datatype.
+Each \texttt{c}$i$ where $i\in1...n$ must be a variant constructor of $\tau_{d}$.
+If there exists some branch whose pattern is prefixed by $c$, we evaluate it in the modified environments $\Gamma',\rho$ identical to $\rho, \Gamma'$ but with every name consumed in \texttt{e} unbound, and yield the result.
+\\\\
+Suppose this branch is the \texttt{case-branch} containing the pattern prefixed by variant constructor \texttt{c}$k$.
+Evaluation proceeds as follows.
+Let $\tau_{1}...\tau_{m}$ be the types of $c$'s arguments.
+We assert that number of names or wildcards \texttt{v}$ki$ following \texttt{c}$k$ must be precisely $m$.
+Evaluation of this branch yields the result of evaluating \texttt{e}$k$ in the modified environments $\rho'[\texttt{v}k1\mapsto v_{1},...,\texttt{v}km\mapsto v_{m}]$. Note that we do not bind the wildcard symbol in $\rho'$.
 
 \subsection{If Expressions}
 
 \begin{grammar}
   <if-expression> ::= (\texttt{if} <expr> <expr> <expr>)
 \end{grammar}
+
+Consider an if expression of the form:
+
+\begin{verbatim}
+(if e1 e2 e3)
+\end{verbatim}
+
+Suppose evaluation of \texttt{e1} in environments $\rho$ yields a value $v$.
+We assert that the type of \texttt{e1} must be \texttt{bool}.
+Let
+
 
 \subsection{Begin Expressions}
 
@@ -377,7 +487,7 @@ That is, despite \texttt{is-odd} being declared after \texttt{is-even}, \texttt{
 \subsection{Type Annotations}
 
 \begin{grammar}
-  <type-annotation> ::= (\texttt{:} <name> <type>)
+  <type-annotation> ::= (\texttt{:} <name> <type-expression>)
 \end{grammar}
 
 Type annotations constrain the type of globally bound names.
@@ -413,62 +523,6 @@ As with function definitions, all \texttt{val} bindings must have an associated 
 However, the scoping rules here are more subtle.
 Although a \texttt{val} binding's type annotation may be located before or after the binding itself, the bound name is in scope only after the \texttt{val} binding itself.
 The location of the associated type annotation has no effect in this regard.
-
-\subsection{Datatype Definitions}
-
-\begin{grammar}
-    <datatype-definition> ::= (\texttt{datatype} <name> (\{ <variant-constructor-definition> \}))
-
-    <variant-constructor-definition> ::= (<name> (\{ <type> \}))
-\end{grammar}
-
-The \texttt{datatype} form allows the programmer to introduce new types.
-The name of the new type appears directly following the \texttt{datatype} keyword, and this is followed by a list of variant constructor definitions.
-Each of these provides a name for the constructor, followed by a list of types for its arguments.
-Like functions, the placement of a datatype's definition has no bearing on where it can be referenced, introduced, or eliminated.
-In fact, datatypes may be defined recursively, as in the following example:
-
-\begin{verbatim}
-(datatype int-list
-  (
-    [cons (int int-list)]
-    [nil ()]
-  )
-)
-\end{verbatim}
-
-This declaration can be read as: ``an \texttt{int-list} is either a cons-cell containing an \texttt{int} and an \texttt{int-list}, or the empty list, \texttt{nil}''.
-\\\\
-Tags serve two purposes.
-For every tag there exists a function of the same name which constructs a value of the corresponding datatype.
-In addition, when top-level pattern matching on a value of a datatype, the pattern in each branch is prefixed by a different tag.
-We will discuss top-level pattern matches in more detail in section 4, but here is an example using our already defined \texttt{int-list} datatype:
-
-\begin{verbatim}
-(: car (-> (intlist) int))
-(define car (xxs)
-  (case xxs
-    ((cons x xs) x)
-    ((nil) (error 'tried to take car of nil'))
-  )
-)
-
-(: main (-> () unit)
-(define main ()
-  (let
-    (
-      [xs (cons 1 nil)]
-      [y (car xs)]
-    )
-    (print-int y)
-  )
-)
-\end{verbatim}
-
-Here, \texttt{car} performs a top-level pattern match on its argument \texttt{xxs}.
-If \texttt{xxs} was constructed with a call to \texttt{cons}, then the first element of that \texttt{cons} is returned.
-Otherwise, if \texttt{xxs} was constructed with a call to \texttt{nil}, we err.
-\texttt{main} then uses \texttt{cons} to construct an \texttt{intlist} from \texttt{1} and \texttt{nil} and calls \texttt{car} on the result.
 
 \subsection{Use Declarations}
 
