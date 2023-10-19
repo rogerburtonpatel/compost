@@ -336,7 +336,7 @@ We assert that the type of \texttt{e} must be a datatype.
 Suppose that $\Gamma\vdash\texttt{e}:\tau_{d}$.
 Each \texttt{c}$i$ must be a variant constructor of $\tau_{d}$.
 For all $i\in1,2,...,n$, let $\tau_{i1},\tau_{i2},...,\tau_{im}$ be the types of \texttt{c}$i$'s $m$ arguments.
-We assert that the number of names and wildcards following \texttt{c}$i$ must be precisely $m$, and that all must be fresh.
+We assert that the number of names and wildcards following \texttt{c}$i$ must be precisely $m$, and that all names must be fresh.
 Let $\Gamma_{i}$ be $\Gamma[\texttt{v}i1\mapsto\tau_{i1},...,\texttt{v}im\mapsto\tau_{im}]$.
 Note that wildcards are not bound.
 We assert that $\Gamma_{i}\vdash\texttt{e}i:\tau_{r}$.
@@ -349,7 +349,7 @@ Names marked as consumed in \texttt{e} are marked as consumed in all \texttt{e}$
 Suppose evaluation of \texttt{e} in environment $\rho$ yields a value $v=(c\ v_{i}\ ...\ v_{m})$.
 If there exists some branch whose pattern is prefixed by $c$, it is evaluated in the environment $\rho$ and its result is returned.
 \\\\
-Suppose this branch is the \texttt{case-branch} containing the pattern prefixed by variant constructor \texttt{c}$k$.
+Suppose this branch is the \textit{case-branch} containing the pattern prefixed by variant constructor \texttt{c}$k$.
 Evaluation of this branch yields the result of evaluating \texttt{e}$k$ in the modified environment $\rho'=\rho[\texttt{v}k1\mapsto v_{1},...,\texttt{v}km\mapsto v_{m}]$. Note that we do not bind wildcards in $\rho'$.
 
 \subsection{If Expressions}
@@ -461,7 +461,7 @@ For any $i\in1,2,...,n$ we mark any names consumed in \texttt{e}$i$ as consumed 
 
 For all $i\in1,2,...,n$, let $\rho_{i+1}=\rho_{i}[\texttt{x}i\mapsto v_{i}]$, where $v_{i}$ is the value returned by evaluating \texttt{e}$i$ in environment $\rho_{i}$.
 As a base case, let $\rho_{1}=\rho$.
-We return the result of evaluation \texttt{e} in environment $\rho_{n+1}$.
+We return the result of evaluating \texttt{e} in environment $\rho_{n+1}$.
 
 \subsection{Name Expressions}
 
@@ -567,12 +567,12 @@ Let $\Gamma,\rho$ be $\Gamma_{g},\rho_{g}$ at the opening parenthesis of the bin
 Let $\Gamma_{c}$ be $\Gamma_{g}$ at the closing parenthesis of the binding.
 \\\\
 We assert that \texttt{x} be free in $\rho$ and bound in $\Gamma_{g}$.
-Given $\Gamma_{c}[\texttt{n}]=\tau$, we assert that $\Gamma\vdash\texttt{e}=\tau$.
+Given $\Gamma_{c}[\texttt{x}]=\tau$, we assert that $\Gamma\vdash\texttt{e}=\tau$.
 \\\\
-Let $v$ be the result of evaluation $\texttt{e}$ in environment $\rho$.
+Let $v$ be the result of evaluating $\texttt{e}$ in environment $\rho$.
 We bind \texttt{x} to $v$ in $\rho_{g}$ at the closing parenthesis.
 \\\\
-Note that if \texttt{e} produces a side effect, it is produced \textbf{only} when \texttt{n} is referenced and \textbf{every} time \texttt{x} is referenced.
+Note that if \texttt{e} produces a side effect, it is produced \textbf{only} when \texttt{x} is referenced and \textbf{every} time \texttt{x} is referenced.
 That is, references to \texttt{val}-bound names behave as zero-arity function calls rather than references to \texttt{let}-bound names.
 The secret sauce here is that \texttt{val} bindings are simply type-checked macros.
 
@@ -604,6 +604,8 @@ We bind \texttt{x}, in $\rho_{g}$ at the first character of the file, to the fun
 \end{grammar}
 
 Use declarations are a thinly-veiled preprocessor directive which are replaced by the contents of the named file.
+
+\section{The Structure of Compost Programs}
 
 \section{Initial Basis}
 
@@ -730,5 +732,67 @@ Logical OR.
 \end{verbatim}
 
 Logical XOR.
+
+\subsection{Printing}
+
+The following functions print representations of primitive values to stdout.
+
+\begin{verbatim}
+(: print-int (-> (int) unit))
+\end{verbatim}
+
+Prints the digits of decimal representation the absolute value of its argument in order from most to least significant, prefixed with a \texttt{-} if it is less than \texttt{0}.
+
+\begin{verbatim}
+(: print-bool (-> (int) unit))
+\end{verbatim}
+
+Prints \texttt{true} to if its argument is the value \texttt{true} and prints \texttt{false} otherwise.
+
+\begin{verbatim}
+(: print-sym (-> (sym) unit))
+\end{verbatim}
+
+Prints its symbol argument's associated string.
+
+\begin{verbatim}
+(: print-unit (-> (unit) unit))
+\end{verbatim}
+
+Prints \texttt{unit}.
+
+\subsection{Input}
+
+\begin{verbatim}
+(: in (-> () sym))
+\end{verbatim}
+
+Returns a symbol containing a single character read from stdin.
+Note that all printable ASCII characters are initialized as symbols.
+
+\subsection{Lists and Helpers}
+
+\begin{verbatim}
+(datatype list-int
+  (
+    [cons-int (int list-int)]
+    [nil-int ()]
+  )
+)
+
+(: filter-list-int (-> ((-> (int) bool) list-int) list-int))
+(define filter-list-int (f xxs)
+  (case xxs
+    [(cons-int x xs)
+      (if (f x)
+        (cons-int x (filter-list-int xs))
+        (filter-list-int f xs)
+      )
+    ]
+    [(nil-int) (nil-int)]
+  )
+)
+
+\end{verbatim}
 
 \end{document}
