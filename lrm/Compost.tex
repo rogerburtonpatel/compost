@@ -351,6 +351,7 @@ Names marked as consumed in \texttt{e} are marked as consumed in all \texttt{e}$
 \subsubsection{Evaluation}
 Suppose evaluation of \texttt{e} in environment $\rho$ yields a value $v=(c\ v_{i}\ ...\ v_{m})$.
 If there exists some branch whose pattern is prefixed by $c$, it is evaluated in the environment $\rho$ and its result is returned.
+Otherwise, a the program halts with a runtime error.
 \\\\
 Suppose this branch is the \textit{case-branch} containing the pattern prefixed by variant constructor \texttt{c}$k$.
 Evaluation of this branch yields the result of evaluating \texttt{e}$k$ in the modified environment $\rho'=\rho[\texttt{v}k1\mapsto v_{1},...,\texttt{v}km\mapsto v_{m}]$. Note that we do not bind wildcards in $\rho'$.
@@ -775,6 +776,8 @@ Note that all printable ASCII characters are initialized as symbols.
 
 \subsection{Lists and Helpers}
 
+\subsubsection{Integers}
+
 \begin{verbatim}
 (datatype list-int
   (
@@ -782,20 +785,189 @@ Note that all printable ASCII characters are initialized as symbols.
     [nil-int ()]
   )
 )
+\end{verbatim}
 
+Lisp-style lists of integers.
+
+\begin{verbatim}
 (: filter-list-int (-> ((-> (int) bool) list-int) list-int))
 (define filter-list-int (f xxs)
   (case xxs
-    [(cons-int x xs)
-      (if (f x)
-        (cons-int x (filter-list-int xs))
-        (filter-list-int f xs)
-      )
-    ]
-    [(nil-int) (nil-int)]
+    (
+      [(cons-int x xs)
+        (if (f x)
+          (cons-int x (filter-list-int xs))
+          (filter-list-int f xs)
+        )
+      ]
+      [(nil-int) (nil-int)]
+    )
   )
 )
-
 \end{verbatim}
 
+Returns a list containing all elements of \texttt{xxs} satisfying predicate \texttt{f}.
+
+\begin{verbatim}
+(: exists-list-int (-> ((-> (int) bool) list-int) bool))
+(define exists-list-int (f xxs)
+  (case xxs
+    (
+      [(cons-int x xs)
+        (if (f x)
+          true
+          (exists-list-int f xs)
+        )
+      ]
+      [(nil-int) false]
+    )
+  )
+)
+\end{verbatim}
+
+Returns \texttt{true} if some element of \texttt{xxs} satisfies predicate \texttt{f}, \texttt{false} otherwise.
+
+\begin{verbatim}
+(: concat-list-int (-> (list-int list-int) list-int))
+(define concat-list-int (xxs ys)
+  (case xxs
+    (
+      [(cons-int x xs) (cons-list-int x (concat-list-int xs ys))]
+      [(nil-int) ys]
+    )
+  )
+)
+\end{verbatim}
+
+Concatenates two lists of integers.
+
+\subsubsection{Symbols}
+
+\begin{verbatim}
+(datatype string
+  (
+    [append (int string)]
+    [empty ()]
+  )
+)
+\end{verbatim}
+
+Lisp-style lists of symbols.
+
+\begin{verbatim}
+(: filter-string (-> ((-> (int) bool) string) string))
+(define filter-string (f xxs)
+  (case xxs
+    (
+      [(append x xs)
+        (if (f x)
+          (append x (filter-string xs))
+          (filter-string f xs)
+        )
+      ]
+      [(empty) (empty)]
+    )
+  )
+)
+\end{verbatim}
+
+Returns a string containing all elements of \texttt{xxs} satisfying predicate \texttt{f}.
+
+\begin{verbatim}
+(: exists-string (-> ((-> (int) bool) string) bool))
+(define exists-string (f xxs)
+  (case xxs
+    (
+      [(append x xs)
+        (if (f x)
+          true
+          (exists-string f xs)
+        )
+      ]
+      [(empty) false]
+    )
+  )
+)
+\end{verbatim}
+
+Returns \texttt{true} if some element of \texttt{xxs} satisfies predicate \texttt{f}, \texttt{false} otherwise.
+
+\begin{verbatim}
+(: concat-string (-> (string string) string))
+(define concat-string (xxs ys)
+  (case xxs
+    (
+      [(append x xs) (cons-string x (concat-string xs ys))]
+      [(empty) ys]
+    )
+  )
+)
+\end{verbatim}
+
+Concatenates two strings.
+
+\subsubsection{Booleans}
+
+\begin{verbatim}
+(datatype list-bool
+  (
+    [cons-bool (bool list-bool)]
+    [nil-bool ()]
+  )
+)
+\end{verbatim}
+
+Lisp-style lists of booleans.
+
+\begin{verbatim}
+(: filter-list-bool (-> ((-> (bool) bool) list-bool) list-bool))
+(define filter-list-bool (f xxs)
+  (case xxs
+    (
+      [(cons-bool x xs)
+        (if (f x)
+          (cons-bool x (filter-list-bool xs))
+          (filter-list-bool f xs)
+        )
+      ]
+      [(nil-bool) (nil-bool)]
+    )
+  )
+)
+\end{verbatim}
+
+Returns a list containing all elements of \texttt{xxs} satisfying predicate \texttt{f}.
+
+\begin{verbatim}
+(: exists-list-bool (-> ((-> (bool) bool) list-bool) bool))
+(define exists-list-bool (f xxs)
+  (case xxs
+    (
+      [(cons-bool x xs)
+        (if (f x)
+          true
+          (exists-list-bool f xs)
+        )
+      ]
+      [(nil-bool) false]
+    )
+  )
+)
+\end{verbatim}
+
+Returns \texttt{true} if some element of \texttt{xxs} satisfies predicate \texttt{f}, \texttt{false} otherwise.
+
+\begin{verbatim}
+(: concat-list-bool (-> (list-bool list-bool) list-bool))
+(define concat-list-bool (xxs ys)
+  (case xxs
+    (
+      [(cons-bool x xs) (cons-list-bool x (concat-list-bool xs ys))]
+      [(nil-bool) ys]
+    )
+  )
+)
+\end{verbatim}
+
+Concatenates two lists of booleans.
 \end{document}
