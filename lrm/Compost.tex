@@ -43,7 +43,12 @@ val name_email_map : (string * string) list =
 % INTRODUCTION
 
 \section{Introduction}
-Compost is a statically-typed pure functional programming language with automatic compile-time memory management enabled by its uniqueness type system.
+Compost is a statically-typed pure functional programming language with a uniqueness type system.
+That is, Compost guarantees that no two live references ever exist to the same heap object.
+As a result, the Compost compiler can perform \textbf{compile-time memory management}, inserting memory-freeing directives and guaranteeing memory safety for all Compost programs, bar runtime errors.
+\\\\
+This language reference manual contains a formal description of Compost's syntax, along with informal description of its semantics and type system.
+In addition, an initial basis for Compost programs is outlined.
 
 % NOTATIONAL CONVENTIONS
 
@@ -610,6 +615,15 @@ We bind \texttt{x}, in $\rho_{g}$ at the first character of the file, to the fun
 Use declarations are a thinly-veiled preprocessor directive which are replaced by the contents of the named file.
 
 \section{The Structure of Compost Programs}
+
+\begin{grammar}
+  <program> ::= \{ <definition> \} <end-of-file>
+\end{grammar}
+
+Compost programs consists of a series of definitions.
+All executable programs must contain a function \texttt{main} of type \texttt{(-> () unit)}, which serves as the entry point for the program.
+\\\\
+When a Compost program is compiled and executed, \texttt{main} is invoked and the program terminates when \texttt{main} is fully evaluated.
 
 \section{Initial Basis}
 
