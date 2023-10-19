@@ -774,6 +774,8 @@ Prints \texttt{unit}.
 Returns a symbol containing a single character read from stdin.
 Note that all printable ASCII characters are initialized as symbols.
 
+\newpage
+
 \subsection{Lists and Helpers}
 
 \subsubsection{Integers}
@@ -841,6 +843,8 @@ Returns \texttt{true} if some element of \texttt{xxs} satisfies predicate \textt
 
 Concatenates two lists of integers.
 
+\newpage
+
 \subsubsection{Symbols}
 
 \begin{verbatim}
@@ -892,6 +896,8 @@ Returns a string containing all elements of \texttt{xxs} satisfying predicate \t
 
 Returns \texttt{true} if some element of \texttt{xxs} satisfies predicate \texttt{f}, \texttt{false} otherwise.
 
+\newpage
+
 \begin{verbatim}
 (: concat-string (-> (string string) string))
 (define concat-string (xxs ys)
@@ -905,6 +911,8 @@ Returns \texttt{true} if some element of \texttt{xxs} satisfies predicate \textt
 \end{verbatim}
 
 Concatenates two strings.
+
+\newpage
 
 \subsubsection{Booleans}
 
@@ -956,6 +964,8 @@ Returns a list containing all elements of \texttt{xxs} satisfying predicate \tex
 \end{verbatim}
 
 Returns \texttt{true} if some element of \texttt{xxs} satisfies predicate \texttt{f}, \texttt{false} otherwise.
+
+\newpage
 
 \begin{verbatim}
 (: concat-list-bool (-> (list-bool list-bool) list-bool))
