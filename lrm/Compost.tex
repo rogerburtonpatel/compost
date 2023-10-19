@@ -822,7 +822,7 @@ Returns \texttt{true} if some element of \texttt{xxs} satisfies predicate \textt
 (: concat-list-int (-> (list-int list-int) list-int))
 (define concat-list-int (xxs ys)
   (case xxs
-    ([(cons-int x xs) (cons-list-int x (concat-list-int xs ys))]
+    ([(cons-int x xs) (cons-int x (concat-list-int xs ys))]
       [(nil-int) ys])))
 \end{verbatim}
 
@@ -870,7 +870,7 @@ Returns \texttt{true} if some element of \texttt{xxs} satisfies predicate \textt
 (: concat-string (-> (string string) string))
 (define concat-string (xxs ys)
   (case xxs
-    ([(append x xs) (cons-string x (concat-string xs ys))]
+    ([(append x xs) (append x (concat-string xs ys))]
       [(empty) ys])))
 \end{verbatim}
 
@@ -918,7 +918,7 @@ Returns \texttt{true} if some element of \texttt{xxs} satisfies predicate \textt
 (: concat-list-bool (-> (list-bool list-bool) list-bool))
 (define concat-list-bool (xxs ys)
   (case xxs
-    ([(cons-bool x xs) (cons-list-bool x (concat-list-bool xs ys))]
+    ([(cons-bool x xs) (cons-bool x (concat-list-bool xs ys))]
       [(nil-bool) ys])))
 \end{verbatim}
 
