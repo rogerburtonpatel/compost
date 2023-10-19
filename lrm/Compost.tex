@@ -591,7 +591,7 @@ Consider a function definition of the form:
 Let $\Gamma,\rho$ be $\Gamma_{g},\rho_{g}$ at the opening parenthesis of the binding.
 \\\\
 We assert that $\texttt{x}$ be bound in $\Gamma$ and free in $\rho$.
-We assert that $\Gamma[x]=\texttt{(->}\ \texttt{(}\tau_{1}\ ...\ \tau_{n}\texttt{)}\ \tau_{r}\texttt{)}$.
+We assert that $\Gamma[\texttt{x}]=\texttt{(->}\ \texttt{(}\tau_{1}\ ...\ \tau_{n}\texttt{)}\ \tau_{r}\texttt{)}$.
 We assert that $\Gamma[\texttt{x}1\mapsto\tau_{1},...,\texttt{x}n\mapsto\tau_{n}]\vdash\texttt{e}:\tau_{r}$.
 \\\\
 We bind \texttt{x}, in $\rho_{g}$ at the first character of the file, to the function value that, when applied to arguments $v_{1},...,v_{n}$, returns the result of evaluating \texttt{e} in the environment $\rho[\texttt{x}1\mapsto v_{1},...,\texttt{x}n\mapsto v_{n}]$.
@@ -613,7 +613,8 @@ Use declarations are a thinly-veiled preprocessor directive which are replaced b
 Compost programs consists of a series of definitions.
 All executable programs must contain a function \texttt{main} of type \texttt{(-> () unit)}, which serves as the entry point for the program.
 \\\\
-When a Compost program is compiled and executed, \texttt{main} is invoked and the program terminates when \texttt{main} is fully evaluated.
+When a compiled Compost program is executed, \texttt{main} is invoked.
+The program terminates when \texttt{main} has been fully evaluated.
 
 \section{Initial Basis}
 
@@ -865,8 +866,6 @@ Returns a string containing all elements of \texttt{xxs} satisfying predicate \t
 
 Returns \texttt{true} if some element of \texttt{xxs} satisfies predicate \texttt{f}, \texttt{false} otherwise.
 
-\newpage
-
 \begin{verbatim}
 (: concat-string (-> (string string) string))
 (define concat-string (xxs ys)
@@ -914,8 +913,6 @@ Returns a list containing all elements of \texttt{xxs} satisfying predicate \tex
 \end{verbatim}
 
 Returns \texttt{true} if some element of \texttt{xxs} satisfies predicate \texttt{f}, \texttt{false} otherwise.
-
-\newpage
 
 \begin{verbatim}
 (: concat-list-bool (-> (list-bool list-bool) list-bool))
