@@ -53,7 +53,8 @@ Code listings will appear in ``verbatim'' as follows:
 
 \begin{verbatim}
 (define foo ()
-  bar)
+  bar
+)
 \end{verbatim}
 
 Grammar rules are written in extended Backus-Naur format, as follows:
@@ -302,7 +303,8 @@ We also introduce a typing judgement $\Gamma\vdash e:\tau$ which can be read ``e
 When $\Gamma$ is used in a subsection, it refers to the environment in which that particular expression is typed, rather than the initial typing environment.
 This typing judgement is defined inductively on the structure of expressions by the following subsections.
 \\\\
-Certain expressions will ``consume'' names, though note that only names mapped to variant values are consumed.
+Certain expressions will ``consume'' names, effectively moving them out of scope.
+As a rule of thumb, any name that can be consumed can only be consumed once in a given program path.
 Any names considered as consumed in a subexpression are considered consumed in the parent expression.
 Consumption is defined inductively on the structure of expressions by the following subsections.
 \\\\
@@ -484,7 +486,7 @@ The type of this expression is $\Gamma[n]$
 
 \subsubsection{Consumption}
 
-\texttt{n} is marked as consumed.
+If the type of \texttt{n} in context $\Gamma$ is a datatype, it is marked as consumed.
 
 \subsubsection{Evaluation}
 
