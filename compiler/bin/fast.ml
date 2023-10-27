@@ -1,18 +1,15 @@
 (* Explicit-Free Abstract Syntax Tree *)
+open Ast
 
-type name = string
+type name = Ast.name
 
-type filename = name
+type filename = Ast.filename
 
-type ty = FunTy of (ty list) * ty | Int | Bool | Unit | Sym | CustomTy of name
+type ty = Ast.ty
+
+type literal = Ast.literal
 
 type 'a typed = 'a * ty
-
-type literal =
-    IntLit of int
-  | BoolLit of bool
-  | SymLit of string
-  | UnitLit
 
 type pattern =
     Pattern of name

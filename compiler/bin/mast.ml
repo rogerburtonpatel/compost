@@ -1,8 +1,9 @@
 (* Explicitly Memory Managed Abstract Syntax Tree *)
+open Ast
 
-type name = string
+type name = Ast.name
 
-type filename = name
+type filename = Ast.filename
 
 (* ty is now LLVM types *)
 (* Note: FunTy and Ptr might be redundant, we will see *)
