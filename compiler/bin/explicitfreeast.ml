@@ -32,7 +32,7 @@ and expr =
   | Apply of (expr typed) * (expr typed) list
   | Dup of name
   (* Memory-Related *)
-  | Free of (name typed) list * expr typed
+  | Free of (name typed) list * expr typed (* read this as free `name`s then do `expr` *)
   | ConsArg of name * int
 
 type variant = Variant of name * (ty list)

@@ -32,7 +32,6 @@ and expr =
   | Begin of (expr typed) list
   | Let of bind list * expr typed
   | Apply of (expr typed) * (expr typed) list
-  | Dup of name
   (* Memory-Related *)
   | Free of (name typed) list * expr typed
   (* Allocates a struct with a given tag and fields *)
