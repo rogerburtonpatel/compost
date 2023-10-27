@@ -28,7 +28,7 @@ and bind = name * expr typed
 and expr =
     Literal of literal
   | NameExpr of name
-  | Case of casebranch list
+  | Case of expr typed * casebranch list
   | If of expr typed * expr typed * expr typed
   | Begin of expr typed * expr typed
   | Let of name * expr typed * expr typed
