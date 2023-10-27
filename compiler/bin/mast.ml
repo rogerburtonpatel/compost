@@ -30,9 +30,9 @@ and expr =
   | NameExpr of name
   | Case of casebranch list
   | If of expr typed * expr typed * expr typed
-  | Begin of (expr typed) list
-  | Let of bind list * expr typed
-  | Apply of (expr typed) * (expr typed) list
+  | Begin of expr typed * expr typed
+  | Let of name * expr typed * expr typed
+  | Apply of expr typed * (expr typed) list
   (* Memory-Related *)
   | Free of ty * name * expr typed
   (* Allocates a struct with a given tag and fields *)
