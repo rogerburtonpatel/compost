@@ -1,0 +1,47 @@
+(* Explicitly Memory Managed Abstract Syntax Tree *)
+
+type name = string
+
+type filename = name
+
+(* ty is now LLVM types *)
+(* Note: FunTy and Ptr might be redundant, we will see *)
+type ty = FunTy | IntTy of int | Ptr | StructTy of ty list
+
+type 'a typed = 'a * ty
+
+type literal =
+    IntLit of int
+  | BoolLit of bool
+  | SymLit of string
+  | UnitLit
+
+type pattern =
+    Pattern of int
+  | WildcardPattern (* hmmm perhaps names are not consumed if matched by wildcard? *)
+
+type casebranch = CaseBranch of pattern * expr typed
+
+and bind = name * expr typed
+
+and expr =
+    Literal of literal
+  | NameExpr of name
+  | Case of casebranch list
+  | If of expr typed * expr typed * expr typed
+  | Begin of (expr typed) list
+  | Let of bind list * expr typed
+  | Apply of (expr typed) * (expr typed) list
+  | Dup of name
+  (* Memory-Related *)
+  | Free of (name typed) list * expr typed
+  (* Allocates a struct with a given tag and fields *)
+  (* populated by the values bound to the names in the list *)
+  | Alloc of int * name list
+  | ConsArg of name * int
+
+type def = Define of name * name list * expr typed
+  (* Datatype definitions can be erased *)
+  (* All necessary type information is encoded in the _alloc and _free functions *)
+
+type program = def list
