@@ -10,7 +10,7 @@ exception NameAlreadyConsumed of string
 
 let rec dealloc_in to_free (expr, ty) = match to_free with
   | [] -> (expr, ty)
-  | (x :: xs) -> ((F.Free (x, dealloc_in xs (expr, ty)), ty)
+  | ((n, n_ty) :: xs) -> (F.Free (n_ty, n, dealloc_in xs (expr, ty)), ty)
 
 let freeable bound consumed = List.filter (fun (n, _) -> S.mem n consumed) bound
 
