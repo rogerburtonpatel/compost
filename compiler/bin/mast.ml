@@ -34,7 +34,7 @@ and expr =
   | Let of bind list * expr typed
   | Apply of (expr typed) * (expr typed) list
   (* Memory-Related *)
-  | Free of (name typed) list * expr typed
+  | Free of ty * name * expr typed
   (* Allocates a struct with a given tag and fields *)
   (* populated by the values bound to the names in the list *)
   | Alloc of int * name list
