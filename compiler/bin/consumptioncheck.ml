@@ -1,6 +1,7 @@
 (* Consumption Checker *)
 module T = Tast
 module F = Fast
+module N = Freshnames
 
 module S = Set.Make(String)
 
@@ -29,10 +30,10 @@ let rec check bound consumed (expr, ty) =
     let (e1', c1) = check bound consumed e1 in
     let (e2', c2) = check bound (S.union consumed c1) e2 in
     ((F.Begin (e1', e2'), ty), S.union c1 c2)
-  | T.Let (n, e1, e2) ->
-    let (e1', c1) = check bound consumed e1 in
-    let (e2', c2) = check ((n, typeof e1) :: bound) (S.union consumed c1) e2 in
-    ((F.Let (n, e1', e2'), ty), S.union c1 c2)
+  | T.Let (n, e, body) ->
+    let (e', c) = check bound consumed e in
+    let (body', cb) = check ((n, typeof e) :: bound) (S.union consumed c) body in
+    ((F.Let (n, e', body'), ty), S.union c cb)
   | T.Apply (e, es) ->
     let rec check_args ees c = match ees with
       | [] -> ([], c)
@@ -48,9 +49,20 @@ let rec check bound consumed (expr, ty) =
     let (es', c') = check_args es c in
     ((F.Apply (e', es'), ty), c')
 
+(* Subject to change. Single point of truth for this and Randy's pass? *)
+let free_fun_name_of ty_name = "_free_" ^ ty_name
+
 let rec dealloc_in to_free (expr, ty) = match to_free with
   | [] -> (expr, ty)
-  | ((n, n_ty) :: xs) -> (F.Free (n_ty, n, dealloc_in xs (expr, ty)), ty)
+  | ((n, n_ty) :: xs) -> match n_ty with
+    (* Only emit calls to _free_ functions for variant values *)
+    | (Ast.CustomTy (ty_name)) ->
+      let free_fun = (F.NameExpr (free_fun_name_of ty_name), Ast.FunTy ([n_ty], Ast.Unit)) in
+      (F.Begin
+        (
+          (F.Apply
+             (free_fun, [((F.NameExpr (n)), n_ty)]), Ast.Unit), dealloc_in xs (expr, ty)), ty)
+    | _ -> dealloc_in xs (expr, ty)
 
 (* Note: we assume here that all names bound by nested lets are distinct *)
 let freeable bound consumed = List.filter (fun (n, _) -> S.mem n consumed) bound
@@ -74,10 +86,10 @@ let rec check_last bound consumed (expr, ty) =
     let (e1', c1) = check bound consumed e1 in
     let (e2', c2) = check_last bound (S.union consumed c1) e2 in
     ((F.Begin (e1', e2'), ty), S.union c1 c2)
-  | T.Let (n, e1, e2) ->
-    let (e1', c1) = check bound consumed e1 in
-    let (e2', c2) = check_last ((n, typeof e1) :: bound) (S.union consumed c1) e2 in
-    ((F.Let (n, e1', e2'), ty), S.union c1 c2)
+  | T.Let (n, e, body) ->
+    let (e', c) = check bound consumed e in
+    let (body', cb) = check_last ((n, typeof e) :: bound) (S.union consumed c) body in
+    ((F.Let (n, e', body'), ty), S.union c cb)
   | T.Apply (e, []) ->
     let (e', c) = check_last bound consumed e in
     ((F.Apply (e', []), ty), c)
@@ -95,3 +107,6 @@ let rec check_last bound consumed (expr, ty) =
     let (e', c) = check bound consumed e in
     let (es', c') = check_args es c in
     ((F.Apply (e', es'), ty), c')
+  (* | T.Case (e, branches) -> *)
+  (*   let (e', c) = check bound consumed e in *)
+  (*   let check_branch (T.CaseBranch (pattern, body)) =  *)

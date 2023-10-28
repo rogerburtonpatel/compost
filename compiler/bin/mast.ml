@@ -38,7 +38,7 @@ and expr =
   (* Allocates a struct with a given tag and fields *)
   (* populated by the values bound to the names in the list *)
   | Alloc of int * name list
-  | ConsArg of name * int
+  | GetArg of name * int
 
 type def = Define of name * name list * expr typed
   (* Datatype definitions can be erased *)

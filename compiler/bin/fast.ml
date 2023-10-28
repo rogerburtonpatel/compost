@@ -3,6 +3,8 @@ open Ast
 
 type name = Ast.name
 
+type typename = name
+
 type filename = Ast.filename
 
 type ty = Ast.ty
@@ -29,8 +31,8 @@ and expr =
   | Apply of expr typed * (expr typed) list
   | Dup of name
   (* Memory-Related *)
-  | Free of ty * name * expr typed (* read this as free `name`s then do `expr` *)
-  | ConsArg of name * int
+  | Free of ty * name * expr typed (* Corresponds to a call to `free()` *)
+  | GetArg of name * int (* Indexed variant value argument access *)
 
 type variant = Variant of name * (ty list)
 
