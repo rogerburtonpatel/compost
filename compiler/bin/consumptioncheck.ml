@@ -49,19 +49,11 @@ let rec check bound consumed (expr, ty) =
     let (es', c') = check_args es c in
     ((F.Apply (e', es'), ty), c')
 
-(* Subject to change. Single point of truth for this and Randy's pass? *)
-let free_fun_name_of ty_name = "_free_" ^ ty_name
-
 let rec dealloc_in to_free (expr, ty) = match to_free with
   | [] -> (expr, ty)
   | ((n, n_ty) :: xs) -> match n_ty with
     (* Only emit calls to _free_ functions for variant values *)
-    | (Ast.CustomTy (ty_name)) ->
-      let free_fun = (F.NameExpr (free_fun_name_of ty_name), Ast.FunTy ([n_ty], Ast.Unit)) in
-      (F.Begin
-        (
-          (F.Apply
-             (free_fun, [((F.NameExpr (n)), n_ty)]), Ast.Unit), dealloc_in xs (expr, ty)), ty)
+    | (Ast.CustomTy (_)) -> (F.FreeCall (n_ty, n, dealloc_in xs (expr, ty)), ty)
     | _ -> dealloc_in xs (expr, ty)
 
 (* Note: we assume here that all names bound by nested lets are distinct *)

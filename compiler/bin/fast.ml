@@ -31,6 +31,7 @@ and expr =
   | Apply of expr typed * (expr typed) list
   | Dup of name
   (* Memory-Related *)
+  | FreeCall of ty * name * expr typed (* Corresponds to a call to "_free_" ^ (name_of ty) *)
   | Free of ty * name * expr typed (* Corresponds to a call to `free()` *)
   | GetArg of name * int (* Indexed variant value argument access *)
 
