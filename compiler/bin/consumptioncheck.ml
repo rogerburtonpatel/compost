@@ -14,8 +14,9 @@ exception Impossible of string
 
 let rec check bound consumed (expr, ty) =
   match expr with
-  | T.NameExpr n when S.mem n consumed -> raise (NameAlreadyConsumed n)
-  | T.NameExpr n -> ((F.NameExpr n, ty), S.singleton n)
+  | T.Local n when S.mem n consumed -> raise (NameAlreadyConsumed n)
+  | T.Local n -> ((F.Local n, ty), S.singleton n)
+  | T.Global n -> ((F.Local n, ty), S.empty)
   | T.Dup n when S.mem n consumed -> raise (NameAlreadyConsumed n)
   | T.Dup n -> ((F.Dup n, ty), S.empty)
   | T.Literal (l) -> ((F.Literal l, ty), S.empty)
@@ -60,8 +61,9 @@ let freeable bound consumed = List.filter (fun (n, _) -> S.mem n consumed) bound
 (* We only deallocate at the last executed terminal expression*)
 let rec check_last bound consumed (expr, ty) =
   match expr with
-  | T.NameExpr n when S.mem n consumed -> raise (NameAlreadyConsumed n)
-  | T.NameExpr n -> (dealloc_in (freeable bound (S.remove n consumed)) (F.NameExpr n, ty), S.singleton n)
+  | T.Local n when S.mem n consumed -> raise (NameAlreadyConsumed n)
+  | T.Local n -> (dealloc_in (freeable bound (S.remove n consumed)) (F.Local n, ty), S.singleton n)
+  | T.Global n -> (dealloc_in (freeable bound (S.remove n consumed)) (F.Global n, ty), S.empty)
   | T.Dup n when S. mem n consumed -> raise (NameAlreadyConsumed n)
   | T.Dup n -> (dealloc_in (freeable bound (S.remove n consumed)) (F.Dup n, ty), S.empty)
   | T.Literal (l) -> (dealloc_in (freeable bound consumed) (F.Literal l, ty), S.empty)

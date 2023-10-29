@@ -23,7 +23,8 @@ and bind = name * expr typed
 
 and expr =
     Literal of literal
-  | NameExpr of name
+  | Local of name
+  | Global of name
   | Case of name typed * casebranch list
   | If of expr typed * expr typed * expr typed
   | Begin of expr typed * expr typed
