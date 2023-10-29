@@ -11,11 +11,7 @@ type ty = FunTy | IntTy of int | Ptr | StructTy of ty list
 
 type 'a typed = 'a * ty
 
-type literal =
-    IntLit of int
-  | BoolLit of bool
-  | SymLit of string
-  | UnitLit
+type literal = Ast.literal
 
 type pattern =
     Pattern of int

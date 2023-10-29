@@ -2,6 +2,7 @@
 
 %{
   open Ast
+  open Freshnames
 %}
 
 %token LPAREN RPAREN LBRACKET RBRACKET 
@@ -140,8 +141,8 @@ nameorwildcardlist:
  | nameorwildcard nameorwildcardlist { $1 :: $2 }
 
 nameorwildcard:
-   NAME { PatternBindVar($1) }
- | WILDCARD { WildcardBind }
+   NAME { $1 }
+ | WILDCARD { fresh_name }
 
 literal:
    INTLIT { IntLit($1) }

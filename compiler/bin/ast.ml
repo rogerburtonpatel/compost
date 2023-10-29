@@ -12,12 +12,8 @@ type literal =
   | SymLit of string 
   | UnitLit 
 
-type nameorwildcard = 
-    PatternBindVar of name 
-  | WildcardBind
-
-type pattern = 
-    Pattern of name * nameorwildcard list 
+type pattern =
+    Pattern of name * name list
   | WildcardPattern
 
 type casebranch = CaseBranch of pattern * expr 
@@ -82,11 +78,13 @@ let string_of_lit = function
  | SymLit(lit) -> string_of_symlit lit 
  | UnitLit -> "unit"
 
-let string_of_nameorwildcard = function 
-   PatternBindVar(name) -> name 
- | WildcardBind -> "_"
+let is_int = String.for_all (function '0' .. '1' -> true | _ -> false)
 
-let string_of_pattern = function 
+let string_of_nameorwildcard = function
+   name when is_int name -> "_"
+ | name -> name
+
+let string_of_pattern = function
    Pattern(name, nameorwildcardlist) -> 
      "(" ^ name ^ " " ^ String.concat " " (List.map string_of_nameorwildcard nameorwildcardlist) ^ ")"
  | WildcardPattern -> "_"

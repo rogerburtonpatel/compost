@@ -4,17 +4,11 @@ type name = string
 
 type filename = name (* NEEDSWORK: Decide if we want different rules for filenames *)
 
-type ty = FunTy of (ty list) * ty | Int | Bool | Unit | Sym | CustomTy of name
+type ty = Ast.ty
 
 type literal = Ast.literal
 
-type nameorwildcard =
-    PatternBindVar of name
-  | WildcardBind
-
-type pattern =
-    Pattern of name * nameorwildcard list
-  | WildcardPattern
+type pattern = Ast.pattern
 
 type casebranch = CaseBranch of pattern * expr
 

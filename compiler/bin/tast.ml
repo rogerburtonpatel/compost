@@ -11,12 +11,8 @@ type literal = Ast.literal
 
 type 'a typed = 'a * ty
 
-type nameorwildcard =
-    PatternBindVar of name
-  | WildcardBind
-
 type pattern =
-    Pattern of name * (nameorwildcard typed) list
+    Pattern of name * (name typed) list
   | WildcardPattern
 
 type casebranch = CaseBranch of pattern * expr typed

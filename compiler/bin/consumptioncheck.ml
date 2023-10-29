@@ -14,12 +14,10 @@ exception Impossible of string
 
 let rec check bound consumed (expr, ty) =
   match expr with
-  | T.NameExpr (n) -> if S.mem n consumed
-      then raise (NameAlreadyConsumed n)
-      else ((F.NameExpr n, ty), S.singleton n)
-  | T.Dup (n) -> if S.mem n consumed
-      then raise (NameAlreadyConsumed n)
-      else ((F.Dup n, ty), S.empty)
+  | T.NameExpr n when S.mem n consumed -> raise (NameAlreadyConsumed n)
+  | T.NameExpr n -> ((F.NameExpr n, ty), S.singleton n)
+  | T.Dup n when S.mem n consumed -> raise (NameAlreadyConsumed n)
+  | T.Dup n -> ((F.Dup n, ty), S.empty)
   | T.Literal (l) -> ((F.Literal l, ty), S.empty)
   | T.If (e1, e2, e3) ->
     let (e1', c1) = check bound consumed e1 in
@@ -62,12 +60,10 @@ let freeable bound consumed = List.filter (fun (n, _) -> S.mem n consumed) bound
 (* We only deallocate at the last executed terminal expression*)
 let rec check_last bound consumed (expr, ty) =
   match expr with
-  | T.NameExpr (n) -> if S.mem n consumed
-      then raise (NameAlreadyConsumed n)
-      else (dealloc_in (freeable bound (S.remove n consumed)) (F.NameExpr n, ty), S.singleton n)
-  | T.Dup (n) -> if S.mem n consumed
-      then raise (NameAlreadyConsumed n)
-      else (dealloc_in (freeable bound (S.remove n consumed)) (F.Dup n, ty), S.empty)
+  | T.NameExpr n when S.mem n consumed -> raise (NameAlreadyConsumed n)
+  | T.NameExpr n -> (dealloc_in (freeable bound (S.remove n consumed)) (F.NameExpr n, ty), S.singleton n)
+  | T.Dup n when S. mem n consumed -> raise (NameAlreadyConsumed n)
+  | T.Dup n -> (dealloc_in (freeable bound (S.remove n consumed)) (F.Dup n, ty), S.empty)
   | T.Literal (l) -> (dealloc_in (freeable bound consumed) (F.Literal l, ty), S.empty)
   | T.If (e1, e2, e3) ->
     let (e1', c1) = check bound consumed e1 in
