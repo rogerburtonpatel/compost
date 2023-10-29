@@ -2,6 +2,8 @@
 open Tast
 open Fast
 open Mast
+open Uast
+open Disambiguate
 open Consumptioncheck
 
 let () =
