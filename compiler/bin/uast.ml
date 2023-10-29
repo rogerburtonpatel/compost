@@ -30,6 +30,5 @@ type def =
   | Define of name * (name list) * expr
   | Datatype of name * (variant list)
   | TyAnnotation of name * ty
-  | Use of filename
 
 type program = def list
