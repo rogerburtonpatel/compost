@@ -99,6 +99,3 @@ let rec check_last bound consumed (expr, ty) =
     let (e', c) = check bound consumed e in
     let (es', c') = check_args es c in
     ((F.Apply (e', es'), ty), c')
-  (* | T.Case (e, branches) -> *)
-  (*   let (e', c) = check bound consumed e in *)
-  (*   let check_branch (T.CaseBranch (pattern, body)) =  *)
