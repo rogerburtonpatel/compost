@@ -39,7 +39,7 @@ and expr =
 type variant = Variant of name * (ty list)
 
 type def =
-    Define of name * name list * expr typed
+    Define of name * (name typed) list * expr typed
   | Datatype of name * (variant list)
 
 type program = def list

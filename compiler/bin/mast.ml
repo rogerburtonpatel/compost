@@ -34,10 +34,10 @@ and expr =
   | Free of ty * name * expr typed
   (* Allocates a struct with a given tag and fields *)
   (* populated by the values bound to the names in the list *)
-  | Alloc of int * name list
-  | GetArg of name * int
+  | Alloc of int * (name typed) list
+  | GetArg of (name typed) * int
 
-type def = Define of name * name list * expr typed
+type def = Define of name * (name typed) list * expr typed
   (* Datatype definitions can be erased *)
   (* All necessary type information is encoded in the _alloc and _free functions *)
 
