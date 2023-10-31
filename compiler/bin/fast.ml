@@ -34,7 +34,7 @@ and expr =
   (* Memory-Related *)
   | FreeCall of ty * name * expr typed (* Corresponds to a call to "_free_" ^ (name_of ty) *)
   | Free of ty * name * expr typed (* Corresponds to a call to `free()` *)
-  | GetArg of name * int (* Indexed variant value argument access *)
+  | GetArg of ty * name * int (* Indexed variant value argument access *)
 
 type variant = Variant of name * (ty list)
 
