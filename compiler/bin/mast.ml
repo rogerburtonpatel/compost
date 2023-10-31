@@ -34,7 +34,7 @@ and expr =
   | Free of ty * name * expr typed
   (* Allocates a struct with a given tag and fields *)
   (* populated by the values bound to the names in the list *)
-  | Alloc of int * (name typed) list
+  | Alloc of int * (expr typed) list
 
 type def = Define of name * (name typed) list * expr typed
   (* Datatype definitions can be erased *)
