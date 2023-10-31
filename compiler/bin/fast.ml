@@ -14,7 +14,7 @@ type literal = Ast.literal
 type 'a typed = 'a * ty
 
 type pattern =
-    Pattern of name
+    Pattern of name * (name typed) list
   | WildcardPattern (* hmmm perhaps names are not consumed if matched by wildcard? *)
 
 type casebranch = CaseBranch of pattern * expr typed
@@ -32,9 +32,8 @@ and expr =
   | Apply of expr typed * (expr typed) list
   | Dup of name
   (* Memory-Related *)
-  | FreeCall of ty * name * expr typed (* Corresponds to a call to "_free_" ^ (name_of ty) *)
+  | FreeRec of ty * name * expr typed (* Corresponds to a call to "_free_" ^ (name_of ty) *)
   | Free of ty * name * expr typed (* Corresponds to a call to `free()` *)
-  | GetArg of ty * name * int (* Indexed variant value argument access *)
 
 type variant = Variant of name * (ty list)
 

@@ -14,7 +14,7 @@ type 'a typed = 'a * ty
 type literal = Ast.literal
 
 type pattern =
-    Pattern of int
+    Pattern of name * (name typed) list
   | WildcardPattern (* hmmm perhaps names are not consumed if matched by wildcard? *)
 
 type casebranch = CaseBranch of pattern * expr typed
@@ -35,7 +35,6 @@ and expr =
   (* Allocates a struct with a given tag and fields *)
   (* populated by the values bound to the names in the list *)
   | Alloc of int * (name typed) list
-  | GetArg of ty * name * int
 
 type def = Define of name * (name typed) list * expr typed
   (* Datatype definitions can be erased *)
