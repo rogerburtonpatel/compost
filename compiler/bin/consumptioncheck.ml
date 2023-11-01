@@ -52,7 +52,7 @@ let rec dealloc_in to_free (expr, ty) = match to_free with
   | [] -> (expr, ty)
   | ((n, n_ty) :: xs) -> match n_ty with
     (* Only emit calls to _free_ functions for variant values *)
-    | (Ast.CustomTy (_)) -> (F.FreeCall (n_ty, n, dealloc_in xs (expr, ty)), ty)
+    | (Ast.CustomTy (_)) -> (F.FreeRec (n_ty, n, dealloc_in xs (expr, ty)), ty)
     | _ -> dealloc_in xs (expr, ty)
 
 (* Note: we assume here that all names bound by nested lets are distinct *)
