@@ -54,7 +54,7 @@ run_tests () {
         inFile=$(basename "$(dirname "$inFile")")/$(basename "$inFile")
         [ ! -f $outFile ] && outFile=$inFile # if in = out, don't need out
         echo "Running test: "diff $inFile $outFile
-        toplevelOut=$(dune exec toplevel $inFile 2>&1)
+        toplevelOut=$(dune exec -- compost -a $inFile 2>&1)
         toplevelExpected=$(cat "$outFile")
         out=$(diff -wy <(echo "$toplevelOut") <(echo "$toplevelExpected") 2>&1)
         update_failure "$?" $inFile "${toplevelOut%x}" "${toplevelExpected%x}" "${out%x}"

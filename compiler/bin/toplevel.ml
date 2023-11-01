@@ -5,6 +5,7 @@ open Mast
 open Uast
 open Disambiguate
 open Consumptioncheck
+open Codegen
 
 let () =
     let usage_msg = "usage: ./compost.native [file.compost]" in
