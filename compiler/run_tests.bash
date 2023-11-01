@@ -46,7 +46,7 @@ update_failure () {
 
 run_tests () {
 
-    for inFile in $(find $BASEDIR/tests -type p,f,l -iname "*.in") ; do
+    for inFile in $(find $BASEDIR/tests -type f -iname '*.in') ; do
         
         numtests=$((numtests + 1))
         inBase=$(basename $inFile)
