@@ -1,0 +1,150 @@
+\documentclass[11pt]{article}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{fullpage}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{changepage}
+\usepackage{syntax}
+
+\newcommand\op{\texttt{(}}
+\newcommand\cl{\texttt{)}}
+
+\renewcommand{\syntleft}{\normalfont\itshape}
+\renewcommand{\syntright}{}
+
+\setlength{\grammarparsep}{20pt plus 1pt minus 1pt} % increase separation between rules
+\setlength{\grammarindent}{12em} % increase separation between LHS/RHS
+
+\setlength{\parindent}{0cm}
+
+\title{Pure Garbage: The Compost Language Reference Manual}
+
+\author{}
+
+\date{October 18, 2023}
+
+\begin{document}
+
+\maketitle
+
+\begin{verbatim}
+val name_email_map : (string * string) list =
+[("Roger Burtonpatel", "roger.burtonpatel@tufts.edu");
+ ("Randy Dang", "randy.dang@tufts.edu");
+ ("Jasper Geer", "jasper.geer@tufts.edu");
+ ("Jackson Warhover", "jackson.warhover@tufts.edu")]  
+\end{verbatim}
+\begin{grammar}
+  <rule> ::= (<nonterminal> \texttt{terminal})
+    \alt \{ <other-rule> \}
+\end{grammar}
+\begin{grammar}
+  <literal> ::= <integer-literal>
+  \alt <symbol-literal>
+  \alt <boolean-literal>
+  \alt <unit-literal>
+\end{grammar}
+\begin{grammar}
+  <integer-literal> ::= token composed only of digits, possibly prefixed with a \texttt{+} or \texttt{-}.
+\end{grammar}
+\begin{grammar}
+  <symbol-literal> ::= \texttt{'}\{ <symbol-character> \}\texttt{'}
+  <symbol-character> ::= any unicode code point other than \texttt{'} and the backslash character unless escaped with a backslash.
+\end{grammar}
+\begin{grammar}
+  <boolean-literal> ::= \texttt{true} | \texttt{false}
+  <unit-literal> ::= \texttt{unit}
+\end{grammar}
+\begin{grammar}
+  <name> ::= any token that is not an \textit{int-lit}, does not contain whitespace, a \texttt{'}, bracket, or parenthesis, and is not a reserved word.
+\end{grammar}
+\begin{grammar}
+  <type-expression> ::= <function-type>
+    \alt <int-type>
+    \alt <bool-type>
+    \alt <sym-type>
+    \alt <unit-type>
+    \alt <datatype>
+\end{grammar}
+\begin{grammar}
+  <int-type> ::= \texttt{int}
+  <bool-type> ::= \texttt{bool}
+  <sym-type> ::= \texttt{sym}
+  <unit-type> ::= \texttt{unit}
+\end{grammar}
+\begin{grammar}
+  <function-type> ::= (\texttt{->} (\{ <type> \}) <type>)
+\end{grammar}
+\begin{grammar}
+  <datatype> ::= <name>
+\end{grammar}
+\begin{grammar}
+    <datatype-definition> ::= (\texttt{datatype} <name> (\{ <variant-constructor-definition> \}))
+    <variant-constructor-definition> ::= (<name> (\{ <type-expression> \}))
+\end{grammar}
+\begin{grammar}
+  <expr> ::= <literal>
+    \alt <case-expression>
+    \alt <if-expression>
+    \alt <begin-expression>
+    \alt <apply-expression>
+    \alt <let-expression>
+    \alt <dup-expression>
+    \alt <name-expression>
+\end{grammar}
+\begin{grammar}
+  <case-expression> ::= (\texttt{case} <expr> (\{ <case-branch> \}))
+  <case-branch> ::= (<pattern> <expr>)
+  <pattern> ::= (<name> \{ <name> | \texttt{_} \})
+    \alt \texttt{_}
+\end{grammar}
+\begin{grammar}
+  <if-expression> ::= (\texttt{if} <expr> <expr> <expr>)
+\end{grammar}
+\begin{grammar}
+  <begin-expression> ::= (\texttt{begin} \{ <expr> \})
+\end{grammar}
+\begin{grammar}
+  <apply-expression> ::= (<expr> \{ <expr> \})
+\end{grammar}
+\begin{grammar}
+  <let-expression> ::= (\texttt{let} (\{ <let-binding> \}) <expr>)
+  <let-binding> ::= (<name> <expr>)
+\end{grammar}
+\begin{grammar}
+  <name-expression> ::= <name>
+\end{grammar}
+The type of this expression is $\Gamma[\texttt{n}]$. 
+\begin{grammar}
+  <dup-expression> ::= (\texttt{dup} <name>)
+\end{grammar}
+The type of this expression is $\Gamma[\texttt{n}]$. 
+\begin{grammar}
+  <def> ::= <val-binding>
+    \alt <function-definition>
+    \alt <datatype-definition>
+    \alt <type-annotation>
+    \alt <use-declaration>
+\end{grammar}
+\begin{grammar}
+  <type-annotation> ::= (\texttt{:} <name> <type-expression>)
+\end{grammar}
+\begin{grammar}
+  <val-binding> ::= (\texttt{val} <name> <exp>)
+\end{grammar}
+\begin{grammar}
+  <function-definition> ::= (\texttt{define} <name> (\{ <name> \}) <exp>)
+\end{grammar}
+\begin{grammar}
+  <use-declaration> ::= (\texttt{use} <filename>)
+\end{grammar}
+\begin{grammar}
+  <program> ::= \{ <def> \} <end-of-file>
+\end{grammar}
+(: < (-> (int int) bool))
+(: <= (-> (int int) bool))
+\end{document}
