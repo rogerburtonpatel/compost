@@ -7,7 +7,7 @@ type filename = Ast.filename
 
 (* ty is now LLVM types *)
 (* Note: FunTy and Ptr might be redundant, we will see *)
-type ty = FunTy | IntTy of int | Ptr | StructTy of ty list
+type ty = Fun of ty * ty list | Int of int | Ptr of ty | Struct of ty list
 
 type 'a typed = 'a * ty
 
