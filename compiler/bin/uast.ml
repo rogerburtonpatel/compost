@@ -9,7 +9,7 @@ type literal = Ast.literal
 
 type pattern = Ast.pattern
 
-type casebranch = pattern * expr
+type casebranch = CaseBranch of pattern * expr
 
 and expr =
     Literal of literal

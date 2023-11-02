@@ -107,13 +107,17 @@ let rec typeof gamma delta e =
                             
                 | _ -> raise (TypeError "attempted to apply non-function"))
                           
-  | U.Dup _ -> A.Unit
+  | U.Dup n -> if not (StringMap.mem n gamma)
+    then raise (NotFound ("attempted to dup unbound name \"" ^ n ^ "\""))
+    else StringMap.find n gamma
+
   | U.Case (_, []) -> raise (TypeError "empty case expression")
   | U.Case (e, branches) -> 
     (* scrutinee MUST be custom type; no literal pattern matching *)
     let typ_scrutinee = typ e in 
       (match typ_scrutinee with A.CustomTy sname -> 
-        let (patterns, rhss) = List.split branches in 
+        let bs' = List.map (fun (U.CaseBranch (p, e)) -> (p, e)) branches in 
+        let (patterns, rhss) = List.split bs' in 
         (* check all patterns to be well-formed with regards to the scrutinee *)
         let typeCheckPattern pat = match pat with 
           | A.WildcardPattern -> ()
@@ -153,6 +157,44 @@ let rec typeof gamma delta e =
 (* let rec exp rho = function 
 U.Literal l -> T.literal *)
 
+let exp delta gamma expr = 
+  let typeof' = typeof delta gamma in 
+  let rec exp' e = 
+    match e with 
+    | U.Literal l -> T.Literal l 
+    | U.Local n   -> let _ = typeof' e in T.Local n 
+    | U.Global n  -> let _ = typeof' e in T.Global n 
+    | U.Case (ex, branches)-> 
+        let _     = typeof' e in 
+        let ty_ex = typeof' ex in 
+        let bs' = List.map (fun (U.CaseBranch (p, e)) -> (p, e)) branches in 
+        let (pats, rhss)  = List.split bs' in 
+        let rhs_tys       = List.map typeof' rhss in 
+        let rhs_es        = List.map exp' rhss in 
+        let rhss_full     = List.combine rhs_es rhs_tys in 
+        let branches_full = List.combine pats rhss_full in 
+        let branches'     = List.map (fun (pat, (e, t)) -> 
+                                           T.CaseBranch (pat, (e, t))) 
+                            branches_full in 
+        T.Case ((exp' ex, ty_ex), branches')
+    | U.If (e1, e2, e3)-> 
+        let ty_if = typeof' e in 
+          T.If ((exp' e1, Ast.Bool), (exp' e2, ty_if), (exp' e3, ty_if))
+    | U.Begin (e1, e2)       -> let ty_e1 = typeof' e1 in 
+                                let ty_e2 = typeof' e2 in 
+                                T.Begin ((exp' e1, ty_e1), (exp' e2, ty_e2))
+    | U.Let (n, e, e')-> let ty_e  = typeof' e in 
+                                   let ty_e' = typeof' e in 
+                                   T.Let (n, (exp' e, ty_e), (exp' e', ty_e'))
+    | U.Apply (e, es) -> let _ = typeof' e in 
+                                  let ty_e = typeof' e in 
+                                  let ty_es = List.map typeof' es in 
+                                  let es' = List.map exp' es in 
+                                  let es_typed = List.combine es' ty_es in 
+                                  T.Apply ((exp' e, ty_e), es_typed)
+   | U.Dup n -> let _ = typeof' e in T.Dup n
+  in exp' expr
+
 let typecheckDef (defs, gamma, delta) = function
 | U.Define (n, args, body) -> 
   if not (StringMap.mem n gamma)
@@ -173,8 +215,12 @@ let typecheckDef (defs, gamma, delta) = function
                               ^ tyString known_annotated_ty
                               ^ "\" but a definition was given that has type \""
                               ^ tyString (A.FunTy (argtys, ret_ty )) ^ "\""))
-      else (List.append defs [known_annotated_ty], gamma, delta)
-    | _ -> raise (Impossible "found non-function name in top-level environment"))
+      else 
+        let body_typed = (exp gamma delta body, typeof gamma delta body) in 
+        let args_typed = List.combine args argtys in 
+        let def' = T.Define (n, args_typed, body_typed) in 
+        (List.append defs [def'], gamma, delta)
+    | _ -> raise (Impossible "found non-func name in top-level environment"))
 | U.Datatype (n, variants) -> 
   let check_variant delta' (U.Variant (vname, _))  = 
     if not (StringMap.mem vname delta') 
@@ -185,7 +231,9 @@ let typecheckDef (defs, gamma, delta) = function
                         ^ vname ^ "\": constructor already exists for type \"" 
                         ^ tyString existing_type ^ "\"")) 
     in let extended_delta = List.fold_left check_variant delta variants in 
-    (defs, gamma, extended_delta)
+    let vs = List.map (fun (U.Variant (n, ts)) -> T.Variant (n, ts)) variants in 
+    let datatype' = T.Datatype (n, vs) in 
+    (List.append defs [datatype'], gamma, extended_delta)
 
 | U.TyAnnotation (n, ty) -> 
   if not (StringMap.mem n gamma)

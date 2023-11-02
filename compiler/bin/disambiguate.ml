@@ -12,8 +12,8 @@ let rec expr locals = function
     let branch (A.CaseBranch (p, body)) = match p with
       | A.Pattern (_, bindings) ->
         let locals' = S.union (S.of_list bindings) locals in
-        (p, expr locals' body)
-      | A.WildcardPattern -> (p, expr locals body)
+        U.CaseBranch (p, expr locals' body)
+      | A.WildcardPattern -> U.CaseBranch (p, expr locals body)
     in
     let branches' = List.map branch branches in
     U.Case (e', branches')

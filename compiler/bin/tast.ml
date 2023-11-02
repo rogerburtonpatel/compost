@@ -11,9 +11,7 @@ type literal = Ast.literal
 
 type 'a typed = 'a * ty
 
-type pattern =
-    Pattern of name * (name typed) list
-  | WildcardPattern
+type pattern = Ast.pattern
 
 type casebranch = CaseBranch of pattern * expr typed
 
