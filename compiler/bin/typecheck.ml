@@ -1,0 +1,210 @@
+module A = Ast 
+module U = Uast
+module T = Tast
+
+module StringMap = Map.Make(String)
+(* type def =
+    Val of name * expr
+  | Define of name * (name list) * expr
+  | Datatype of name * (variant list)
+  | TyAnnotation of name * ty *)
+
+(* type def =
+  Define of name * (name typed) list * expr typed
+| Datatype of name * (variant list) *)
+exception Impossible of string
+exception Todo
+exception NotFound of string
+exception TypeError of string
+
+
+
+
+let rec eqType t1 t2 = match (t1, t2) with 
+| (A.Int, A.Int) | (A.Bool, A.Bool) | (A.Sym, A.Sym) | (A.Unit, A.Unit) -> true 
+| (A.FunTy (arg_ts, ret_t)), (A.FunTy (arg_ts', ret_t')) -> 
+                    eqTypes arg_ts arg_ts' && eqType ret_t ret_t'
+| (A.CustomTy n, A.CustomTy n') -> n = n'
+| _ -> false
+and eqTypes ts ts' = List.equal eqType ts ts'
+
+let isSome = function 
+Some _ -> true 
+| None -> false 
+let isNone x = not (isSome x)
+
+let rec tyString = function 
+| A.Int -> "int"
+| A.Bool -> "bool"
+| A.Sym -> "symbol"
+| A.Unit -> "Unit"
+| A.FunTy (arg_ts, ret_t) -> 
+                    "(-> (" 
+                    ^ String.concat " " (List.map tyString arg_ts) ^ ")" 
+                    ^ tyString ret_t ^ ")"
+| A.CustomTy name -> name 
+let typesMatchOrError t1 t2 metainfo = 
+  if eqType t1 t2 
+  then true
+  else raise 
+      (TypeError ("type mismatch: expected "
+                  ^ tyString t1
+                  ^ " but got"
+                  ^ tyString t2 ^ metainfo))
+let rec checkFunArgTypes ts ts' = match (ts, ts') with 
+| ([], []) -> ()
+| (tau::taus, tau'::taus') -> let metainfo = " in function application" in 
+                              if typesMatchOrError tau tau' metainfo
+                              then checkFunArgTypes taus taus'
+| (_, _) -> raise (Impossible "mismatch in number of types in checkFunArgTypes")
+
+let curry f x y = f (x, y)
+
+let rec typeof gamma delta e = 
+  let rec typ = function  
+  | U.Literal l -> (match l with A.IntLit _ -> A.Int
+                              | A.BoolLit _ -> A.Bool
+                              | A.SymLit _ -> A.Sym
+                              | A.UnitLit -> A.Unit)
+  (* NOTE: Do we want a sanity check that all globals are Funty? *)
+  | U.Local n | U.Global n -> if not (StringMap.mem n gamma)
+                    then raise (NotFound ("unbound name \"" ^ n ^ "\""))
+                    else StringMap.find n gamma
+  | U.If (e1, e2, e3) -> (match (typ e1, typ e2, typ e3) with 
+                          | (A.Bool, t1, t2) -> 
+                            if t1 = t2 
+                            then t1 
+                            else raise 
+                               (TypeError "mismatched types in if branches")
+                          | _ -> raise 
+                               (TypeError ("condition failed to typecheck to "
+                                          ^ "boolean in \"if\" expression")))
+  | U.Begin (e1, e2) -> let (_, t) = (typ e1, typ e2) in t
+  | U.Let (n, e, e') -> let rhs_t = typ e 
+                        in typeof (StringMap.add n rhs_t gamma) delta e'
+  | U.Apply (f, es) -> 
+    (match f with U.Global n -> 
+      if not (StringMap.mem n gamma)
+        then raise (NotFound ("attempted to apply unbound name \"" ^ n ^ "\""))
+        else let t = StringMap.find n gamma in 
+                (match t with A.FunTy (arg_ts, ret_t) -> 
+                  let n_expected = List.length arg_ts in 
+                  let n_given    = List.length es     in 
+                  if n_expected != n_given 
+                  then raise (TypeError ("mismatch in number of arguments in " 
+                                        ^ "application of function \"" ^ n 
+                                        ^ "\": expected "
+                                        ^ Int.to_string n_expected 
+                                        ^ " but " 
+                                        ^ Int.to_string n_given 
+                                        ^ " were given."))
+                (* typecheck arguments - purely side-effecting *)
+                  else let () = checkFunArgTypes (List.map typ es) arg_ts in 
+                  ret_t (* type is return type *)
+                | _ -> raise 
+                          (TypeError 
+                            ("attempted to apply non-function \"" ^ n ^ "\"")))
+                            
+                | _ -> raise (TypeError "attempted to apply non-function"))
+                          
+  | U.Dup _ -> A.Unit
+  | U.Case (_, []) -> raise (TypeError "empty case expression")
+  | U.Case (e, branches) -> 
+    (* scrutinee MUST be custom type; no literal pattern matching *)
+    let typ_scrutinee = typ e in 
+      (match typ_scrutinee with A.CustomTy sname -> 
+        let (patterns, rhss) = List.split branches in 
+        (* check all patterns to be well-formed with regards to the scrutinee *)
+        let typeCheckPattern pat = match pat with 
+          | A.WildcardPattern -> ()
+          | A.Pattern (pname, _) -> 
+            (* ensure pattern maps to a type *)
+            if not (StringMap.mem pname delta)
+            then raise (TypeError 
+            ("unknown type constructor \"" ^ sname 
+            ^ "\" in case branch"))
+            (* ensure the type it matches to is correct *)
+            else 
+              let typ_of_pat = StringMap.find pname delta in 
+            if not (eqType typ_scrutinee typ_of_pat)
+            then raise (TypeError 
+                          ("scrutinee in case has type \"" ^ sname 
+                            ^ "\" but a branch is a pattern of type " 
+                            ^ pname ^ " \""))
+            else () (* success *)
+        in 
+        let _ = List.iter typeCheckPattern patterns in 
+        let typ_first_rhs = typ (List.hd rhss) in 
+        (* check all rhs's to be of the same type *)
+        let _ = List.for_all (eqType typ_first_rhs) (List.map typ rhss) in 
+        typ_first_rhs
+      | _ -> raise (TypeError
+                      ("expected custom datatype in case expression but got " 
+                      ^ tyString typ_scrutinee)))
+                    in typ e
+
+(* true type inference cookery in the works *)
+                    (* and checkApplyAndExtendBindings fun_name (arg_typs, param_names_and_typs) ret_typ gamma delta = 
+  let (param_names, param_typs) = List.split param_names_and_typs in 
+  match (arg_typs, param_names_and_typs) with 
+| ([], []) -> (ret_typ, gamma, delta)
+| (None::taus, tau'::taus') ->  *)
+
+(* let rec exp rho = function 
+U.Literal l -> T.literal *)
+
+let typecheckDef (defs, gamma, delta) = function
+| U.Define (n, args, body) -> 
+  if not (StringMap.mem n gamma)
+  then raise (TypeError 
+                ("definition of function \"" ^ n 
+                ^ "\" with no prior type annotation. This error will be "
+                ^ "removed if we go for full inference."))
+  else let known_annotated_ty = StringMap.find n gamma in
+  (match known_annotated_ty with 
+    | (A.FunTy (argtys, expected_ret_ty)) -> 
+      let fun_extended_gamma = 
+        List.fold_left2 (* insane folding *)
+            (fun env name ty -> StringMap.add name ty env) gamma args argtys in 
+      let ret_ty = typeof fun_extended_gamma delta body in 
+        if not (eqType expected_ret_ty ret_ty) 
+        then raise (TypeError ("prior annotation defined function \"" ^ n ^ 
+                              "\" to be of type \"" 
+                              ^ tyString known_annotated_ty
+                              ^ "\" but a definition was given that has type \""
+                              ^ tyString (A.FunTy (argtys, ret_ty )) ^ "\""))
+      else (List.append defs [known_annotated_ty], gamma, delta)
+    | _ -> raise (Impossible "found non-function name in top-level environment"))
+| U.Datatype (n, variants) -> 
+  let check_variant delta' (U.Variant (vname, _))  = 
+    if not (StringMap.mem vname delta') 
+    then (StringMap.add vname (A.CustomTy n) delta') 
+    else 
+      let existing_type = StringMap.find vname delta in 
+      raise (TypeError ("duplicate type constructor \"" 
+                        ^ vname ^ "\": constructor already exists for type \"" 
+                        ^ tyString existing_type ^ "\"")) 
+    in let extended_delta = List.fold_left check_variant delta variants in 
+    (defs, gamma, extended_delta)
+
+| U.TyAnnotation (n, ty) -> 
+  if not (StringMap.mem n gamma)
+  then let extended_gamma = StringMap.add n ty gamma in 
+  (defs, extended_gamma, delta)
+  else let found_typ = StringMap.find n gamma in 
+    if not (eqType ty found_typ)
+    then raise (TypeError ("prior annotation defined function \"" ^ n ^ 
+    "\" to be of type \"" 
+    ^ tyString found_typ
+    ^ "\" but a second annotation was given that has type \""
+    ^ tyString ty ^ "\""))
+else (defs, gamma, delta)
+  (* T.Define ("", [], (T.Literal (Ast.IntLit 0), Ast.Unit)) *)
+| U.Val (n, _) -> raise (Impossible 
+                                ("attempting to typecheck val \"" ^ n ^ 
+                                "\"; val forms should be eliminated by now."))
+(* walks the program, building environments and typechecking against them. *)
+let typecheck prog = 
+  let (gamma, delta) = (StringMap.empty, StringMap.empty) in 
+  let defs = [] in 
+  List.fold_left typecheckDef (defs, gamma, delta) prog

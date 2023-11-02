@@ -14,7 +14,6 @@ let () =
     
     let lexbuf = Lexing.from_channel !channel in
     let ast = Parser.program Scanner.token lexbuf in
-
     (* let lexbuf = Lexing.from_string "(val x 3)" in
     let ast = Parser.program Scanner.token lexbuf in *)
     (* begin_testing_zone *)

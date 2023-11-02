@@ -1,5 +1,4 @@
 (* Unambiguous Abstract Syntax Tree *)
-
 type name = string
 
 type filename = name (* NEEDSWORK: Decide if we want different rules for filenames *)
@@ -10,7 +9,7 @@ type literal = Ast.literal
 
 type pattern = Ast.pattern
 
-type casebranch = CaseBranch of pattern * expr
+type casebranch = pattern * expr
 
 and expr =
     Literal of literal

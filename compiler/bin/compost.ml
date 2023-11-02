@@ -19,6 +19,7 @@ let () =
   let ast = Parser.program Scanner.token lexbuf in
   match !action with
     Ast -> print_string (Ast.string_of_program ast)
+  | Compile -> ignore (Typecheck.typecheck (List.map Disambiguate.def ast))
   | _ -> ()
   (* | _ -> let sast = Semant.check ast in *)
     (* match !action with *)

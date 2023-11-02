@@ -1,5 +1,5 @@
 (* Type-Checked Abstract Syntax Tree *)
-open Ast
+(* open Ast *)
 
 type name = Ast.name
 
