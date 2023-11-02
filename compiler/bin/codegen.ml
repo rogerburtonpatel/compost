@@ -49,6 +49,14 @@ let codegen program =
     StringSet.fold build_symbol sym_lits StringMap.empty
   in
 
+  let primitives =
+    let printf_t = L.var_arg_function_type i32_t [| L.pointer_type i8_t |] in
+    let printf_func = L.declare_function "printf" printf_t the_module in
+    [
+      ("print-sym", Ast.FunTy ([Ast.Sym], Ast.Unit), fun v -> L.build_call printf_func v "tmp")
+    ]
+  in
+
   let functions =
     let function_decl (M.Define (n, params, (_ , return_ty))) defs =
       let formal_types = Array.of_list (List.map (fun (_, ty) -> lltype_of_ty ty) params) in

@@ -1,9 +1,12 @@
 (* Top-level of the Compost compiler *)
 
 (* Force dune to build some stuff (REMOVE LATER) *)
-open Codegen
 open Ast
-module M = Mast
+module D = Disambiguate
+module T = Typecheck
+module C = Consumptioncheck
+module M = Memorymanage
+module G = Codegen
 
 type action = Ast | LLVM_IR | Compile
 
@@ -25,15 +28,12 @@ let () =
   match !action with
     Ast -> print_string (Ast.string_of_program ast)
   | Compile ->
-    let program = [
-      M.Define ("main", [("arg1", M.Int 32)], (M.Literal (Ast.SymLit "hello-world"), M.Ptr (M.Int 8)) );
-
-      M.Define ("main2", [("arg1", M.Int 32)], (M.Literal (Ast.SymLit "hello-world"), M.Ptr (M.Int 8)) )
-    ]
+    let program = T.typecheck (List.map D.def ast)
     in
-    let m = Codegen.codegen program in
-    (* Llvm_analysis.assert_valid_module m; *)
-    print_string (Llvm.string_of_llmodule m)
+    ()
+    (* let m = Codegen.codegen program in *)
+    (* (\* Llvm_analysis.assert_valid_module m; *\) *)
+    (* print_string (Llvm.string_of_llmodule m) *)
   (* | _ -> let sast = Semant.check ast in *)
     (* match !action with *)
     (*   Ast     -> () *)
