@@ -29,23 +29,25 @@ let codegen program =
 
   let unions sets = List.fold_right StringSet.union sets StringSet.empty in
 
-  (* let symbols = *)
-  (*   let rec get_sym_lits = function *)
-  (*     | M.Literal (Ast.SymLit str) -> StringSet.singleton str *)
-  (*     | M.Case (_, branches) -> unions (List.map (fun (M.CaseBranch (_, (e, _))) -> get_sym_lits e) branches) *)
-  (*     | M.If ((e1, _), (e2, _), (e3, _)) -> unions [get_sym_lits e1; get_strings e2; get_strings e3] *)
-  (*     | M.Begin ((e1, _), (e2, _)) -> unions [get_sym_lits e1; get_strings e2] *)
-  (*     | M.Let (n, (e1, _), (e2, _)) -> unions [get_sym_lits e1; get_strings e2] *)
-  (*     | M.Apply ((e, _), args) -> unions ((get_sym_lits e) :: (List.map (fun (arg, _) -> get_strings arg) args)) *)
-  (*     | M.Free (_, _, (e, _)) -> get_sym_lits e *)
-  (*     | _ -> StringSet.empty *)
-  (*   in *)
-  (*   let sym_lits = unions (List.map (fun (M.Define (_, _, (body, _))) -> get_sym_lits body) program) in *)
-  (*   let build_symbol sym_lit syms = *)
-  (*     let sym = L.build_global_stringptr sym_lit ("str_" ^ sym_lit) in *)
-
-
-  (* in *)
+  let symbols =
+    let rec get_sym_lits = function
+      | M.Literal (Ast.SymLit str) -> StringSet.singleton str
+      | M.Case (_, branches) -> unions (List.map (fun (M.CaseBranch (_, (e, _))) -> get_sym_lits e) branches)
+      | M.If ((e1, _), (e2, _), (e3, _)) -> unions [get_sym_lits e1; get_sym_lits e2; get_sym_lits e3]
+      | M.Begin ((e1, _), (e2, _)) -> unions [get_sym_lits e1; get_sym_lits e2]
+      | M.Let (n, (e1, _), (e2, _)) -> unions [get_sym_lits e1; get_sym_lits e2]
+      | M.Apply ((e, _), args) -> unions ((get_sym_lits e) :: (List.map (fun (arg, _) -> get_sym_lits arg) args))
+      | M.Free (_, _, (e, _)) -> get_sym_lits e
+      | _ -> StringSet.empty
+    in
+    let sym_lits = unions (List.map (fun (M.Define (_, _, (body, _))) -> get_sym_lits body) program) in
+    let build_symbol sym_lit syms =
+      let sym_value = L.const_string context sym_lit in
+      let sym_var = L.define_global Freshnames.fresh_name sym_value the_module in
+      StringMap.add sym_lit sym_var syms
+    in
+    StringSet.fold build_symbol sym_lits StringMap.empty
+  in
 
   let functions =
     let function_decl (M.Define (n, params, (_ , return_ty))) defs =
@@ -60,7 +62,9 @@ let codegen program =
   let rec expr builder locals = function
     | M.Literal l -> begin match l with
       | Ast.IntLit i -> L.const_int i32_t i
-      | Ast.SymLit s -> L.build_global_stringptr s ("sym_" ^ s) builder
+      | Ast.SymLit s ->
+        let sym = StringMap.find s symbols in
+        L.build_bitcast sym (L.pointer_type i8_t) "tmp" builder
       | Ast.BoolLit b -> if b
         then L.const_int i1_t 1
         else L.const_int i1_t 0
