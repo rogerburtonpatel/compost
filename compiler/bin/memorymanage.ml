@@ -34,7 +34,7 @@ let rec convert_ty(ty) =
      | Ast.FunTy(tylist, ty) -> M.Fun(convert_ty ty, List.map convert_ty tylist) 
      | Ast.Int -> M.Int(32) (* 32-bit integer *)
      | Ast.Bool -> M.Int(1) (* 1-bit integer *)
-     | Ast.Unit -> M.Void 
+     | Ast.Unit -> M.Int(1)
      | Ast.Sym -> M.Ptr(Int(8)) (* pointer to a 8-bit integer *)
      | Ast.CustomTy(_) -> raise (Unimplemented "Not implemented")
 
@@ -55,13 +55,16 @@ let rec convert_expr fast_expr =
 
 (* Converts a fast definition to a _list_ of mast definitions *)
 let convert_defs fast_def = 
-    match fast_def with 
+    match fast_def with
+     | F.Define("main", params, body) ->
+        (* special case: keep "main" as "main" *)
+        [ M.Define("main", List.map (convert_typed id) params, convert_typed convert_expr body) ]
      | F.Define(name, params, body) -> 
-         (* Prefix each function name with "^" to guarantee it does not conflict with generated functions *)
-         [ M.Define("^" ^ name, List.map (convert_typed id) params, convert_typed convert_expr body) ]
+        (* Prefix each function name with "^" to guarantee it does not conflict with generated functions *)
+        [ M.Define("^" ^ name, List.map (convert_typed id) params, convert_typed convert_expr body) ]
      | F.Datatype(name, _) -> (* NEEDSWORK: Actually generate the functions. These are just placeholders for now *)
-         [ M.Define("_dup_" ^ name, [("xxs", M.Ptr(M.Int(1)))], (M.Literal(IntLit(0)), M.Int(32))) ;
-           M.Define("_free_" ^ name, [("xxs", M.Ptr(M.Int(1)))], (M.Literal(IntLit(0)), M.Int(32))) ]
+        [ M.Define("_dup_" ^ name, [("xxs", M.Ptr(M.Int(1)))], (M.Literal(IntLit(0)), M.Int(32))) ;
+          M.Define("_free_" ^ name, [("xxs", M.Ptr(M.Int(1)))], (M.Literal(IntLit(0)), M.Int(32))) ]
 
 
 let mast_of_fast fast = 

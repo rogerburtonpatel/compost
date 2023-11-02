@@ -16,7 +16,7 @@ let rec check bound consumed (expr, ty) =
   match expr with
   | T.Local n when S.mem n consumed -> raise (NameAlreadyConsumed n)
   | T.Local n -> ((F.Local n, ty), S.singleton n)
-  | T.Global n -> ((F.Local n, ty), S.empty)
+  | T.Global n -> ((F.Global n, ty), S.empty)
   | T.Dup n when S.mem n consumed -> raise (NameAlreadyConsumed n)
   | T.Dup n -> ((F.Dup n, ty), S.empty)
   | T.Literal (l) -> ((F.Literal l, ty), S.empty)

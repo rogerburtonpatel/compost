@@ -25,7 +25,6 @@ let codegen program =
       let tys' = List.map lltype_of_ty tys in
       L.struct_type context (Array.of_list tys')
     | M.Ptr ty -> L.pointer_type (lltype_of_ty ty)
-    | M.Void -> L.void_type context
   in
 
   let unions sets = List.fold_right StringSet.union sets StringSet.empty in
@@ -53,10 +52,11 @@ let codegen program =
   let primitives =
     let printf_t = L.var_arg_function_type i32_t [| L.pointer_type i8_t |] in
     let printf_func = L.declare_function "printf" printf_t the_module in
+    let unit_value = L.const_int i1_t 0 in
     [
       ("print-sym", fun v b ->
           let _ = L.build_call printf_func v "tmp" b in
-          L.build_ret_void b)
+          L.build_ret unit_value b)
     ]
   in
 
@@ -65,20 +65,20 @@ let codegen program =
       let build_primitive (fun_name, build_fun) decls =
         let fun_ty = List.assoc fun_name P.primitives in
         let fun_lltype = lltype_of_ty (Memorymanage.convert_ty fun_ty) in
-        let decl = L.declare_function fun_name fun_lltype the_module in
-        (* let builder = L.builder_at_end context (L.entry_block decl) in *)
-        (* let _ = build_fun (L.params decl) builder in *)
+        let decl = L.define_function fun_name fun_lltype the_module in
+        let builder = L.builder_at_end context (L.entry_block decl) in
+        let _ = build_fun (L.params decl) builder in
         StringMap.add fun_name decl decls
       in
       List.fold_right build_primitive primitives StringMap.empty
     in
 
 
-    let function_decl (M.Define (n, params, (_ , return_ty))) decls =
+    let function_decl (M.Define (fun_name, params, (_ , return_ty))) decls =
       let formal_types = Array.of_list (List.map (fun (_, ty) -> lltype_of_ty ty) params) in
       let return_ty' = lltype_of_ty return_ty in
       let function_ty = L.function_type return_ty' formal_types in
-      StringMap.add n (L.define_function n function_ty the_module) decls
+      StringMap.add fun_name (L.define_function fun_name function_ty the_module) decls
     in
     let decls = List.fold_right function_decl program StringMap.empty in
     let name_conflict = Impossible "user-defined function and primitive function share the same name" in
