@@ -1,5 +1,10 @@
 (* Top-level of the Compost compiler *)
 
+(* Force dune to build some stuff (REMOVE LATER) *)
+open Codegen
+open Ast
+open Mast
+
 type action = Ast | LLVM_IR | Compile
 
 let () =
