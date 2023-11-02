@@ -24,6 +24,7 @@ let codegen program =
       let tys' = List.map lltype_of_ty tys in
       L.struct_type context (Array.of_list tys')
     | M.Ptr ty -> L.pointer_type (lltype_of_ty ty)
+    | M.Void -> L.void_type context
   in
 
   let unions sets = List.fold_right StringSet.union sets StringSet.empty in
