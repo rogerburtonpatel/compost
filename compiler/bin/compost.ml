@@ -1,20 +1,20 @@
 (* Top-level of the Compost compiler *)
 
 (* Force dune to build some stuff (REMOVE LATER) *)
-open Ast
 module D = Disambiguate
 module T = Typecheck
 module C = Consumptioncheck
 module M = Memorymanage
 module G = Codegen
 
-type action = Ast | LLVM_IR | Compile
+type action = Ast | UAst | LLVM_IR | Compile
 
 let () =
   let action = ref Compile in
   let set_action a () = action := a in
   let speclist = [
     ("-a", Arg.Unit (set_action Ast), "Print the AST");
+    ("-d", Arg.Unit (set_action UAst), "Print the UAST");
     ("-l", Arg.Unit (set_action LLVM_IR), "Print the generated LLVM IR");
     ("-c", Arg.Unit (set_action Compile),
       "Check and print the generated LLVM IR (default)");
@@ -27,18 +27,12 @@ let () =
   let ast = Parser.program Scanner.token lexbuf in
   match !action with
     Ast -> print_string (Ast.string_of_program ast)
+  | UAst -> print_string (Uast.string_of_program (D.disambiguate ast))
   | Compile ->
-    let program = T.typecheck (List.map D.def ast)
-    in
-    ()
-    (* let m = Codegen.codegen program in *)
-    (* (\* Llvm_analysis.assert_valid_module m; *\) *)
-    (* print_string (Llvm.string_of_llmodule m) *)
-  (* | _ -> let sast = Semant.check ast in *)
-    (* match !action with *)
-    (*   Ast     -> () *)
-    (* | _ -> () *)
-    (* | LLVM_IR -> print_string (Llvm.string_of_llmodule (Codegen.translate sast)) *)
-    (* | Compile -> let m = Codegen.translate sast in *)
-    (*     Llvm_analysis.assert_valid_module m; *)
-    (*     print_string (Llvm.string_of_llmodule m) *)
+    let disambiguated = D.disambiguate ast in
+    let (type_checked, _, _) = T.typecheck disambiguated in
+    let consumption_checked = C.consumption_check type_checked in
+    let memory_managed = M.mast_of_fast consumption_checked in
+    let m = G.codegen memory_managed in
+    (* Llvm_analysis.assert_valid_module m; *)
+    print_string (Llvm.string_of_llmodule m)

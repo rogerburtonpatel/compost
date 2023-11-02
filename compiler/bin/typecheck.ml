@@ -252,7 +252,10 @@ else (defs, gamma, delta)
                                 ("attempting to typecheck val \"" ^ n ^ 
                                 "\"; val forms should be eliminated by now."))
 (* walks the program, building environments and typechecking against them. *)
-let typecheck prog = 
-  let (gamma, delta) = (StringMap.empty, StringMap.empty) in 
+let typecheck prog =
+  let gamma = List.fold_right
+      (fun (prim_name, ty) -> StringMap.add prim_name ty)
+      Primitives.primitives StringMap.empty in
+  let delta = StringMap.empty in
   let defs = [] in 
   List.fold_left typecheckDef (defs, gamma, delta) prog

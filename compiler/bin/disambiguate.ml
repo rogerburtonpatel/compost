@@ -45,3 +45,5 @@ let def = function
     U.Datatype (n, List.map variant variants)
   | A.TyAnnotation (n, ty) -> U.TyAnnotation (n, ty)
   | A.Use _ -> raise (Impossible "use form in disambiguation")
+
+let disambiguate = List.map def

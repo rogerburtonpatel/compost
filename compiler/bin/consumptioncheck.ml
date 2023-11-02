@@ -97,3 +97,16 @@ let rec check_last bound consumed (expr, ty) =
     let (e', c) = check bound consumed e in
     let (es', c') = check_args es c in
     ((F.Apply (e', es'), ty), c')
+
+let check_def = function
+  | T.Define (fun_name, params, (e, return_ty)) ->
+    let param_tys = List.map (fun (_, ty) -> ty) params in
+    let fun_ty = Ast.FunTy (param_tys, return_ty) in
+    let init_bound = (fun_name, fun_ty) :: params in
+    let (body, _) = check_last init_bound S.empty (e, return_ty) in
+    F.Define (fun_name, params, body)
+  | T.Datatype (name, variants) ->
+    let variants' = List.map (fun (T.Variant (name, tys)) -> F.Variant (name, tys)) variants in
+    F.Datatype (name, variants')
+
+let consumption_check = List.map check_def
