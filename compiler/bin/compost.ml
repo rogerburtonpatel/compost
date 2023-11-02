@@ -26,9 +26,14 @@ let () =
     Ast -> print_string (Ast.string_of_program ast)
   | Compile ->
     let program = [
-      M.Define ("foo", [("arg1", M.Int 32)], (M.Literal (Ast.SymLit "hello-world"), M.Ptr (M.Int 8)) )
+      M.Define ("main", [("arg1", M.Int 32)], (M.Literal (Ast.SymLit "hello-world"), M.Ptr (M.Int 8)) );
+
+      M.Define ("main2", [("arg1", M.Int 32)], (M.Literal (Ast.SymLit "hello-world"), M.Ptr (M.Int 8)) )
     ]
-    in print_string (Llvm.string_of_llmodule (Codegen.codegen program))
+    in
+    let m = Codegen.codegen program in
+    (* Llvm_analysis.assert_valid_module m; *)
+    print_string (Llvm.string_of_llmodule m)
   (* | _ -> let sast = Semant.check ast in *)
     (* match !action with *)
     (*   Ast     -> () *)
