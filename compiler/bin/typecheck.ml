@@ -253,9 +253,22 @@ else (defs, gamma, delta)
                                 "\"; val forms should be eliminated by now."))
 (* walks the program, building environments and typechecking against them. *)
 let typecheck prog =
-  let gamma = List.fold_right
-      (fun (prim_name, ty) -> StringMap.add prim_name ty)
-      Primitives.primitives StringMap.empty in
+  let gamma =
+    let prim_constraints = List.fold_right
+        (fun (prim_name, ty) -> StringMap.add prim_name ty)
+        Primitives.primitives StringMap.empty
+    in
+    let fun_constraints = List.fold_right
+        (function
+          | U.TyAnnotation (n, ty) -> StringMap.add n ty
+          | _ -> fun x -> x)
+        prog StringMap.empty
+    in
+    StringMap.union
+      (fun _ _ -> raise (Impossible "user-defined and primitive function
+                                  share a name"))
+      prim_constraints fun_constraints
+  in
   let delta = StringMap.empty in
   let defs = [] in 
   List.fold_left typecheckDef (defs, gamma, delta) prog

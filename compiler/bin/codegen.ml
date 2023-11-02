@@ -43,7 +43,7 @@ let codegen program =
     let sym_lits = unions (List.map (fun (M.Define (_, _, (body, _))) -> get_sym_lits body) program) in
     let build_symbol sym_lit syms =
       let sym_value = L.const_string context sym_lit in
-      let sym_var = L.define_global Freshnames.fresh_name sym_value the_module in
+      let sym_var = L.define_global sym_lit sym_value the_module in
       StringMap.add sym_lit sym_var syms
     in
     StringSet.fold build_symbol sym_lits StringMap.empty
@@ -56,7 +56,14 @@ let codegen program =
     [
       ("print-sym", fun v b ->
           let _ = L.build_call printf_func v "tmp" b in
-          L.build_ret unit_value b)
+          L.build_ret unit_value b
+      );
+      ("print-int", fun v b ->
+          let fmt_int = L.build_global_stringptr "fmt_int" "%d" b in
+          let args = Array.append (Array.make 1 fmt_int) v in
+          let _ = L.build_call printf_func args "tmp" b in
+          L.build_ret unit_value b
+      )
     ]
   in
 
@@ -96,8 +103,8 @@ let codegen program =
         else L.const_int i1_t 0
       | Ast.UnitLit -> L.const_int i1_t 0
       end
-    | M.Local n -> StringMap.find n locals
-    | M.Global n -> StringMap.find n functions
+    | M.Local n -> begin try StringMap.find n locals with _ -> raise (Impossible n) end
+    | M.Global n -> begin try StringMap.find n functions with _ -> raise (Impossible n) end
     | M.Begin ((e1, _), (e2, _)) ->
       let _ = expr builder locals e1 in
       expr builder locals e2
