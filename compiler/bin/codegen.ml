@@ -2,6 +2,7 @@ module L = Llvm
 module M = Mast
 
 module StringMap = Map.Make(String)
+module StringSet = Set.Make(String)
 
 let ctx = L.create_context
 
@@ -25,10 +26,28 @@ let codegen program =
     | M.Ptr ty -> L.pointer_type (lltype_of_ty ty)
   in
 
-  let strings = StringMap.empty (* TODO *) in
+  let unions sets = List.fold_right StringSet.union sets StringSet.empty in
+
+  (* let symbols = *)
+  (*   let rec get_sym_lits = function *)
+  (*     | M.Literal (Ast.SymLit str) -> StringSet.singleton str *)
+  (*     | M.Case (_, branches) -> unions (List.map (fun (M.CaseBranch (_, (e, _))) -> get_sym_lits e) branches) *)
+  (*     | M.If ((e1, _), (e2, _), (e3, _)) -> unions [get_sym_lits e1; get_strings e2; get_strings e3] *)
+  (*     | M.Begin ((e1, _), (e2, _)) -> unions [get_sym_lits e1; get_strings e2] *)
+  (*     | M.Let (n, (e1, _), (e2, _)) -> unions [get_sym_lits e1; get_strings e2] *)
+  (*     | M.Apply ((e, _), args) -> unions ((get_sym_lits e) :: (List.map (fun (arg, _) -> get_strings arg) args)) *)
+  (*     | M.Free (_, _, (e, _)) -> get_sym_lits e *)
+  (*     | _ -> StringSet.empty *)
+  (*   in *)
+  (*   let sym_lits = unions (List.map (fun (M.Define (_, _, (body, _))) -> get_sym_lits body) program) in *)
+  (*   let build_symbol sym_lit syms = *)
+  (*     let sym = L.build_global_stringptr sym_lit ("str_" ^ sym_lit) in *)
+
+
+  (* in *)
 
   let functions =
-    let function_decl (M.Define (n, params, (body, return_ty))) defs =
+    let function_decl (M.Define (n, params, (_ , return_ty))) defs =
       let formal_types = Array.of_list (List.map (fun (_, ty) -> lltype_of_ty ty) params) in
       let return_ty' = lltype_of_ty return_ty in
       let function_ty = L.function_type return_ty' formal_types in
@@ -40,7 +59,7 @@ let codegen program =
   let rec expr builder locals = function
     | M.Literal l -> begin match l with
       | Ast.IntLit i -> L.const_int i32_t i
-      | Ast.SymLit s -> StringMap.find s strings
+      | Ast.SymLit s -> L.build_global_stringptr s ("sym_" ^ s) builder
       | Ast.BoolLit b -> if b
         then L.const_int i1_t 1
         else L.const_int i1_t 0

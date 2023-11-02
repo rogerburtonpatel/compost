@@ -3,7 +3,7 @@
 (* Force dune to build some stuff (REMOVE LATER) *)
 open Codegen
 open Ast
-open Mast
+module M = Mast
 
 type action = Ast | LLVM_IR | Compile
 
@@ -24,8 +24,11 @@ let () =
   let ast = Parser.program Scanner.token lexbuf in
   match !action with
     Ast -> print_string (Ast.string_of_program ast)
-  | Compile -> ignore (Typecheck.typecheck (List.map Disambiguate.def ast))
-  | _ -> ()
+  | Compile ->
+    let program = [
+      M.Define ("foo", [("arg1", M.Int 32)], (M.Literal (Ast.SymLit "hello-world"), M.Ptr (M.Int 8)) )
+    ]
+    in print_string (Llvm.string_of_llmodule (Codegen.codegen program))
   (* | _ -> let sast = Semant.check ast in *)
     (* match !action with *)
     (*   Ast     -> () *)
