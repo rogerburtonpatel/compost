@@ -91,39 +91,67 @@ let codegen program =
     let name_conflict = Impossible "user-defined function and primitive function share the same name" in
     StringMap.union (fun _ _ -> raise name_conflict) decls primitive_decls
   in
-  let rec expr builder locals = function
-    | M.Literal l -> begin match l with
-      | Ast.IntLit i -> L.const_int i32_t i
-      | Ast.SymLit s ->
-        let sym = StringMap.find s symbols in
-        L.build_bitcast sym (L.pointer_type i8_t) "tmp" builder
-      | Ast.BoolLit b -> if b
-        then L.const_int i1_t 1
-        else L.const_int i1_t 0
-      | Ast.UnitLit -> L.const_int i1_t 0
-      end
-    | M.Local n -> begin try StringMap.find n locals with _ -> raise (Impossible n) end
-    | M.Global n -> begin try StringMap.find n functions with _ -> raise (Impossible n) end
-    | M.Begin (e1, e2) ->
-      let _ = expr builder locals e1 in
-      expr builder locals e2
-    | M.Let (n, e, body) ->
-      let locals' = StringMap.add n (expr builder locals e) locals in
-      expr builder locals' body
-    | M.Apply (f, args) ->
-      let f_val = expr builder locals f in
-      let args' = List.map (expr builder locals) args in
-      L.build_call f_val (Array.of_list args') "tmp" builder
-    | M.Free (n, e) ->
-      let _ = L.build_free (StringMap.find n locals) builder in
-      expr builder locals e
-      (* TODO Alloc *)
-      (* TODO If *)
-      (* TODO Case *)
-    | _ -> raise (Impossible "Unimplemented")
-  in
   let build_function_body (M.Define (n, _, params, body)) =
     let the_function = StringMap.find n functions in
+
+    (* Recursively build the return value of the function *)
+    let rec expr locals builder =
+      function
+      | M.Literal l -> begin match l with
+        | Ast.IntLit i -> (L.const_int i32_t i, builder)
+        | Ast.SymLit s ->
+          let sym = StringMap.find s symbols in
+          (L.build_bitcast sym (L.pointer_type i8_t) s builder, builder)
+        | Ast.BoolLit b -> if b
+          then (L.const_int i1_t 1, builder)
+          else (L.const_int i1_t 0, builder)
+        | Ast.UnitLit -> (L.const_int i1_t 0, builder)
+        end
+      | M.Local n -> (StringMap.find n locals, builder)
+      | M.Global n -> (StringMap.find n functions, builder)
+      | M.Begin (e1, e2) ->
+        let (_, builder') = expr locals builder e1 in
+        expr locals builder' e2
+      | M.Let (n, e, body) ->
+        let (e_val, builder') = expr locals builder e in
+        let locals' = StringMap.add n e_val locals in
+        expr locals' builder' body
+      | M.Apply (f, args) ->
+        let (f_val, builder') = expr locals builder f in
+        let (arg_vals, builder'') = List.fold_left
+            (fun (arg_vals, b) arg ->
+               let (arg_val, b') = expr locals b arg in
+               (arg_vals @ [arg_val], b')
+            ) ([], builder') args in
+        (L.build_call f_val (Array.of_list arg_vals) "apply_result" builder'', builder)
+      | M.Free (n, e) ->
+        let _ = L.build_free (StringMap.find n locals) builder in
+        expr locals builder e
+      | M.If (cond, b1, b2) ->
+        let (cond_val, builder') = expr locals builder cond in
+
+        let merge_bb = L.append_block context "merge" the_function in
+        let merge_builder = L.builder_at_end context merge_bb in
+        let branch_instr = L.build_br merge_bb in
+
+        let then_bb = L.append_block context "then" the_function in
+        let then_builder = L.builder_at_end context then_bb in
+        let (then_val, _) = expr locals then_builder b1 in
+        let _ = branch_instr then_builder in
+
+        let else_bb = L.append_block context "else" the_function in
+        let else_builder = L.builder_at_end context else_bb in
+        let (else_val, _) = expr locals else_builder b1 in
+        let _ = branch_instr else_builder in
+
+        let _ = L.build_cond_br cond_val then_bb else_bb builder' in
+
+        (L.build_phi [(then_val, then_bb); (else_val, else_bb)] "if_result" merge_builder, merge_builder)
+
+        (* TODO Alloc *)
+        (* TODO Case *)
+      | _ -> raise (Impossible "Unimplemented")
+    in
     let builder = L.builder_at_end context (L.entry_block the_function) in
 
     let init_locals =
@@ -131,8 +159,8 @@ let codegen program =
       let bindings = List.mapi (fun i n -> (n, Array.get param_values i)) params in
       List.fold_right (fun (n, v) m -> StringMap.add n v m) bindings StringMap.empty
     in
-    let body_value = expr builder init_locals body in
-    let _ = L.build_ret body_value builder in
+    let (body_value, builder') = expr init_locals builder body in
+    let _ = L.build_ret body_value builder' in
     ()
   in
   List.iter build_function_body program;
