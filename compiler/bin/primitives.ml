@@ -2,5 +2,12 @@
 let primitives =
   [
     ("print-sym", Ast.FunTy ([Ast.Sym], Ast.Unit));
-    ("print-int", Ast.FunTy ([Ast.Int], Ast.Unit))
+    ("print-int", Ast.FunTy ([Ast.Int], Ast.Unit));
+
+    (* Equality *)
+    ("i=", Ast.FunTy ([Ast.Int; Ast.Int], Ast.Bool));
+
+    (* Arithmetic *)
+    ("+", Ast.FunTy ([Ast.Int; Ast.Int], Ast.Int));
+    ("%", Ast.FunTy ([Ast.Int; Ast.Int], Ast.Int));
   ]

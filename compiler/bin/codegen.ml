@@ -37,7 +37,7 @@ let codegen program =
         StringSet.union (get_sym_lits e) branch_lits
       | M.If (e1, e2, e3) -> unions [get_sym_lits e1; get_sym_lits e2; get_sym_lits e3]
       | M.Begin (e1, e2) -> unions [get_sym_lits e1; get_sym_lits e2]
-      | M.Let (n, e1, e2) -> unions [get_sym_lits e1; get_sym_lits e2]
+      | M.Let (_, e1, e2) -> unions [get_sym_lits e1; get_sym_lits e2]
       | M.Apply (e, args) -> unions ((get_sym_lits e) :: (List.map get_sym_lits args))
       | M.Free (_, e) -> get_sym_lits e
       | _ -> StringSet.empty
@@ -45,7 +45,7 @@ let codegen program =
     let sym_lits = unions (List.map (fun (M.Define (_, _, _, body)) -> get_sym_lits body) program) in
     let build_symbol sym_lit syms =
       let sym_value = L.const_string context sym_lit in
-      let sym_var = L.define_global sym_lit sym_value the_module in
+      let sym_var = L.define_global "sym_lit" sym_value the_module in
       StringMap.add sym_lit sym_var syms
     in
     StringSet.fold build_symbol sym_lits StringMap.empty
@@ -57,16 +57,30 @@ let codegen program =
     let printf_func = L.declare_function "printf" printf_t the_module in
     let unit_value = L.const_int i1_t 0 in
     [
-      ("print-sym", fun v b ->
-          let _ = L.build_call printf_func v "tmp" b in
-          L.build_ret unit_value b
-      );
-      ("print-int", fun v b ->
-          let fmt_int = L.build_global_stringptr "fmt_int" "%d" b in
-          let args = Array.append (Array.make 1 fmt_int) v in
+      ("print-sym", fun args b ->
           let _ = L.build_call printf_func args "tmp" b in
           L.build_ret unit_value b
-      )
+      );
+      ("print-int", fun args b ->
+          let fmt_int = L.build_global_stringptr "fmt_int" "%d" b in
+          let args' = Array.append (Array.make 1 fmt_int) args in
+          let _ = L.build_call printf_func args' "tmp" b in
+          L.build_ret unit_value b
+      );
+
+      ("i=", fun args b ->
+          let result = L.build_icmp L.Icmp.Eq (Array.get args 0) (Array.get args 1) "ieq_result" b in
+          L.build_ret result b
+      );
+
+      ("+", fun args b ->
+          let result = L.build_add (Array.get args 0) (Array.get args 1) "add_result" b in
+          L.build_ret result b
+      );
+      ("%", fun args b ->
+          let result = L.build_srem (Array.get args 0) (Array.get args 1) "mod_result" b in
+          L.build_ret result b
+      );
     ]
   in
 
@@ -131,22 +145,24 @@ let codegen program =
         let (cond_val, builder') = expr locals builder cond in
 
         let merge_bb = L.append_block context "merge" the_function in
-        let merge_builder = L.builder_at_end context merge_bb in
         let branch_instr = L.build_br merge_bb in
 
         let then_bb = L.append_block context "then" the_function in
         let then_builder = L.builder_at_end context then_bb in
-        let (then_val, _) = expr locals then_builder b1 in
-        let _ = branch_instr then_builder in
+        let (then_val, then_builder') = expr locals then_builder b1 in
+        let _ = branch_instr then_builder' in
 
         let else_bb = L.append_block context "else" the_function in
         let else_builder = L.builder_at_end context else_bb in
-        let (else_val, _) = expr locals else_builder b1 in
-        let _ = branch_instr else_builder in
+        let (else_val, else_builder') = expr locals else_builder b2 in
+        let _ = branch_instr else_builder' in
 
         let _ = L.build_cond_br cond_val then_bb else_bb builder' in
+        let merge_builder = L.builder_at_end context merge_bb in
 
-        (L.build_phi [(then_val, then_bb); (else_val, else_bb)] "if_result" merge_builder, merge_builder)
+        (L.build_phi [(then_val, L.instr_parent then_val);
+                      (else_val, L.instr_parent else_val)]
+           "if_result" merge_builder, merge_builder)
 
         (* TODO Alloc *)
         (* TODO Case *)
