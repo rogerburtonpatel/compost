@@ -49,6 +49,7 @@ let codegen program =
     StringSet.fold build_symbol sym_lits StringMap.empty
   in
 
+  (* Association list of primitive functions names and how to build them *)
   let primitives =
     let printf_t = L.var_arg_function_type i32_t [| L.pointer_type i8_t |] in
     let printf_func = L.declare_function "printf" printf_t the_module in
@@ -67,6 +68,7 @@ let codegen program =
     ]
   in
 
+  (* Build the set of function declarations *)
   let functions =
     let primitive_decls =
       let build_primitive (fun_name, build_fun) decls =
@@ -79,8 +81,6 @@ let codegen program =
       in
       List.fold_right build_primitive primitives StringMap.empty
     in
-
-
     let function_decl (M.Define (fun_name, params, (_ , return_ty))) decls =
       let formal_types = Array.of_list (List.map (fun (_, ty) -> lltype_of_ty ty) params) in
       let return_ty' = lltype_of_ty return_ty in
@@ -91,7 +91,6 @@ let codegen program =
     let name_conflict = Impossible "user-defined function and primitive function share the same name" in
     StringMap.union (fun _ _ -> raise name_conflict) decls primitive_decls
   in
-
   let rec expr builder locals = function
     | M.Literal l -> begin match l with
       | Ast.IntLit i -> L.const_int i32_t i
@@ -121,9 +120,7 @@ let codegen program =
       (* TODO Alloc *)
       (* TODO If *)
     | _ -> raise (Impossible "Unimplemented")
-
   in
-
   let build_function_body (M.Define (n, params, (body, _))) =
     let the_function = StringMap.find n functions in
     let builder = L.builder_at_end context (L.entry_block the_function) in
@@ -133,11 +130,9 @@ let codegen program =
       let bindings = List.mapi (fun i (n, _) -> (n, Array.get param_values i)) params in
       List.fold_right (fun (n, v) m -> StringMap.add n v m) bindings StringMap.empty
     in
-
     let body_value = expr builder init_locals body in
     let _ = L.build_ret body_value builder in
     ()
   in
-
   List.iter build_function_body program;
   the_module
