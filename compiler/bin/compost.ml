@@ -7,6 +7,8 @@ module C = Consumptioncheck
 module M = Memorymanage
 module G = Codegen
 
+open Uast
+
 type action = Ast | UAst | LLVM_IR | Compile
 
 let () =

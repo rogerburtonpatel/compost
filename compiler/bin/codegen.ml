@@ -32,15 +32,17 @@ let codegen program =
   let symbols =
     let rec get_sym_lits = function
       | M.Literal (Ast.SymLit str) -> StringSet.singleton str
-      | M.Case (_, branches) -> unions (List.map (fun (M.CaseBranch (_, (e, _))) -> get_sym_lits e) branches)
-      | M.If ((e1, _), (e2, _), (e3, _)) -> unions [get_sym_lits e1; get_sym_lits e2; get_sym_lits e3]
-      | M.Begin ((e1, _), (e2, _)) -> unions [get_sym_lits e1; get_sym_lits e2]
-      | M.Let (n, (e1, _), (e2, _)) -> unions [get_sym_lits e1; get_sym_lits e2]
-      | M.Apply ((e, _), args) -> unions ((get_sym_lits e) :: (List.map (fun (arg, _) -> get_sym_lits arg) args))
-      | M.Free (_, _, (e, _)) -> get_sym_lits e
+      | M.Case (_, e, branches) ->
+        let branch_lits = unions (List.map (fun (_, e) -> get_sym_lits e) branches) in
+        StringSet.union (get_sym_lits e) branch_lits
+      | M.If (e1, e2, e3) -> unions [get_sym_lits e1; get_sym_lits e2; get_sym_lits e3]
+      | M.Begin (e1, e2) -> unions [get_sym_lits e1; get_sym_lits e2]
+      | M.Let (n, e1, e2) -> unions [get_sym_lits e1; get_sym_lits e2]
+      | M.Apply (e, args) -> unions ((get_sym_lits e) :: (List.map get_sym_lits args))
+      | M.Free (_, e) -> get_sym_lits e
       | _ -> StringSet.empty
     in
-    let sym_lits = unions (List.map (fun (M.Define (_, _, (body, _))) -> get_sym_lits body) program) in
+    let sym_lits = unions (List.map (fun (M.Define (_, _, _, body)) -> get_sym_lits body) program) in
     let build_symbol sym_lit syms =
       let sym_value = L.const_string context sym_lit in
       let sym_var = L.define_global sym_lit sym_value the_module in
@@ -81,11 +83,9 @@ let codegen program =
       in
       List.fold_right build_primitive primitives StringMap.empty
     in
-    let function_decl (M.Define (fun_name, params, (_ , return_ty))) decls =
-      let formal_types = Array.of_list (List.map (fun (_, ty) -> lltype_of_ty ty) params) in
-      let return_ty' = lltype_of_ty return_ty in
-      let function_ty = L.function_type return_ty' formal_types in
-      StringMap.add fun_name (L.define_function fun_name function_ty the_module) decls
+    let function_decl (M.Define (fun_name, fun_ty, _, _)) decls =
+      let fun_lltype = lltype_of_ty fun_ty in
+      StringMap.add fun_name (L.define_function fun_name fun_lltype the_module) decls
     in
     let decls = List.fold_right function_decl program StringMap.empty in
     let name_conflict = Impossible "user-defined function and primitive function share the same name" in
@@ -104,30 +104,31 @@ let codegen program =
       end
     | M.Local n -> begin try StringMap.find n locals with _ -> raise (Impossible n) end
     | M.Global n -> begin try StringMap.find n functions with _ -> raise (Impossible n) end
-    | M.Begin ((e1, _), (e2, _)) ->
+    | M.Begin (e1, e2) ->
       let _ = expr builder locals e1 in
       expr builder locals e2
-    | M.Let (n, (e, _), (body, _)) ->
+    | M.Let (n, e, body) ->
       let locals' = StringMap.add n (expr builder locals e) locals in
       expr builder locals' body
-    | M.Apply ((f, _), args) ->
-      let f' = expr builder locals f in
-      let args' = List.map (fun (arg, _) -> expr builder locals arg) args in
-      L.build_call f' (Array.of_list args') "tmp" builder
-    | M.Free (_, n, (e, _)) ->
+    | M.Apply (f, args) ->
+      let f_val = expr builder locals f in
+      let args' = List.map (expr builder locals) args in
+      L.build_call f_val (Array.of_list args') "tmp" builder
+    | M.Free (n, e) ->
       let _ = L.build_free (StringMap.find n locals) builder in
       expr builder locals e
       (* TODO Alloc *)
       (* TODO If *)
+      (* TODO Case *)
     | _ -> raise (Impossible "Unimplemented")
   in
-  let build_function_body (M.Define (n, params, (body, _))) =
+  let build_function_body (M.Define (n, _, params, body)) =
     let the_function = StringMap.find n functions in
     let builder = L.builder_at_end context (L.entry_block the_function) in
 
     let init_locals =
       let param_values = L.params the_function in
-      let bindings = List.mapi (fun i (n, _) -> (n, Array.get param_values i)) params in
+      let bindings = List.mapi (fun i n -> (n, Array.get param_values i)) params in
       List.fold_right (fun (n, v) m -> StringMap.add n v m) bindings StringMap.empty
     in
     let body_value = expr builder init_locals body in

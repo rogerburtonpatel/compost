@@ -11,34 +11,26 @@ type ty = Ast.ty
 
 type literal = Ast.literal
 
-type 'a typed = 'a * ty
-
 type pattern =
-    Pattern of name * (name typed) list
+    Pattern of name * name list
   | WildcardPattern (* hmmm perhaps names are not consumed if matched by wildcard? *)
-
-type casebranch = CaseBranch of pattern * expr typed
-
-and bind = name * expr typed
 
 and expr =
     Literal of literal
   | Local of name
   | Global of name
-  | Case of name typed * casebranch list
-  | If of expr typed * expr typed * expr typed
-  | Begin of expr typed * expr typed
-  | Let of name * expr typed * expr typed
-  | Apply of expr typed * (expr typed) list
+  | Case of ty * expr * (pattern * expr) list
+  | If of expr * expr * expr
+  | Begin of expr * expr
+  | Let of name * expr * expr
+  | Apply of expr * expr list
   | Dup of name
   (* Memory-Related *)
-  | FreeRec of ty * name * expr typed (* Corresponds to a call to "_free_" ^ (name_of ty) *)
-  | Free of ty * name * expr typed (* Corresponds to a call to `free()` *)
-
-type variant = Variant of name * (ty list)
+  | FreeRec of ty * name * expr (* Corresponds to a call to "_free_" ^ (name_of ty) *)
+  | Free of ty * name * expr (* Corresponds to a call to `free()` *)
 
 type def =
-    Define of name * (name typed) list * expr typed
-  | Datatype of name * (variant list)
+    Define of name * ty * name list * expr
+  | Datatype of name * (name * ty list) list
 
 type program = def list

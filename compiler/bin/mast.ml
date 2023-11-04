@@ -10,34 +10,30 @@ type filename = Ast.filename
 
 type ty = Fun of ty * ty list | Int of int | Ptr of ty | Struct of ty list
 
-type 'a typed = 'a * ty
-
 type literal = Ast.literal
 
 type pattern =
-    Pattern of name * (name typed) list
+    Pattern of name * name list
   | WildcardPattern (* hmmm perhaps names are not consumed if matched by wildcard? *)
 
-type casebranch = CaseBranch of pattern * expr typed
-
-and bind = name * expr typed
+and bind = name * expr
 
 and expr =
     Literal of literal
   | Local of name
   | Global of name
-  | Case of name typed * casebranch list
-  | If of expr typed * expr typed * expr typed
-  | Begin of expr typed * expr typed
-  | Let of name * expr typed * expr typed
-  | Apply of expr typed * (expr typed) list
+  | Case of ty * expr * (pattern * expr) list
+  | If of expr * expr * expr
+  | Begin of expr * expr
+  | Let of name * expr * expr
+  | Apply of expr * expr list
   (* Memory-Related *)
-  | Free of ty * name * expr typed
+  | Free of name * expr
   (* Allocates a struct with a given tag and fields *)
   (* populated by the values bound to the names in the list *)
-  | Alloc of int * (expr typed) list
+  | Alloc of ty * int * expr list
 
-type def = Define of name * (name typed) list * expr typed
+type def = Define of name * ty * name list * expr
   (* Datatype definitions can be erased *)
   (* All necessary type information is encoded in the _alloc and _free functions *)
 
