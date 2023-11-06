@@ -132,7 +132,9 @@ let codegen program =
     let the_function = StringMap.find n functions in
 
     (* Recursively build the return value of the function *)
-    let rec expr locals builder =
+    let rec expr is_tail locals builder =
+      let non_tail = expr false in
+      let tail = expr true in
       function
       | M.Literal l -> begin match l with
         | Ast.IntLit i -> (L.const_int i32_t i, builder)
@@ -147,39 +149,41 @@ let codegen program =
       | M.Local n -> (StringMap.find n locals, builder)
       | M.Global n -> (StringMap.find n functions, builder)
       | M.Begin (e1, e2) ->
-        let (_, builder') = expr locals builder e1 in
-        expr locals builder' e2
+        let (_, builder') = non_tail locals builder e1 in
+        tail locals builder' e2
       | M.Let (n, e, body) ->
-        let (e_val, builder') = expr locals builder e in
+        let (e_val, builder') = non_tail locals builder e in
         let locals' = StringMap.add n e_val locals in
-        expr locals' builder' body
+        tail locals' builder' body
       | M.Apply (M.Global n, args) when List.mem_assoc n primitives ->
         let (arg_vals, builder') = List.fold_left
             (fun (arg_vals, b) arg ->
-               let (arg_val, b') = expr locals b arg in
+               let (arg_val, b') = non_tail locals b arg in
                (arg_vals @ [arg_val], b')
             ) ([], builder) args in
         (List.assoc n primitives builder' (Array.of_list arg_vals), builder')
       | M.Apply (f, args) ->
-        let (f_val, builder') = expr locals builder f in
+        let (f_val, builder') = non_tail locals builder f in
         let (arg_vals, builder'') = List.fold_left
             (fun (arg_vals, b) arg ->
-               let (arg_val, b') = expr locals b arg in
+               let (arg_val, b') = non_tail locals b arg in
                (arg_vals @ [arg_val], b')
             ) ([], builder') args in
-        (L.build_call f_val (Array.of_list arg_vals) "apply_result" builder'', builder)
+        let call_val = L.build_call f_val (Array.of_list arg_vals) "apply_result" builder'' in
+        L.set_tail_call is_tail call_val;
+        (call_val, builder)
       | M.Free (n, e) ->
         let _ = L.build_free (StringMap.find n locals) builder in
-        expr locals builder e
+        tail locals builder e
       | M.If (cond, b1, b2) ->
-        let (cond_val, builder') = expr locals builder cond in
+        let (cond_val, builder') = non_tail locals builder cond in
 
         let merge_bb = L.append_block context "merge" the_function in
         let branch_instr = L.build_br merge_bb in
 
         let then_bb = L.append_block context "then" the_function in
         let then_builder = L.builder_at_end context then_bb in
-        let (then_val, then_builder') = expr locals then_builder b1 in
+        let (then_val, then_builder') = tail locals then_builder b1 in
         let branch_ty = L.type_of then_val in
         let const_zero = L.const_int branch_ty 0 in
         let then_val' = L.build_add then_val const_zero "then_result" then_builder' in
@@ -187,7 +191,7 @@ let codegen program =
 
         let else_bb = L.append_block context "else" the_function in
         let else_builder = L.builder_at_end context else_bb in
-        let (else_val, else_builder') = expr locals else_builder b2 in
+        let (else_val, else_builder') = tail locals else_builder b2 in
         let else_val' = L.build_add else_val const_zero "else_result" else_builder' in
         let _ = branch_instr else_builder' in
 
@@ -209,7 +213,7 @@ let codegen program =
       let bindings = List.mapi (fun i n -> (n, Array.get param_values i)) params in
       List.fold_right (fun (n, v) m -> StringMap.add n v m) bindings StringMap.empty
     in
-    let (body_value, builder') = expr init_locals builder body in
+    let (body_value, builder') = expr true init_locals builder body in
     let _ = L.build_ret body_value builder' in
     ()
   in
