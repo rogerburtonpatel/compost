@@ -221,8 +221,7 @@ let typecheckDef (defs, gamma, delta) = function
                               ^ "\" but a definition was given that has type \""
                               ^ tyString (A.FunTy (argtys, ret_ty )) ^ "\""))
       else 
-        let body_ty = typeof extended_gamma delta body in
-        let def' = T.Define (n, Ast.FunTy (argtys, body_ty), args, exp extended_gamma delta body) in
+        let def' = T.Define (n, Ast.FunTy (argtys, ret_ty), args, exp extended_gamma delta body) in
         (List.append defs [def'], gamma, delta)
     | _ -> raise (Impossible "found non-func name in top-level environment"))
 | U.Datatype (n, variants) -> 
