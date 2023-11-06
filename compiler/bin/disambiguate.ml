@@ -39,7 +39,7 @@ let rec expr locals = function
   exception Impossible of string
 let def = function
   | A.Val (n, body) -> U.Val (n, expr S.empty body)
-  | A.Define (n, args, body) -> U.Define (n, args, expr (S.of_list (n :: args)) body)
+  | A.Define (n, args, body) -> U.Define (n, args, expr (S.of_list args) body)
   | A.Datatype (n, variants) ->
     U.Datatype (n, variants)
   | A.TyAnnotation (n, ty) -> U.TyAnnotation (n, ty)

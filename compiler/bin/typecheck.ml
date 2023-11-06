@@ -68,9 +68,11 @@ let rec typeof gamma delta e =
                               | A.UnitLit -> A.Unit)
   (* NOTE: Do we want a sanity check that all globals are Funty? *)
   | U.Local n | U.Global n -> if not (StringMap.mem n gamma)
-                    then raise (NotFound ("unbound name \"" ^ n ^ "\""))
+                    then 
+                      raise (NotFound ("unbound name \"" ^ n ^ "\""))
                     else StringMap.find n gamma
-  | U.If (e1, e2, e3) -> (match (typ e1, typ e2, typ e3) with 
+  | U.If (e1, e2, e3) ->     
+    (match (typ e1, typ e2, typ e3) with 
                           | (A.Bool, t1, t2) -> 
                             if t1 = t2 
                             then t1 
@@ -204,10 +206,14 @@ let typecheckDef (defs, gamma, delta) = function
   else let known_annotated_ty = StringMap.find n gamma in
   (match known_annotated_ty with 
     | (A.FunTy (argtys, expected_ret_ty)) -> 
-      let fun_extended_gamma = 
+      let extended_gamma = 
         List.fold_left2 (* insane folding *)
             (fun env name ty -> StringMap.add name ty env) gamma args argtys in 
-      let ret_ty = typeof fun_extended_gamma delta body in 
+            (* let _ = StringMap.iter (fun n e -> print_endline (n ^ "-> e")) extended_gamma in  *)
+      (* let extended_gamma' = StringMap.add n known_annotated_ty extended_gamma in  *)
+      (* print_endline ("len args: " ^ Int.to_string (List.length args) ^ " , len argtys: " ^ Int.to_string (List.length argtys)); *)
+        (* StringMap.iter (fun n e -> print_endline (n ^ "-> e")) gamma in  *)
+      let ret_ty = typeof extended_gamma delta body in 
         if not (eqType expected_ret_ty ret_ty) 
         then raise (TypeError ("prior annotation defined function \"" ^ n ^ 
                               "\" to be of type \"" 
@@ -215,8 +221,8 @@ let typecheckDef (defs, gamma, delta) = function
                               ^ "\" but a definition was given that has type \""
                               ^ tyString (A.FunTy (argtys, ret_ty )) ^ "\""))
       else 
-        let body_ty = typeof gamma delta body in
-        let def' = T.Define (n, Ast.FunTy (argtys, body_ty), args, exp gamma delta body) in
+        let body_ty = typeof extended_gamma delta body in
+        let def' = T.Define (n, Ast.FunTy (argtys, body_ty), args, exp extended_gamma delta body) in
         (List.append defs [def'], gamma, delta)
     | _ -> raise (Impossible "found non-func name in top-level environment"))
 | U.Datatype (n, variants) -> 
