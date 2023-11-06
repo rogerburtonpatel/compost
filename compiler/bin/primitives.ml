@@ -6,8 +6,15 @@ let primitives =
 
     (* Equality *)
     ("i=", Ast.FunTy ([Ast.Int; Ast.Int], Ast.Bool));
+    ("s=", Ast.FunTy ([Ast.Sym; Ast.Sym], Ast.Bool));
+    ("b=", Ast.FunTy ([Ast.Bool; Ast.Bool], Ast.Bool));
+    ("u=", Ast.FunTy ([Ast.Unit; Ast.Unit], Ast.Bool));
 
     (* Arithmetic *)
     ("+", Ast.FunTy ([Ast.Int; Ast.Int], Ast.Int));
+    ("-", Ast.FunTy ([Ast.Int; Ast.Int], Ast.Int));
+    ("*", Ast.FunTy ([Ast.Int; Ast.Int], Ast.Int));
+    ("/", Ast.FunTy ([Ast.Int; Ast.Int], Ast.Int));
     ("%", Ast.FunTy ([Ast.Int; Ast.Int], Ast.Int));
+    ("neg", Ast.FunTy ([Ast.Int], Ast.Int));
   ]

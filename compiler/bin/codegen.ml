@@ -57,30 +57,29 @@ let codegen program =
     let printf_func = L.declare_function "printf" printf_t the_module in
     let unit_value = L.const_int i1_t 0 in
     [
-      ("print-sym", fun args b ->
-          let _ = L.build_call printf_func args "tmp" b in
-          L.build_ret unit_value b
+      ("print-sym", fun builder [| s |] ->
+          let _ = L.build_call printf_func [| s |] "tmp" builder in
+          unit_value
       );
-      ("print-int", fun args b ->
-          let fmt_int = L.build_global_stringptr "fmt_int" "%d" b in
-          let args' = Array.append (Array.make 1 fmt_int) args in
-          let _ = L.build_call printf_func args' "tmp" b in
-          L.build_ret unit_value b
-      );
-
-      ("i=", fun args b ->
-          let result = L.build_icmp L.Icmp.Eq (Array.get args 0) (Array.get args 1) "ieq_result" b in
-          L.build_ret result b
+      ("print-int", fun builder[| i |] ->
+            let fmt_int = L.build_global_stringptr "%d" "fmt_int" builder in
+            let _ = L.build_call printf_func [| fmt_int; i |] "tmp" builder in
+            unit_value
       );
 
-      ("+", fun args b ->
-          let result = L.build_add (Array.get args 0) (Array.get args 1) "add_result" b in
-          L.build_ret result b
-      );
-      ("%", fun args b ->
-          let result = L.build_srem (Array.get args 0) (Array.get args 1) "mod_result" b in
-          L.build_ret result b
-      );
+      (* Equality *)
+      ("i=", fun builder [| a; b |] -> L.build_icmp L.Icmp.Eq a b "tmp" builder);
+      ("s=", fun builder [| a; b |] -> L.build_icmp L.Icmp.Eq a b "tmp" builder);
+      ("b=", fun builder [| a; b |] -> L.build_icmp L.Icmp.Eq a b "tmp" builder);
+      ("u=", fun _ [| _; _ |] -> L.const_int i1_t 1);
+
+      (* Arithmetic *)
+      ("+", fun builder [| a; b |] -> L.build_add a b "tmp" builder);
+      ("-", fun builder [| a; b |] -> L.build_sub a b "tmp" builder);
+      ("*", fun builder [| a; b |] -> L.build_mul a b "tmp" builder);
+      ("/", fun builder [| a; b |] -> L.build_sdiv a b "tmp" builder);
+      ("%", fun builder [| a; b |] -> L.build_srem a b "tmp" builder);
+      ("neg", fun builder [| a |] -> L.build_neg a "tmp" builder);
     ]
   in
 
@@ -92,7 +91,8 @@ let codegen program =
         let fun_lltype = lltype_of_ty (Memorymanage.convert_ty fun_ty) in
         let decl = L.define_function fun_name fun_lltype the_module in
         let builder = L.builder_at_end context (L.entry_block decl) in
-        let _ = build_fun (L.params decl) builder in
+        let return_val = build_fun builder (L.params decl) in
+        let _ = L.build_ret return_val builder in
         StringMap.add fun_name decl decls
       in
       List.fold_right build_primitive primitives StringMap.empty
@@ -130,6 +130,13 @@ let codegen program =
         let (e_val, builder') = expr locals builder e in
         let locals' = StringMap.add n e_val locals in
         expr locals' builder' body
+      | M.Apply (M.Global n, args) when List.mem_assoc n primitives ->
+        let (arg_vals, builder') = List.fold_left
+            (fun (arg_vals, b) arg ->
+               let (arg_val, b') = expr locals b arg in
+               (arg_vals @ [arg_val], b')
+            ) ([], builder) args in
+        (List.assoc n primitives builder' (Array.of_list arg_vals), builder')
       | M.Apply (f, args) ->
         let (f_val, builder') = expr locals builder f in
         let (arg_vals, builder'') = List.fold_left

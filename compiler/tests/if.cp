@@ -6,7 +6,11 @@
 
 (: main (-> () unit))
 (define main ()
-    (if (i= 1 1) 
-            (if true (print-sym 'true') (print-sym 'false'))
-            (print-sym '2')))
+    (if true
+            (if true
+                (print-sym 'true')
+                (print-sym 'false'))
+            (if false
+                (print-sym 'false')
+                (print-sym 'true'))))
     
