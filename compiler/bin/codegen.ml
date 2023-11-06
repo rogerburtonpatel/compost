@@ -97,6 +97,12 @@ let codegen program =
       ("/", fun builder [| a; b |] -> L.build_sdiv a b "tmp" builder);
       ("%", fun builder [| a; b |] -> L.build_srem a b "tmp" builder);
       ("neg", fun builder [| a |] -> L.build_neg a "tmp" builder);
+
+      (* Comparison *)
+      (">", fun builder [| a; b |] -> L.build_icmp L.Icmp.Sgt a b "tmp" builder);
+      ("<", fun builder [| a; b |] -> L.build_icmp L.Icmp.Slt a b "tmp" builder);
+      (">=", fun builder [| a; b |] -> L.build_icmp L.Icmp.Sge a b "tmp" builder);
+      ("<=", fun builder [| a; b |] -> L.build_icmp L.Icmp.Sle a b "tmp" builder);
     ]
   in
 

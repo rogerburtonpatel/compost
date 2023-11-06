@@ -21,4 +21,10 @@ let primitives =
     ("/", Ast.FunTy ([Ast.Int; Ast.Int], Ast.Int));
     ("%", Ast.FunTy ([Ast.Int; Ast.Int], Ast.Int));
     ("neg", Ast.FunTy ([Ast.Int], Ast.Int));
+
+    (* Comparison *)
+    (">", Ast.FunTy ([Ast.Int; Ast.Int], Ast.Bool));
+    ("<", Ast.FunTy ([Ast.Int; Ast.Int], Ast.Bool));
+    (">=", Ast.FunTy ([Ast.Int; Ast.Int], Ast.Bool));
+    ("<=", Ast.FunTy ([Ast.Int; Ast.Int], Ast.Bool));
   ]
