@@ -70,11 +70,6 @@ let codegen program =
             let _ = L.build_call printf_func [| fmt_int; i |] "tmp" builder in
             unit_value
       );
-      ("print-int", fun builder[| i |] ->
-            let fmt_int = L.build_global_stringptr "%d" "fmt_int" builder in
-            let _ = L.build_call printf_func [| fmt_int; i |] "tmp" builder in
-            unit_value
-      );
       ("print-bool", fun builder[| b |] ->
             let true_str = L.build_global_stringptr "true" "true" builder in
             let false_str = L.build_global_stringptr "false" "false" builder in
@@ -87,7 +82,7 @@ let codegen program =
             let _ = L.build_call printf_func [| unit_str |] "tmp" builder in
             unit_value
       );
-      ("in", fun builder[| |] -> L.build_call getchar_func[| |] "tmp" builder);
+      ("in", fun builder[| |] -> L.build_call getchar_func [| |] "tmp" builder);
 
       (* Equality *)
       ("i=", fun builder [| a; b |] -> L.build_icmp L.Icmp.Eq a b "tmp" builder);
