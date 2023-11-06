@@ -55,6 +55,10 @@ let codegen program =
   let primitives =
     let printf_t = L.var_arg_function_type i32_t [| L.pointer_type i8_t |] in
     let printf_func = L.declare_function "printf" printf_t the_module in
+
+    let getchar_t = L.function_type i32_t [| |] in
+    let getchar_func = L.declare_function "getchar" getchar_t the_module in
+
     let unit_value = L.const_int i1_t 0 in
     [
       ("print-sym", fun builder [| s |] ->
@@ -66,6 +70,24 @@ let codegen program =
             let _ = L.build_call printf_func [| fmt_int; i |] "tmp" builder in
             unit_value
       );
+      ("print-int", fun builder[| i |] ->
+            let fmt_int = L.build_global_stringptr "%d" "fmt_int" builder in
+            let _ = L.build_call printf_func [| fmt_int; i |] "tmp" builder in
+            unit_value
+      );
+      ("print-bool", fun builder[| b |] ->
+            let true_str = L.build_global_stringptr "true" "true" builder in
+            let false_str = L.build_global_stringptr "false" "false" builder in
+            let to_print = L.build_select b true_str false_str "tmp" builder in
+            let _ = L.build_call printf_func [| to_print |] "tmp" builder in
+            unit_value
+      );
+      ("print-unit", fun builder[| b |] ->
+            let unit_str = L.build_global_stringptr "unit" "unit" builder in
+            let _ = L.build_call printf_func [| unit_str |] "tmp" builder in
+            unit_value
+      );
+      ("in", fun builder[| |] -> L.build_call getchar_func[| |] "tmp" builder);
 
       (* Equality *)
       ("i=", fun builder [| a; b |] -> L.build_icmp L.Icmp.Eq a b "tmp" builder);
