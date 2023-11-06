@@ -1,7 +1,15 @@
 (: main (-> () unit))
 (define main ()
-    (begin
-        (print-sym 'gcd of 100 and 101 is: ')))
+    (let 
+        ([x (in)]
+         [y (in)])
+        (begin
+            (print-sym 'gcd of ')
+            (print-int x)
+            (print-sym ' and ')
+            (print-int y)
+            (print-sym ' is: ')
+            (print-int (gcd x y)))))
 
 (: gcd (-> (int int) int))
 (define gcd (a b)

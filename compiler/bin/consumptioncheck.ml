@@ -10,10 +10,15 @@ let unions sets = List.fold_right S.union sets S.empty
 exception NameAlreadyConsumed of string
 exception Impossible of string
 
+let has_funty n env = match List.assoc n env with
+    | Ast.FunTy _ -> true
+    | _ -> false
+
 let rec check bound consumed expr =
   match expr with
   | T.Local n when S.mem n consumed -> raise (NameAlreadyConsumed n)
-  | T.Local n -> (F.Local n, S.singleton n)
+  | T.Local n when has_funty n bound -> (F.Local n, S.singleton n)
+  | T.Local n -> (F.Local n, S.empty)
   | T.Global n -> (F.Global n, S.empty)
   | T.Dup n when S.mem n consumed -> raise (NameAlreadyConsumed n)
   | T.Dup n -> (F.Dup n, S.empty)
@@ -60,7 +65,8 @@ let freeable bound consumed = List.filter (fun (n, _) -> S.mem n consumed) bound
 let rec check_last bound consumed expr =
   match expr with
   | T.Local n when S.mem n consumed -> raise (NameAlreadyConsumed n)
-  | T.Local n -> (dealloc_in (freeable bound (S.remove n consumed)) (F.Local n), S.singleton n)
+  | T.Local n when has_funty n bound -> (dealloc_in (freeable bound (S.remove n consumed)) (F.Local n), S.singleton n)
+  | T.Local n -> (dealloc_in (freeable bound (S.remove n consumed)) (F.Local n), S.empty)
   | T.Global n -> (dealloc_in (freeable bound (S.remove n consumed)) (F.Global n), S.empty)
   | T.Dup n when S. mem n consumed -> raise (NameAlreadyConsumed n)
   | T.Dup n -> (dealloc_in (freeable bound (S.remove n consumed)) (F.Dup n), S.empty)

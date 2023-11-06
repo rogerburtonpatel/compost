@@ -174,18 +174,22 @@ let codegen program =
         let then_bb = L.append_block context "then" the_function in
         let then_builder = L.builder_at_end context then_bb in
         let (then_val, then_builder') = expr locals then_builder b1 in
+        let branch_ty = L.type_of then_val in
+        let const_zero = L.const_int branch_ty 0 in
+        let then_val' = L.build_add then_val const_zero "" then_builder' in
         let _ = branch_instr then_builder' in
 
         let else_bb = L.append_block context "else" the_function in
         let else_builder = L.builder_at_end context else_bb in
         let (else_val, else_builder') = expr locals else_builder b2 in
+        let else_val' = L.build_add else_val const_zero "" else_builder' in
         let _ = branch_instr else_builder' in
 
         let _ = L.build_cond_br cond_val then_bb else_bb builder' in
         let merge_builder = L.builder_at_end context merge_bb in
 
-        (L.build_phi [(then_val, L.instr_parent then_val);
-                      (else_val, L.instr_parent else_val)]
+        (L.build_phi [(then_val', L.instr_parent then_val');
+                      (else_val', L.instr_parent else_val')]
            "if_result" merge_builder, merge_builder)
 
         (* TODO Alloc *)
