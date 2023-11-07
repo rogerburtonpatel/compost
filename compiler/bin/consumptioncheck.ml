@@ -50,6 +50,7 @@ let rec check bound consumed expr =
     let (e', c) = check bound consumed e in
     let (es', c') = check_args es c in
     (F.Apply (e', es'), c')
+  | _ -> raise (Impossible "unimplemented")
 
 let rec dealloc_in to_free expr = match to_free with
   | [] -> expr
@@ -101,6 +102,7 @@ let rec check_last bound consumed expr =
     let (e', c) = check bound consumed e in
     let (es', c') = check_args es c in
     (F.Apply (e', es'), c')
+  | _ -> raise (Impossible "unimplemented")
 
 let check_def = function
   | T.Define (fun_name, Ast.FunTy (param_tys, return_ty), params, body) ->
