@@ -10,7 +10,7 @@
             (print-int y)
             (print-sym ' is: ')
             (print-int (gcd x y)))))
-
+            
 (: gcd (-> (int int) int))
 (define gcd (a b)
     (if (i= a 0)

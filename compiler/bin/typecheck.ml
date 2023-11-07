@@ -62,12 +62,14 @@ let curry f x y = f (x, y)
 
 let rec typeof gamma delta e = 
   let rec typ = function  
-  | U.Literal l -> (match l with A.IntLit _ -> A.Int
+  | U.Literal l -> 
+    (match l with A.IntLit _ -> A.Int
                               | A.BoolLit _ -> A.Bool
                               | A.SymLit _ -> A.Sym
                               | A.UnitLit -> A.Unit)
   (* NOTE: Do we want a sanity check that all globals are Funty? *)
-  | U.Local n | U.Global n -> if not (StringMap.mem n gamma)
+  | U.Local n | U.Global n -> 
+                    if not (StringMap.mem n gamma)
                     then 
                       raise (NotFound ("unbound name \"" ^ n ^ "\""))
                     else StringMap.find n gamma
@@ -82,8 +84,10 @@ let rec typeof gamma delta e =
                                (TypeError ("condition failed to typecheck to "
                                           ^ "boolean in \"if\" expression")))
   | U.Begin (e1, e2) -> let (_, t) = (typ e1, typ e2) in t
-  | U.Let (n, e, e') -> let rhs_t = typ e 
-                        in typeof (StringMap.add n rhs_t gamma) delta e'
+  | U.Let (n, e, e') -> 
+    let rhs_t = typ e in 
+                        let extended_gamma = (StringMap.add n rhs_t gamma) in 
+                        typeof extended_gamma delta e'
   | U.Apply (f, es) -> 
     (match f with U.Global n -> 
       if not (StringMap.mem n gamma)
@@ -114,7 +118,7 @@ let rec typeof gamma delta e =
     else StringMap.find n gamma
 
   | U.Case (_, []) -> raise (TypeError "empty case expression")
-  | U.Case (e, branches) -> (* TODO typecheck Case expressions correctly *)
+  | U.Case (e, branches) -> 
     (* scrutinee MUST be custom type; no literal pattern matching *)
     let typ_scrutinee = typ e in 
       (match typ_scrutinee with A.CustomTy sname -> 
@@ -159,12 +163,12 @@ let rec typeof gamma delta e =
 (* let rec exp rho = function 
 U.Literal l -> T.literal *)
 
-let exp delta gamma expr = 
-  let typeof' = typeof delta gamma in 
+let rec exp gamma delta expr = 
+  let typeof' = typeof gamma delta in
   let rec exp' e = 
     match e with 
     | U.Literal l -> T.Literal l 
-    | U.Local n   -> let _ = typeof' e in T.Local n 
+    | U.Local n   -> let _ = typeof' e in T.Local  n 
     | U.Global n  -> let _ = typeof' e in T.Global n 
     | U.Case (ex, branches) -> raise (Impossible "unimplemented")
         (* let _     = typeof' e in  *)
@@ -185,12 +189,13 @@ let exp delta gamma expr =
     | U.Begin (e1, e2)       -> let _ = typeof' e1 in
                                 let _ = typeof' e2 in
                                 T.Begin (exp' e1, exp' e2)
-    | U.Let (n, e, e')-> let ty_e  = typeof' e in 
-                                   let _ = typeof' e in
-                                   T.Let (n, ty_e, exp' e, exp' e')
-    | U.Apply (e, es) -> let _ = typeof' e in 
-                                  let _ = typeof' e in
-                                  let _ = List.map typeof' es in
+    | U.Let (n, e1, e') as lt ->   
+      let _      = typeof' lt in 
+                                   let ty_e   = typeof' e1 in 
+                                   let gamma' = StringMap.add n ty_e gamma in 
+                                   let _      = typeof gamma' delta e' in
+                                   T.Let (n, ty_e, exp gamma delta e1, exp gamma' delta e')
+    | U.Apply (e, es) as app -> let _ = typeof' app in 
                                   let es' = List.map exp' es in 
                                   T.Apply (exp' e, es')
    | U.Dup n -> let _ = typeof' e in T.Dup n
@@ -209,10 +214,6 @@ let typecheckDef (defs, gamma, delta) = function
       let extended_gamma = 
         List.fold_left2 (* insane folding *)
             (fun env name ty -> StringMap.add name ty env) gamma args argtys in 
-            (* let _ = StringMap.iter (fun n e -> print_endline (n ^ "-> e")) extended_gamma in  *)
-      (* let extended_gamma' = StringMap.add n known_annotated_ty extended_gamma in  *)
-      (* print_endline ("len args: " ^ Int.to_string (List.length args) ^ " , len argtys: " ^ Int.to_string (List.length argtys)); *)
-        (* StringMap.iter (fun n e -> print_endline (n ^ "-> e")) gamma in  *)
       let ret_ty = typeof extended_gamma delta body in 
         if not (eqType expected_ret_ty ret_ty) 
         then raise (TypeError ("prior annotation defined function \"" ^ n ^ 
