@@ -24,7 +24,7 @@ let codegen program =
     | M.Struct tys ->
       let tys' = List.map lltype_of_ty tys in
       L.struct_type context (Array.of_list tys')
-    | M.Ptr _ -> L.pointer_type2 context
+    | M.Ptr ty -> L.pointer_type (lltype_of_ty ty)
   in
 
   let unions sets = List.fold_right StringSet.union sets StringSet.empty in
@@ -53,7 +53,7 @@ let codegen program =
 
   (* Association list of primitive functions names and how to build them *)
   let primitives =
-    let printf_t = L.var_arg_function_type i32_t [| L.pointer_type2 context |] in
+    let printf_t = L.var_arg_function_type i32_t [| L.pointer_type i8_t |] in
     let printf_func = L.declare_function "printf" printf_t the_module in
 
     let getchar_t = L.function_type i32_t [| |] in
@@ -64,7 +64,7 @@ let codegen program =
       ("print-sym", fun builder ->
           function
           | [| s |] ->
-            let _ = L.build_call2 printf_t printf_func [| s |] "tmp" builder in
+            let _ = L.build_call printf_func [| s |] "tmp" builder in
             unit_value
           | _ -> raise (Impossible "print-sym has 1 parameter")
 
@@ -73,7 +73,7 @@ let codegen program =
          function
          | [| i |] ->
             let fmt_int = L.build_global_stringptr "%d" "fmt_int" builder in
-            let _ = L.build_call2 printf_t printf_func [| fmt_int; i |] "tmp" builder in
+            let _ = L.build_call printf_func [| fmt_int; i |] "tmp" builder in
             unit_value
          | _ -> raise (Impossible "print-int has 1 parameter")
       );
@@ -83,7 +83,7 @@ let codegen program =
             let true_str = L.build_global_stringptr "true" "true" builder in
             let false_str = L.build_global_stringptr "false" "false" builder in
             let to_print = L.build_select b true_str false_str "tmp" builder in
-            let _ = L.build_call2 printf_t printf_func [| to_print |] "tmp" builder in
+            let _ = L.build_call printf_func [| to_print |] "tmp" builder in
             unit_value
           | _ -> raise (Impossible "print-bool has 1 parameter")
       );
@@ -91,13 +91,13 @@ let codegen program =
           function
           | [| _ |] ->
             let unit_str = L.build_global_stringptr "unit" "unit" builder in
-            let _ = L.build_call2 printf_t printf_func [| unit_str |] "tmp" builder in
+            let _ = L.build_call printf_func [| unit_str |] "tmp" builder in
             unit_value
           | _ -> raise (Impossible "print-unit has 1 parameter")
       );
       ("in", fun builder ->
           function
-          | [| |] -> L.build_call2 getchar_t getchar_func [| |] "tmp" builder
+          | [| |] -> L.build_call getchar_func [| |] "tmp" builder
           | _ -> raise (Impossible "in has no parameters")
       );
 
@@ -213,7 +213,7 @@ let codegen program =
         | Ast.IntLit i -> (L.const_int i32_t i, builder)
         | Ast.SymLit s ->
           let sym = StringMap.find s symbols in
-          (L.build_bitcast sym (L.pointer_type2 context) s builder, builder)
+          (L.build_bitcast sym (L.pointer_type i8_t) s builder, builder)
         | Ast.BoolLit b -> if b
           then (L.const_int i1_t 1, builder)
           else (L.const_int i1_t 0, builder)
@@ -242,8 +242,7 @@ let codegen program =
                let (arg_val, b') = non_tail locals b arg in
                (arg_vals @ [arg_val], b')
             ) ([], builder') args in
-        let f_ty = L.type_of f_val in
-        let call_val = L.build_call2 f_ty f_val (Array.of_list arg_vals) "apply_result" builder'' in
+        let call_val = L.build_call f_val (Array.of_list arg_vals) "apply_result" builder'' in
         L.set_tail_call is_tail call_val;
         (call_val, builder)
       | M.Free (n, e) ->
