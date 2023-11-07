@@ -7,8 +7,6 @@ module C = Consumptioncheck
 module M = Memorymanage
 module G = Codegen
 
-open Uast
-
 type action = Ast | UAst | LLVM_IR | Compile
 
 let () =
@@ -21,7 +19,7 @@ let () =
     ("-c", Arg.Unit (set_action Compile),
       "Check and print the generated LLVM IR (default)");
   ] in
-  let usage_msg = "usage: ./compost [-a|-l|-c] [file.cp]" in
+  let usage_msg = "usage: ./compost [-a|-l|-c] [file.com]" in
   let channel = ref stdin in
   Arg.parse speclist (fun filename -> channel := open_in filename) usage_msg;
 
@@ -38,3 +36,4 @@ let () =
     let m = G.codegen memory_managed in
     (* Llvm_analysis.assert_valid_module m; *)
     print_string (Llvm.string_of_llmodule m)
+  | _ -> ()
