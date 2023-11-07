@@ -135,7 +135,7 @@ let rec typeof gamma delta e =
             ^ "\" in case branch"))
             (* ensure the type it matches to is correct *)
             else 
-              let typ_of_pat = StringMap.find pname delta in 
+              let (_, typ_of_pat) = StringMap.find pname delta in 
             if not (eqType typ_scrutinee typ_of_pat)
             then raise (TypeError 
                           ("scrutinee in case has type \"" ^ sname 
@@ -170,20 +170,25 @@ let rec exp gamma delta expr =
     | U.Literal l -> T.Literal l 
     | U.Local n   -> let _ = typeof' e in T.Local  n 
     | U.Global n  -> let _ = typeof' e in T.Global n 
-    | U.Case (ex, branches) -> raise (Impossible "unimplemented")
-        (* let _     = typeof' e in  *)
-        (* let ty_ex = typeof' ex in  *)
-        (* let bs' = List.map (fun (U.CaseBranch (p, e)) -> (p, e)) branches in  *)
-        (* let (pats, rhss)  = List.split bs' in  *)
-        (* let rhs_tys       = List.map typeof' rhss in  *)
-        (* let rhs_es        = List.map exp' rhss in  *)
-        (* let rhss_full     = List.combine rhs_es rhs_tys in  *)
-        (* let branches_full = List.combine pats rhss_full in  *)
-        (* let branches'     = List.map (fun (pat, (e, t)) ->  *)
-        (*                                    T.CaseBranch (pat, (e, t)))  *)
-        (*                     branches_full in  *)
-        (* T.Case ((exp' ex, ty_ex), branches') *)
-    | U.If (e1, e2, e3)-> 
+    | U.Case (ex, branches) -> 
+        let _     = typeof' e in 
+        let ty_ex = typeof' ex in 
+        let (pats, rhss)  = List.split branches in
+        let patconvert    = function 
+          | A.WildcardPattern -> T.WildcardPattern
+          | A.Pattern (n, ns) -> 
+              let (vartys, _) = StringMap.find n delta in 
+              let names_tys = List.combine ns vartys in 
+              T.Pattern (n, names_tys)
+          in 
+        let rhs_es        = List.map exp' rhss in 
+        let pats'         = List.map patconvert pats in 
+        let branches'     = List.combine pats' rhs_es in 
+        (* let branches'     = List.map (fun (pat, (e, t)) -> 
+                                           T.CaseBranch (pat, (e, t))) 
+                            branches_full in  *)
+        T.Case (ty_ex, exp' ex, branches')
+    | U.If (e1, e2, e3) -> 
         let _ = typeof' e in
           T.If (exp' e1, exp' e2, exp' e3)
     | U.Begin (e1, e2)       -> let _ = typeof' e1 in
@@ -222,15 +227,16 @@ let typecheckDef (defs, gamma, delta) = function
                               ^ "\" but a definition was given that has type \""
                               ^ tyString (A.FunTy (argtys, ret_ty )) ^ "\""))
       else 
-        let def' = T.Define (n, Ast.FunTy (argtys, ret_ty), args, exp extended_gamma delta body) in
+        let def' = T.Define (n, Ast.FunTy (argtys, ret_ty), args, 
+                             exp extended_gamma delta body) in
         (List.append defs [def'], gamma, delta)
     | _ -> raise (Impossible "found non-func name in top-level environment"))
 | U.Datatype (n, variants) -> 
-  let check_variant delta' (vname, _)  =
+  let check_variant delta' (vname, ns_ts)  =
     if not (StringMap.mem vname delta') 
-    then (StringMap.add vname (A.CustomTy n) delta') 
+    then (StringMap.add vname (ns_ts, A.CustomTy n) delta') 
     else 
-      let existing_type = StringMap.find vname delta in 
+      let (_, existing_type) = StringMap.find vname delta in 
       raise (TypeError ("duplicate type constructor \"" 
                         ^ vname ^ "\": constructor already exists for type \"" 
                         ^ tyString existing_type ^ "\"")) 
