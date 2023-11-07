@@ -134,7 +134,7 @@ let codegen program =
     (* Recursively build the return value of the function *)
     let rec expr is_tail locals builder =
       let non_tail = expr false in
-      let tail = expr true in
+      let tail = expr is_tail in
       function
       | M.Literal l -> begin match l with
         | Ast.IntLit i -> (L.const_int i32_t i, builder)
@@ -175,6 +175,26 @@ let codegen program =
       | M.Free (n, e) ->
         let _ = L.build_free (StringMap.find n locals) builder in
         tail locals builder e
+      | M.If (cond, b1, b2) when is_tail ->
+        let (cond_val, builder') = non_tail locals builder cond in
+
+        let then_bb = L.append_block context "then" the_function in
+        let then_builder = L.builder_at_end context then_bb in
+        let (then_val, then_builder') = tail locals then_builder b1 in
+        let _ = L.build_ret then_val then_builder' in
+
+        let else_bb = L.append_block context "else" the_function in
+        let else_builder = L.builder_at_end context else_bb in
+        let (else_val, else_builder') = tail locals else_builder b2 in
+        let _ = L.build_ret else_val else_builder' in
+
+        let _ = L.build_cond_br cond_val then_bb else_bb builder' in
+
+        let branch_ty = L.type_of else_val in
+
+        (* Throw up something for the enclosing call to use - we will never return this *)
+        (L.const_int branch_ty 0, builder')
+
       | M.If (cond, b1, b2) ->
         let (cond_val, builder') = non_tail locals builder cond in
 
@@ -183,7 +203,7 @@ let codegen program =
 
         let then_bb = L.append_block context "then" the_function in
         let then_builder = L.builder_at_end context then_bb in
-        let (then_val, then_builder') = tail locals then_builder b1 in
+        let (then_val, then_builder') = non_tail locals then_builder b1 in
         let branch_ty = L.type_of then_val in
         let const_zero = L.const_int branch_ty 0 in
         let then_val' = L.build_add then_val const_zero "then_result" then_builder' in
@@ -191,7 +211,7 @@ let codegen program =
 
         let else_bb = L.append_block context "else" the_function in
         let else_builder = L.builder_at_end context else_bb in
-        let (else_val, else_builder') = tail locals else_builder b2 in
+        let (else_val, else_builder') = non_tail locals else_builder b2 in
         let else_val' = L.build_add else_val const_zero "else_result" else_builder' in
         let _ = branch_instr else_builder' in
 
