@@ -9,4 +9,4 @@ fi
 TARGET="$1"
 COMPILER="compost" # change this to compost or whatever you want
 
-dune exec "$COMPILER" "$TARGET" | llc -relocation-model=pic | cc -x assembler -o ${TARGET%.*}".exe" -
+dune exec "$COMPILER" "$TARGET" | llc -relocation-model=pic | cc -x assembler -o ${TARGET%.*} -
