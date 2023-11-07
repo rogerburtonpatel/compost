@@ -228,13 +228,13 @@ let codegen program =
         let (e_val, builder') = non_tail locals builder e in
         let locals' = StringMap.add n e_val locals in
         tail locals' builder' body
-      (* | M.Apply (M.Global n, args) when List.mem_assoc n primitives -> *)
-      (*   let (arg_vals, builder') = List.fold_left *)
-      (*       (fun (arg_vals, b) arg -> *)
-      (*          let (arg_val, b') = non_tail locals b arg in *)
-      (*          (arg_vals @ [arg_val], b') *)
-      (*       ) ([], builder) args in *)
-      (*   (List.assoc n primitives builder' (Array.of_list arg_vals), builder') *)
+      | M.Apply (M.Global n, args) when List.mem_assoc n primitives ->
+        let (arg_vals, builder') = List.fold_left
+            (fun (arg_vals, b) arg ->
+               let (arg_val, b') = non_tail locals b arg in
+               (arg_vals @ [arg_val], b')
+            ) ([], builder) args in
+        (List.assoc n primitives builder' (Array.of_list arg_vals), builder')
       | M.Apply (f, args) ->
         let (f_val, builder') = non_tail locals builder f in
         let (arg_vals, builder'') = List.fold_left
