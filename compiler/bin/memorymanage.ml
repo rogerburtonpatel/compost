@@ -31,7 +31,12 @@ let add_datatype map def =
 
 let rec convert_ty(ty) = 
     match ty with 
-     | Ast.FunTy(tylist, ty) -> M.Fun(convert_ty ty, List.map convert_ty tylist)
+     | Ast.FunTy(tylist, ty) ->
+       let convert_param_ty = function
+         | Ast.FunTy _  as fun_ty -> M.Ptr(convert_ty fun_ty)
+         | other_ty -> convert_ty other_ty
+       in
+       M.Fun(convert_ty ty, List.map convert_param_ty tylist)
      | Ast.Unit -> M.Int(1)
      | Ast.Int -> M.Int(32) (* 32-bit integer *)
      | Ast.Bool -> M.Int(1) (* 1-bit integer *)

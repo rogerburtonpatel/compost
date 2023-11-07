@@ -19,14 +19,14 @@ let codegen program =
   let rec lltype_of_ty = function
     | M.Int i -> L.integer_type context i
     | M.Fun (ret_ty, param_tys) ->
+      let ret_ty' = lltype_of_ty ret_ty in
       let param_tys' = List.map lltype_of_ty param_tys in
-      L.function_type (lltype_of_ty ret_ty) (Array.of_list param_tys')
+      L.function_type ret_ty' (Array.of_list param_tys')
     | M.Struct tys ->
       let tys' = List.map lltype_of_ty tys in
       L.struct_type context (Array.of_list tys')
     | M.Ptr ty -> L.pointer_type (lltype_of_ty ty)
   in
-
   let unions sets = List.fold_right StringSet.union sets StringSet.empty in
 
   let symbols =
@@ -44,7 +44,7 @@ let codegen program =
     in
     let sym_lits = unions (List.map (fun (M.Define (_, _, _, body)) -> get_sym_lits body) program) in
     let build_symbol sym_lit syms =
-      let sym_value = L.const_string context sym_lit in
+      let sym_value = L.const_stringz context sym_lit in
       let sym_var = L.define_global "sym_lit" sym_value the_module in
       StringMap.add sym_lit sym_var syms
     in
@@ -228,13 +228,13 @@ let codegen program =
         let (e_val, builder') = non_tail locals builder e in
         let locals' = StringMap.add n e_val locals in
         tail locals' builder' body
-      | M.Apply (M.Global n, args) when List.mem_assoc n primitives ->
-        let (arg_vals, builder') = List.fold_left
-            (fun (arg_vals, b) arg ->
-               let (arg_val, b') = non_tail locals b arg in
-               (arg_vals @ [arg_val], b')
-            ) ([], builder) args in
-        (List.assoc n primitives builder' (Array.of_list arg_vals), builder')
+      (* | M.Apply (M.Global n, args) when List.mem_assoc n primitives -> *)
+      (*   let (arg_vals, builder') = List.fold_left *)
+      (*       (fun (arg_vals, b) arg -> *)
+      (*          let (arg_val, b') = non_tail locals b arg in *)
+      (*          (arg_vals @ [arg_val], b') *)
+      (*       ) ([], builder) args in *)
+      (*   (List.assoc n primitives builder' (Array.of_list arg_vals), builder') *)
       | M.Apply (f, args) ->
         let (f_val, builder') = non_tail locals builder f in
         let (arg_vals, builder'') = List.fold_left
