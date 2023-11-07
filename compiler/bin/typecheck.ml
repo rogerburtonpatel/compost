@@ -89,7 +89,7 @@ let rec typeof gamma delta e =
                         let extended_gamma = (StringMap.add n rhs_t gamma) in 
                         typeof extended_gamma delta e'
   | U.Apply (f, es) -> 
-    (match f with U.Global n -> 
+    (match f with U.Global n | U.Local n -> 
       if not (StringMap.mem n gamma)
         then raise (NotFound ("attempted to apply unbound name \"" ^ n ^ "\""))
         else let t = StringMap.find n gamma in 

@@ -8,4 +8,4 @@
 
 (: main (-> () unit))
 (define main ()
-    (print-int (fib (in))))
+    (print-int (fib 35)))
