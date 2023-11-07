@@ -1,6 +1,4 @@
 (* Explicitly Memory Managed Abstract Syntax Tree *)
-open Ast
-
 type name = Ast.name
 
 type filename = Ast.filename

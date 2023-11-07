@@ -1,6 +1,4 @@
 (* Explicit-Free Abstract Syntax Tree *)
-open Ast
-
 type name = Ast.name
 
 type typename = name

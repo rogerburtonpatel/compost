@@ -61,7 +61,7 @@ let convert_defs fast_def =
      | F.Define(name, fun_ty, params, body) ->
          (* Prefix each function name with "^" to guarantee it does not conflict with generated functions *)
          [ M.Define("_" ^ name, convert_ty fun_ty, params, convert_expr body) ]
-     | F.Datatype(name, _) -> raise (Unimplemented "datatypes not implemented")
+     | F.Datatype(_, _) -> raise (Unimplemented "datatypes not implemented")
 
 
 let mast_of_fast fast = 
