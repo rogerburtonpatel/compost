@@ -3,15 +3,17 @@
 SCRIPT=$(realpath "$0")
 BASEDIR=$(dirname "$SCRIPT")
 
-TESTDIR=$BASEDIR/tests/
+TESTDIR=$BASEDIR/tests
 
 shopt -s nullglob
 
-# change if your sed is different! on halligan this will be /usr/bin/sed. 
+# System dependent binaries
 if [ `uname` = "Darwin" ]; then
     SED=/opt/homebrew/bin/gsed
+    LLI=lli-14
 else 
     SED=sed
+    LLI=lli-14
 fi
 
 build ()
@@ -51,30 +53,25 @@ compost () {
 }
 
 compostrun () {
-    compost "$@" | lli-14
+    compost "$@" | $LLI
 }
 
 run_tests () {
-    TESTDIR=$1
+    suite="$1"
+    inFiles="$2"
     shift
-    TESTFN=("$@")
+    shift
+    testFn=("$@")
 
-    pushd "${BASEDIR}/tests/${TESTDIR}" > /dev/null
+    pushd "${TESTDIR}/${suite}" > /dev/null
 
-    # Grab a specific file if specified on command line, or else 
-    # all appropriate files 
-    inFiles=$(find . -type f -iname '*.com') 
-    if [ -n "$3" ] ; then 
-        inFiles=$(find . -type f -iname "$3")
-    fi
-
-    for inFile in $inFiles; do 
+    for inFile in $(find . -type f -iname "$inFiles"); do
         numtests=$((numtests + 1))
         inFile=$(basename $inFile)
         outFile="${inFile%.*}.out"
         [ ! -f $outFile ] && outFile=$inFile
-        echo "Running test: ${TESTDIR} ${numtests} (${inFile}, ${outFile})"
-        inEval=$("${TESTFN[@]: 0:2}" "${BASEDIR}/tests/${TESTDIR}/${inFile}" 2>&1)
+        echo "Running test ${numtests}: ${suite} (${inFile}, ${outFile})"
+        inEval=$("${testFn[@]}" "${TESTDIR}/${suite}/${inFile}" 2>&1)
         outExp=$(cat "${outFile}")
         out=$(diff -wy <(echo "$inEval") <(echo "$outExp") 2>&1)
         update_failure "$?" $inFile "${inEval%x}" "${outExp%x}" "${out%x}"
@@ -100,12 +97,17 @@ run_tests () {
 main () {
     build
 
+    inFiles="*.com"
+    if [ -n "$2" ] ; then
+        inFiles="$2"
+    fi
+
     case $1 in
-      -a) run_tests ast compost -a $2 ;;
-      -d) run_tests uast compost -d $2 ;;
-      -l) run_tests llvmir compost -l $2 ;;
+      -a) run_tests ast "$inFiles" compost -a ;;
+      -d) run_tests uast "$inFiles" compost -d ;;
+      -l) run_tests llvmir "$inFiles" compost -l ;;
       -c) ;&
-       *) run_tests compile compostrun -c $2 ;;
+       *) run_tests compile "$inFiles" compostrun -c ;;
     esac
 }
 
