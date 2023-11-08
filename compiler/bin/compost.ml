@@ -7,7 +7,7 @@ module C = Consumptioncheck
 module M = Memorymanage
 module G = Codegen
 
-type action = Ast | UAst | LLVM_IR | Compile
+type action = Ast | UAst | TAst | Compile
 
 let () =
   let action = ref Compile in
@@ -15,7 +15,7 @@ let () =
   let speclist = [
     ("-a", Arg.Unit (set_action Ast), "Print the AST");
     ("-d", Arg.Unit (set_action UAst), "Print the UAST");
-    ("-l", Arg.Unit (set_action LLVM_IR), "Print the generated LLVM IR");
+    ("-t", Arg.Unit (set_action TAst), "Typecheck and print UAst");
     ("-c", Arg.Unit (set_action Compile),
       "Check and print the generated LLVM IR (default)");
   ] in
@@ -28,6 +28,10 @@ let () =
   match !action with
     Ast -> print_string (Ast.string_of_program ast)
   | UAst -> print_string (Uast.string_of_program (D.disambiguate ast))
+  | TAst -> 
+      let uast = (D.disambiguate ast) in 
+      let _ = Typecheck.typecheck uast in 
+    print_string (Uast.string_of_program uast)
   | Compile ->
     let disambiguated = D.disambiguate ast in
     let (type_checked, _, _) = T.typecheck disambiguated in
@@ -36,4 +40,3 @@ let () =
     let m = G.codegen memory_managed in
     (* Llvm_analysis.assert_valid_module m; *)
     print_string (Llvm.string_of_llmodule m)
-  | _ -> ()
