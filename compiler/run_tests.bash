@@ -61,13 +61,20 @@ run_tests () {
 
     pushd "${BASEDIR}/tests/${TESTDIR}" > /dev/null
 
-    for inFile in $(find . -type f -iname '*.com'); do
+    # Grab a specific file if specified on command line, or else 
+    # all appropriate files 
+    inFiles=$(find . -type f -iname '*.com') 
+    if [ -n "$3" ] ; then 
+        inFiles=$(find . -type f -iname "$3")
+    fi
+
+    for inFile in $inFiles; do 
         numtests=$((numtests + 1))
         inFile=$(basename $inFile)
         outFile="${inFile%.*}.out"
         [ ! -f $outFile ] && outFile=$inFile
-        echo "Running test: ${TESTDIR} ${numtest} (${inFile}, ${outFile})"
-        inEval=$("${TESTFN[@]}" "${BASEDIR}/tests/${TESTDIR}/${inFile}" 2>&1)
+        echo "Running test: ${TESTDIR} ${numtests} (${inFile}, ${outFile})"
+        inEval=$("${TESTFN[@]: 0:2}" "${BASEDIR}/tests/${TESTDIR}/${inFile}" 2>&1)
         outExp=$(cat "${outFile}")
         out=$(diff -wy <(echo "$inEval") <(echo "$outExp") 2>&1)
         update_failure "$?" $inFile "${inEval%x}" "${outExp%x}" "${out%x}"
@@ -94,11 +101,11 @@ main () {
     build
 
     case $1 in
-      -a) run_tests ast compost -a ;;
-      -d) run_tests uast compost -d ;;
-      -l) run_tests llvmir compost -l ;;
+      -a) run_tests ast compost -a $2 ;;
+      -d) run_tests uast compost -d $2 ;;
+      -l) run_tests llvmir compost -l $2 ;;
       -c) ;&
-       *) run_tests compile compostrun -c ;;
+       *) run_tests compile compostrun -c $2 ;;
     esac
 }
 
