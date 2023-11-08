@@ -16,8 +16,9 @@ fi
 
 build ()
 {
-    cd "$BASEDIR"
+    pushd $BASEDIR > /dev/null
     dune build 
+    popd > /dev/null
 }
 
 numtests=0
@@ -43,23 +44,36 @@ update_failure () {
     
 }
 
+compost () {
+    pushd $BASEDIR > /dev/null
+    dune exec compost -- "$@"
+    popd > /dev/null
+}
+
+compostrun () {
+    compost "$@" | lli-14
+}
 
 run_tests () {
+    TESTDIR=$1
+    shift
+    TESTFN=("$@")
 
-    for inFile in $(find $BASEDIR/tests -type f -iname '*.in') ; do
-        
+    pushd "${BASEDIR}/tests/${TESTDIR}" > /dev/null
+
+    for inFile in $(find . -type f -iname '*.com'); do
         numtests=$((numtests + 1))
-        inBase=$(basename $inFile)
-        outFile="tests/${inBase%.*}.out"
-        inFile=$(basename "$(dirname "$inFile")")/$(basename "$inFile")
-        [ ! -f $outFile ] && outFile=$inFile # if in = out, don't need out
-        echo "Running test: "diff $inFile $outFile
-        toplevelOut=$(dune exec -- compost -a $inFile 2>&1)
-        toplevelExpected=$(cat "$outFile")
-        out=$(diff -wy <(echo "$toplevelOut") <(echo "$toplevelExpected") 2>&1)
-        update_failure "$?" $inFile "${toplevelOut%x}" "${toplevelExpected%x}" "${out%x}"
-
+        inFile=$(basename $inFile)
+        outFile="${inFile%.*}.out"
+        [ ! -f $outFile ] && outFile=$inFile
+        echo "Running test: ${TESTDIR} ${numtest} (${inFile}, ${outFile})"
+        inEval=$("${TESTFN[@]}" "${BASEDIR}/tests/${TESTDIR}/${inFile}" 2>&1)
+        outExp=$(cat "${outFile}")
+        out=$(diff -wy <(echo "$inEval") <(echo "$outExp") 2>&1)
+        update_failure "$?" $inFile "${inEval%x}" "${outExp%x}" "${out%x}"
     done
+
+    popd > /dev/null
 
     if [[ "$numtests" -eq "0" ]]; then
         >&2 echo "No tests run. Check why that might be."
@@ -70,18 +84,25 @@ run_tests () {
         echo "All $numtests tests passed."
     else 
         numpassed=$((numtests - $numfail))
-        echo "$numpassed / $numtests tests passed. \
-See above output for details."
-    exit 1
+        echo "$numpassed / $numtests tests passed."
+        echo "See above output for details."
+        exit 1
     fi
 }
 
 main () {
     build
-    run_tests
+
+    case $1 in
+      -a) run_tests ast compost -a ;;
+      -d) run_tests uast compost -d ;;
+      -l) run_tests llvmir compost -l ;;
+      -c) ;&
+       *) run_tests compile compostrun -c ;;
+    esac
 }
 
-main
+main "${@}"
 
 shopt -u nullglob
 
