@@ -47,34 +47,52 @@ update_failure () {
 }
 
 compost () {
+    comFile=$1
+    inFile=$2
+    shift
+    shift
     pushd $BASEDIR > /dev/null
-    dune exec compost -- "$@"
+    dune exec compost -- "$@" "$comFile"
     popd > /dev/null
 }
 
-compostrun () {
-    compost "$@" | $LLI
+compileAndRun () {
+    comFile=$1
+    inFile=$2
+    shift
+    shift
+    pushd $BASEDIR > /dev/null
+    outBin=$(mktemp)
+    ./compile-compost "$comFile" "$outBin"
+    $outBin < "$inFile"
+    rm "$outBin"
+    popd > /dev/null
 }
 
 run_tests () {
     suite="$1"
-    inFiles="$2"
+    comFiles="$2"
+    testFn="$3"
     shift
     shift
-    testFn=("$@")
+    shift
+    testFnArgs=("$@")
 
     pushd "${TESTDIR}/${suite}" > /dev/null
 
-    for inFile in $(find . -type f -iname "$inFiles"); do
+    for comFile in $(find . -type f -iname "$comFiles"); do
         numtests=$((numtests + 1))
-        inFile=$(basename $inFile)
-        outFile="${inFile%.*}.out"
-        [ ! -f $outFile ] && outFile=$inFile
-        echo "Running test ${numtests}: ${suite} (${inFile}, ${outFile})"
-        inEval=$("${testFn[@]}" "${TESTDIR}/${suite}/${inFile}" 2>&1)
+        comFile=$(basename $comFile)
+        outFile="${comFile%.*}.out"
+        inFile="${comFile%.*}.in"
+        [ ! -f $outFile ] && outFile=$comFile
+        [ ! -f $inFile ] && inFile="/dev/null"
+        echo "Running test ${numtests}: ${suite} (${comFile}, ${outFile}, ${inFile})"
+        [ "$inFile" != "/dev/null" ] && inFile="${TESTDIR}/${suite}/${inFile}"
+        runEval=$("${testFn}" "${TESTDIR}/${suite}/${comFile}" "${inFile}" "${testFnArgs[@]}" 2>&1)
         outExp=$(cat "${outFile}")
-        out=$(diff -wy <(echo "$inEval") <(echo "$outExp") 2>&1)
-        update_failure "$?" $inFile "${inEval%x}" "${outExp%x}" "${out%x}"
+        out=$(diff -wy <(echo "$runEval") <(echo "$outExp") 2>&1)
+        update_failure "$?" $comFile "${runEval%x}" "${outExp%x}" "${out%x}"
     done
 
     popd > /dev/null
@@ -97,17 +115,17 @@ run_tests () {
 main () {
     build
 
-    inFiles="*.com"
+    comFiles="*.com"
     if [ -n "$2" ] ; then
-        inFiles="$2"
+        comFiles="$2"
     fi
 
     case $1 in
-      -a) run_tests ast "$inFiles" compost -a ;;
-      -d) run_tests uast "$inFiles" compost -d ;;
-      -l) run_tests llvmir "$inFiles" compost -l ;;
+      -a) run_tests ast "$comFiles" compost -a ;;
+      -d) run_tests uast "$comFiles" compost -d ;;
+      -l) run_tests llvmir "$comFiles" compost -l ;;
       -c) ;&
-       *) run_tests compile "$inFiles" compostrun -c ;;
+       *) run_tests compile "$comFiles" compileAndRun ;;
     esac
 }
 

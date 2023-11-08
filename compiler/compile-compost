@@ -1,12 +1,17 @@
-#!/bin/bash -ex
+#!/bin/bash
 
 
-if [[ "$#" -ne "1" ]]; then 
+if [[ "$#" -lt "1" ]] || [[ "$#" -gt "2" ]]; then 
     >&2 echo "Usage: compile-compost <file.mc>"
     exit 1
 fi 
 
 TARGET="$1"
+OUTPUT="${TARGET%.*}"
 COMPILER="compost" # change this to compost or whatever you want
 
-dune exec "$COMPILER" "$TARGET" | llc -relocation-model=pic | cc -x assembler -o ${TARGET%.*} -
+if [ -n "$2" ] ; then
+    OUTPUT="$2"
+fi
+
+dune exec "$COMPILER" "$TARGET" | llc -relocation-model=pic | cc -x assembler -o $OUTPUT -
