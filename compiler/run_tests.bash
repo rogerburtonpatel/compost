@@ -10,10 +10,8 @@ shopt -s nullglob
 # System dependent binaries
 if [ `uname` = "Darwin" ]; then
     SED=/opt/homebrew/bin/gsed
-    LLI=lli-14
 else 
     SED=sed
-    LLI=lli-14
 fi
 
 build ()
