@@ -18,7 +18,8 @@
 (executable
  (public_name compost)
  (name compost)
- (libraries compost))
+ (libraries compost)
+ (modes byte exe))
 
 ;; drives scanning/parsing
 ; (test

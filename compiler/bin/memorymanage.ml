@@ -31,37 +31,37 @@ let add_datatype map def =
 
 let rec convert_ty(ty) = 
     match ty with 
-     | Ast.FunTy(tylist, ty) -> M.Fun(convert_ty ty, List.map convert_ty tylist) 
+     | Ast.FunTy(tylist, ty) -> M.Fun(convert_ty ty, List.map convert_ty tylist)
+     | Ast.Unit -> M.Int(1)
      | Ast.Int -> M.Int(32) (* 32-bit integer *)
      | Ast.Bool -> M.Int(1) (* 1-bit integer *)
-     | Ast.Unit -> M.Void 
      | Ast.Sym -> M.Ptr(Int(8)) (* pointer to a 8-bit integer *)
      | Ast.CustomTy(_) -> raise (Unimplemented "Not implemented")
 
-let convert_typed convert_elem (elem, ty) = (convert_elem elem, convert_ty ty)
-
-let rec convert_expr fast_expr = 
-    match fast_expr with 
+let rec convert_expr fast_expr =
+    match fast_expr with
      | F.Literal(lit) -> M.Literal(lit)
      | F.Local(name) -> M.Local(name)
-     | F.Global(name) -> M.Global(name)
+     | F.Global("main") -> M.Global("main")
+     | F.Global(name) when List.mem_assoc name Primitives.primitives -> M.Global(name)
+     | F.Global(name) -> M.Global("_" ^ name)
      (* NEEDSWORK: Implement case *)
-     | F.If(expr1, expr2, expr3) -> 
-         M.If(convert_typed convert_expr expr1, convert_typed convert_expr expr2, convert_typed convert_expr expr3)
-     | F.Begin(expr1, expr2) -> M.Begin(convert_typed convert_expr expr1, convert_typed convert_expr expr2)
-     | F.Let(name, expr, body) -> M.Let(name, convert_typed convert_expr expr, convert_typed convert_expr body)
-     | F.Apply(expr, exprlist) -> M.Apply(convert_typed convert_expr expr, List.map (convert_typed convert_expr) exprlist)
+     | F.If(expr1, expr2, expr3) ->
+         M.If(convert_expr expr1, convert_expr expr2, convert_expr expr3)
+     | F.Begin(expr1, expr2) -> M.Begin(convert_expr expr1, convert_expr expr2)
+     | F.Let(name, expr, body) -> M.Let(name, convert_expr expr, convert_expr body)
+     | F.Apply(expr, exprlist) -> M.Apply(convert_expr expr, List.map (convert_expr) exprlist)
      | _ -> raise (Unimplemented "Not implemented")
 
 (* Converts a fast definition to a _list_ of mast definitions *)
-let convert_defs fast_def = 
-    match fast_def with 
-     | F.Define(name, params, body) -> 
+let convert_defs fast_def =
+    match fast_def with
+     | F.Define("main", fun_ty, params, body) ->
+         [ M.Define("main", convert_ty fun_ty, params, convert_expr body) ]
+     | F.Define(name, fun_ty, params, body) ->
          (* Prefix each function name with "^" to guarantee it does not conflict with generated functions *)
-         [ M.Define("^" ^ name, List.map (convert_typed id) params, convert_typed convert_expr body) ]
-     | F.Datatype(name, _) -> (* NEEDSWORK: Actually generate the functions. These are just placeholders for now *)
-         [ M.Define("_dup_" ^ name, [("xxs", M.Ptr(M.Int(1)))], (M.Literal(IntLit(0)), M.Int(32))) ;
-           M.Define("_free_" ^ name, [("xxs", M.Ptr(M.Int(1)))], (M.Literal(IntLit(0)), M.Int(32))) ]
+         [ M.Define("_" ^ name, convert_ty fun_ty, params, convert_expr body) ]
+     | F.Datatype(_, _) -> raise (Unimplemented "datatypes not implemented")
 
 
 let mast_of_fast fast = 

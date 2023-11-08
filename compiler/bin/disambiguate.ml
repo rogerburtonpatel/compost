@@ -9,11 +9,11 @@ let rec expr locals = function
   | A.NameExpr n -> U.Global n
   | A.Case (e, branches) ->
     let e' = expr locals e in
-    let branch (A.CaseBranch (p, body)) = match p with
+    let branch (p, body) = match p with
       | A.Pattern (_, bindings) ->
         let locals' = S.union (S.of_list bindings) locals in
-        (U.CaseBranch (p, expr locals' body))
-      | A.WildcardPattern -> (U.CaseBranch (p, expr locals body))
+        (p, expr locals' body)
+      | A.WildcardPattern -> (p, expr locals body)
     in
     let branches' = List.map branch branches in
     U.Case (e', branches')
@@ -36,10 +36,13 @@ let rec expr locals = function
     U.Apply (e', es')
   | A.Dup n -> U.Dup n
 
-let rec def = function
+  exception Impossible of string
+let def = function
   | A.Val (n, body) -> U.Val (n, expr S.empty body)
-  | A.Define (n, args, body) -> U.Define (n, args, expr (S.of_list (n :: args)) body)
+  | A.Define (n, args, body) -> U.Define (n, args, expr (S.of_list args) body)
   | A.Datatype (n, variants) ->
-    let variant (A.Variant (n, tys)) = U.Variant (n, tys) in
-    U.Datatype (n, List.map variant variants)
+    U.Datatype (n, variants)
   | A.TyAnnotation (n, ty) -> U.TyAnnotation (n, ty)
+  | A.Use _ -> raise (Impossible "use form in disambiguation")
+
+let disambiguate = List.map def

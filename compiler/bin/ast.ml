@@ -16,24 +16,20 @@ type pattern =
     Pattern of name * name list
   | WildcardPattern
 
-type casebranch = CaseBranch of pattern * expr 
-
 and expr =
     Literal of literal 
   | NameExpr of name 
-  | Case of expr * (casebranch list) 
+  | Case of expr * (pattern * expr) list
   | If of expr * expr * expr 
   | Begin of expr * expr
   | Let of name * expr * expr
   | Apply of expr * (expr list) 
   | Dup of name 
 
-type variant = Variant of name * (ty list) 
-
-type def = 
+type def =
     Val of name * expr
   | Define of name * (name list) * expr 
-  | Datatype of name * (variant list) 
+  | Datatype of name * (name * ty list) list
   | TyAnnotation of name * ty 
   | Use of filename 
 
@@ -90,7 +86,7 @@ let string_of_pattern = function
  | WildcardPattern -> "_"
 
 let string_of_variant = function 
-   Variant(name, tylist) -> "[" ^ name ^ " (" ^ String.concat " " (List.map string_of_ty tylist) ^ ")]"
+   (name, tylist) -> "[" ^ name ^ " (" ^ String.concat " " (List.map string_of_ty tylist) ^ ")]"
 
 let rec string_of_expr = function 
    Literal(lit) -> string_of_lit lit 
@@ -112,7 +108,7 @@ and string_of_bind = function
    (name, expr) -> "[" ^ name ^ " " ^ string_of_expr expr ^ "]"
   
 and string_of_casebranch = function 
-   CaseBranch(pattern, expr) -> "[" ^ string_of_pattern pattern ^ " " ^ string_of_expr expr ^ "]"
+   (pattern, expr) -> "[" ^ string_of_pattern pattern ^ " " ^ string_of_expr expr ^ "]"
 
 let string_of_def = function 
    Val(name, expr) -> "(val " ^ name ^ " " ^ string_of_expr expr ^ ")"

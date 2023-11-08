@@ -12,3 +12,4 @@ lrm/Compost.out
 
 # compiler 
 compiler/_build/
+compiler/tests/*.exe

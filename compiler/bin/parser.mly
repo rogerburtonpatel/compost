@@ -63,7 +63,7 @@ variant:
    LPAREN variantinternal RPAREN { $2 }
  | LBRACKET variantinternal RBRACKET { $2 }
 
-variantinternal: NAME parentylist { Variant($1, $2) }
+variantinternal: NAME parentylist { ($1, $2) }
 
 parentylist:
    LPAREN tylist RPAREN { $2 }
@@ -118,8 +118,8 @@ bindlist:
 bind: NAME expr { ($1, $2) }
 
 casebranch: 
-   LPAREN pattern expr RPAREN { CaseBranch($2, $3) }
- | LBRACKET pattern expr RBRACKET { CaseBranch($2, $3) }
+   LPAREN pattern expr RPAREN { ($2, $3) }
+ | LBRACKET pattern expr RBRACKET { ($2, $3) }
 
 parencasebranchlist:
    LPAREN casebranchlist RPAREN { $2 }

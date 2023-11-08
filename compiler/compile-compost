@@ -1,0 +1,12 @@
+#!/bin/bash -ex
+
+
+if [[ "$#" -ne "1" ]]; then 
+    >&2 echo "Usage: compile-compost <file.mc>"
+    exit 1
+fi 
+
+TARGET="$1"
+COMPILER="compost" # change this to compost or whatever you want
+
+dune exec "$COMPILER" "$TARGET" | llc -relocation-model=pic | cc -x assembler -o ${TARGET%.*} -
