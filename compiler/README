@@ -59,6 +59,9 @@ Or, alternatively, you can type:
 
 To run all tests in our test suite, type the following command:
     ./run_tests.bash -c 
+Note that this test script depends on a binary called "lli-14" 
+existing on your machine, which is an interpreter and dynamic 
+compiler for LLVM.
 
 To run a specific test in our test suite, type the following command:
     ./run_tests.bash -c test_name.com 
