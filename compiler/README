@@ -46,6 +46,8 @@ is desired.
 
 `recurse.com`: Tests recursion functionality via a recursive "count-down" function.
 
+`tail.com`: Calls a recursive function that will result in a stack overflow
+            without our tailcall optimization.
 
 ----------------------------------------------------------------------------------------
 How to run scripts:
