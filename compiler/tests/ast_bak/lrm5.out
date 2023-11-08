@@ -1,2 +1,0 @@
-(: is-even (-> (int) bool))
-(define is-even (x) (if (= x 0) true (not (is-odd (- x 1)))))

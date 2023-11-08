@@ -1,9 +1,0 @@
-(: = (-> (int int) bool))
-
-(: is-odd (-> (int) bool))
-(define is-odd (x)
-  (if (= x 1)
-      true
-      (is-even (- x 1))
-  )
-)
