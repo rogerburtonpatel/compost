@@ -9,4 +9,4 @@
     (slow-mul-tail x y 0))
 
 (: main (-> () unit))
-(define main () (print-int (slow-mul 1 1000000000))) 
+(define main () (print-int (slow-mul 1 2147483647))) 
