@@ -14,7 +14,7 @@
 module F = Fast 
 module M = Mast 
 
-module StringMap = Map.Make(String)
+module StringMap = Map.Make(String) 
 
 let typeof (_, ty) = ty
 
@@ -23,53 +23,135 @@ let id x = x
 (* Defined in case we want to throw an error *)
 exception InvalidDup of string 
 exception Unimplemented of string 
+exception Impossible of string 
 
-let add_datatype map def = 
-    match def with 
-     | F.Datatype(name, variants) -> StringMap.add name variants map 
-     | _ -> map
-
-let rec convert_ty(ty) = 
+(* Convert Compost type `ty` to the appropriate LLVM type *)
+let rec convert_ty ty = 
     match ty with 
-     | Ast.FunTy(tylist, ty) ->
-       let convert_param_ty = function
-         | Ast.FunTy _  as fun_ty -> M.Ptr(convert_ty fun_ty)
-         | other_ty -> convert_ty other_ty
-       in
-       M.Fun(convert_ty ty, List.map convert_param_ty tylist)
-     | Ast.Unit -> M.Int(1)
-     | Ast.Int -> M.Int(32) (* 32-bit integer *)
-     | Ast.Bool -> M.Int(1) (* 1-bit integer *)
-     | Ast.Sym -> M.Ptr(Int(8)) (* pointer to a 8-bit integer *)
-     | Ast.CustomTy(_) -> raise (Unimplemented "Not implemented")
-
-let rec convert_expr fast_expr =
-    match fast_expr with
-     | F.Literal(lit) -> M.Literal(lit)
-     | F.Local(name) -> M.Local(name)
-     | F.Global("main") -> M.Global("main")
-     | F.Global(name) when List.mem_assoc name Primitives.primitives -> M.Global(name)
-     | F.Global(name) -> M.Global("_" ^ name)
-     (* NEEDSWORK: Implement case *)
-     | F.If(expr1, expr2, expr3) ->
-         M.If(convert_expr expr1, convert_expr expr2, convert_expr expr3)
-     | F.Begin(expr1, expr2) -> M.Begin(convert_expr expr1, convert_expr expr2)
-     | F.Let(name, expr, body) -> M.Let(name, convert_expr expr, convert_expr body)
-     | F.Apply(expr, exprlist) -> M.Apply(convert_expr expr, List.map (convert_expr) exprlist)
-     | _ -> raise (Unimplemented "Not implemented")
-
-(* Converts a fast definition to a _list_ of mast definitions *)
-let convert_defs fast_def =
-    match fast_def with
-     | F.Define("main", fun_ty, params, body) ->
-         [ M.Define("main", convert_ty fun_ty, params, convert_expr body) ]
-     | F.Define(name, fun_ty, params, body) ->
-         (* Prefix each function name with "^" to guarantee it does not conflict with generated functions *)
-         [ M.Define("_" ^ name, convert_ty fun_ty, params, convert_expr body) ]
-     | F.Datatype(_, _) -> raise (Unimplemented "datatypes not implemented")
-
+    | Ast.FunTy(tylist, ty) ->
+        let convert_param_ty = function
+            | Ast.FunTy _  as fun_ty -> M.Ptr(convert_ty fun_ty)
+            | other_ty -> convert_ty other_ty
+        in
+        M.Fun(convert_ty ty, List.map convert_param_ty tylist)
+    | Ast.Unit -> M.Int(1)
+    | Ast.Int -> M.Int(32) (* 32-bit integer *)
+    | Ast.Bool -> M.Int(1) (* 1-bit integer *)
+    | Ast.Sym -> M.Ptr(Int(8)) (* pointer to a 8-bit integer *)
+    | Ast.CustomTy(_) -> 
+        (* LLVM type for a custom type is a pointer to a struct containing a 
+         * 32-bit variant identifier, followed by a pointer to a 64-bit integer
+         * where the pointer is meant to hold the address of the struct 
+         * representing that variant (64-bit integer is a placeholder because 
+         * the struct definition depends on the variant 
+         *)
+        M.Ptr(M.Struct([M.Int(32) ; M.Ptr(M.Int(64))]))
 
 let mast_of_fast fast = 
-    (* Get all datatype definitions, store later *)
-    let _ = List.fold_left add_datatype StringMap.empty fast in 
+    (* Convert fast expr to mast expr *)
+    let rec convert_expr fast_expr =
+        match fast_expr with
+        | F.Literal(lit) -> M.Literal(lit)
+        | F.Local(name) -> M.Local(name)
+        | F.Global("main") -> M.Global("main")
+        | F.Global(name) when List.mem_assoc name Primitives.primitives -> M.Global(name)
+        | F.Global(name) -> M.Global("_" ^ name)
+        | F.Case(ty, expr, casebranches) -> 
+            let convert_casebranch (pattern, pexpr) = 
+                let convert_pattern pattern = 
+                    match pattern with 
+                    | F.Pattern(name, names) -> M.Pattern(name, names)
+                    | F.WildcardPattern -> M.WildcardPattern 
+                in
+                (convert_pattern pattern, convert_expr pexpr) 
+            in 
+            M.Case(convert_ty ty, convert_expr expr, List.map convert_casebranch casebranches)
+        | F.If(expr1, expr2, expr3) ->
+            M.If(convert_expr expr1, convert_expr expr2, convert_expr expr3)
+        | F.Begin(expr1, expr2) -> M.Begin(convert_expr expr1, convert_expr expr2)
+        | F.Let(name, expr, body) -> M.Let(name, convert_expr expr, convert_expr body)
+        | F.Apply(expr, exprlist) -> M.Apply(convert_expr expr, List.map (convert_expr) exprlist)
+        | F.Dup(ty, name) -> 
+            (match ty with 
+              | CustomTy(tyname) -> M.Apply(M.Global("dup_" ^ tyname), [M.Local(name)]) 
+              | _ -> M.Local(name) (* no-op for now that returns the name; another option is to throw InvalidDup exception *))
+        | F.FreeRec(ty, name, expr) -> 
+            (match ty with 
+              | CustomTy(tyname) -> M.Begin(M.Apply(M.Global("free_" ^ tyname), [M.Local(name)]), convert_expr expr)
+              | _ -> raise (Impossible "Erroneously called FreeRec on something that was not a custom type"))
+        | F.Free(_, name, expr) -> M.Free(name, convert_expr expr)
+    in 
+    (* Converts a fast definition to a _list_ of mast definitions *)
+    let convert_defs fast_def =
+        match fast_def with
+        | F.Define("main", fun_ty, params, body) ->
+            [ M.Define("main", convert_ty fun_ty, params, convert_expr body) ]
+        | F.Define(name, fun_ty, params, body) ->
+            (* Prefix each function name with "_" to guarantee it does not conflict with generated functions *)
+            [ M.Define("_" ^ name, convert_ty fun_ty, params, convert_expr body) ]
+        | F.Datatype(name, variants) -> 
+            let data_ty = convert_ty (Ast.CustomTy(name)) in 
+            let alloc_func = 
+                let func_type = M.Fun(data_ty, [data_ty]) in 
+                let param_names = ["instance"] in 
+                let body = 
+                    let gen_casebranch variant_idx (variant_name, variant_tys) = 
+                        (* Let variant_varnames just be a sequence of integers starting from 0, prepended by "var" *)
+                        let varname_of_int int = "var" ^ string_of_int int in 
+                        let variant_varnames = List.init (List.length variant_tys) varname_of_int in 
+                        let pattern = M.Pattern(variant_name, variant_varnames) in 
+                        let expr = 
+                            let alloc_ty index ty = 
+                            match ty with 
+                             | Ast.CustomTy(name) -> (index + 1, M.Apply(Global("alloc_" ^ name), [Local(varname_of_int index)])) 
+                             | _ -> (index + 1, Local(varname_of_int index)) 
+                            in 
+                            let (_, alloc_expr) = List.fold_left_map alloc_ty 0 variant_tys 
+                            in 
+                            M.Alloc(data_ty, variant_idx, alloc_expr) 
+                        in 
+                        (variant_idx + 1, (pattern, expr))
+                    in 
+                    let (_, casebranches) = List.fold_left_map gen_casebranch 0 variants 
+                    in 
+                    M.Case(data_ty, Local("instance"), casebranches) 
+                in 
+                M.Define("alloc_" ^ name, func_type, param_names, body)
+            in 
+            let free_func = 
+                let func_type = M.Fun(convert_ty Ast.Unit, [data_ty]) in
+                let param_names = ["instance"] in 
+                let body = 
+                    let gen_casebranch (variant_name, variant_tys) = 
+                        (* Let variant_varnames just be a sequence of integers starting from 0, prepended by "var" *)
+                        let varname_of_int int = "var" ^ string_of_int int in 
+                        let variant_varnames = List.init (List.length variant_tys) varname_of_int in 
+                        let pattern = M.Pattern(variant_name, variant_varnames) in 
+                        let expr = 
+                            let unitlit = M.Literal(Ast.UnitLit) in 
+                            let gen_free_call varname ty = 
+                                match ty with 
+                                 | Ast.CustomTy(name) -> M.Apply(Global("free_" ^ name), [Local(varname)]) 
+                                 | _ -> unitlit 
+                            in 
+                            (* Get all calls to free functions *)
+                            let free_calls = List.filter ((<>) unitlit) (List.map2 gen_free_call variant_varnames variant_tys) in 
+                            let rec free_expr_of_calls free_calls = 
+                                match free_calls with 
+                                 | [] -> unitlit
+                                 | [call] -> call 
+                                 | call :: calls -> M.Begin(call, free_expr_of_calls calls) 
+                            in 
+                            M.Free("instance", free_expr_of_calls free_calls)
+                        in 
+                        (pattern, expr)
+                    in 
+                    let casebranches = List.map gen_casebranch variants 
+                    in 
+                    M.Case(data_ty, Local("instance"), casebranches) 
+                in 
+                M.Define("free_" ^ name, func_type, param_names, body) 
+            in
+            [ alloc_func ; free_func ] 
+    in
     List.flatten (List.map convert_defs fast)

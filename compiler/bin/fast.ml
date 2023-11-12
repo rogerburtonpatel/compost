@@ -22,7 +22,7 @@ and expr =
   | Begin of expr * expr
   | Let of name * expr * expr
   | Apply of expr * expr list
-  | Dup of name
+  | Dup of ty * name
   (* Memory-Related *)
   | FreeRec of ty * name * expr (* Corresponds to a call to "_free_" ^ (name_of ty) *)
   | Free of ty * name * expr (* Corresponds to a call to `free()` *)

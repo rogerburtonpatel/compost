@@ -22,7 +22,7 @@ and expr =
   | Begin of expr * expr
   | Let of name * ty * expr * expr
   | Apply of expr * expr list
-  | Dup of name
+  | Dup of ty * name
 
 type def =
     Define of name * ty * name list * expr

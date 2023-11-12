@@ -20,8 +20,8 @@ let rec check bound consumed expr =
   | T.Local n when has_funty n bound -> (F.Local n, S.singleton n)
   | T.Local n -> (F.Local n, S.empty)
   | T.Global n -> (F.Global n, S.empty)
-  | T.Dup n when S.mem n consumed -> raise (NameAlreadyConsumed n)
-  | T.Dup n -> (F.Dup n, S.empty)
+  | T.Dup (_, n) when S.mem n consumed -> raise (NameAlreadyConsumed n)
+  | T.Dup (ty, n) -> (F.Dup (ty, n), S.empty)
   | T.Literal (l) -> (F.Literal l, S.empty)
   | T.If (e1, e2, e3) ->
     let (e1', c1) = check bound consumed e1 in
@@ -69,8 +69,8 @@ let rec check_last bound consumed expr =
   | T.Local n when has_funty n bound -> (dealloc_in (freeable bound (S.remove n consumed)) (F.Local n), S.singleton n)
   | T.Local n -> (dealloc_in (freeable bound (S.remove n consumed)) (F.Local n), S.empty)
   | T.Global n -> (dealloc_in (freeable bound (S.remove n consumed)) (F.Global n), S.empty)
-  | T.Dup n when S. mem n consumed -> raise (NameAlreadyConsumed n)
-  | T.Dup n -> (dealloc_in (freeable bound (S.remove n consumed)) (F.Dup n), S.empty)
+  | T.Dup (_, n) when S. mem n consumed -> raise (NameAlreadyConsumed n)
+  | T.Dup (ty, n) -> (dealloc_in (freeable bound (S.remove n consumed)) (F.Dup (ty, n)), S.empty)
   | T.Literal (l) -> (dealloc_in (freeable bound consumed) (F.Literal l), S.empty)
   | T.If (e1, e2, e3) ->
     let (e1', c1) = check bound consumed e1 in

@@ -7,7 +7,7 @@ module C = Consumptioncheck
 module M = Memorymanage
 module G = Codegen
 
-type action = Ast | UAst | TAst | Compile
+type action = Ast | UAst | TAst | MAst | Compile
 
 let () =
   let action = ref Compile in
@@ -16,10 +16,11 @@ let () =
     ("-a", Arg.Unit (set_action Ast), "Print the AST");
     ("-d", Arg.Unit (set_action UAst), "Print the UAST");
     ("-t", Arg.Unit (set_action TAst), "Typecheck and print UAst");
+    ("-m", Arg.Unit (set_action MAst), "Typecheck, analyze consumption, add explicit memory management, and print MAst");
     ("-c", Arg.Unit (set_action Compile),
       "Check and print the generated LLVM IR (default)");
   ] in
-  let usage_msg = "usage: ./compost [-a|-l|-c] [file.com]" in
+  let usage_msg = "usage: dune exec -- compost [-a|-d|-t|-m|-c] [file.com]" in
   let channel = ref stdin in
   Arg.parse speclist (fun filename -> channel := open_in filename) usage_msg;
 
@@ -32,6 +33,12 @@ let () =
       let uast = (D.disambiguate ast) in 
       let _ = Typecheck.typecheck uast in 
     print_string (Uast.string_of_program uast)
+  | MAst -> 
+      let disambiguated = D.disambiguate ast in
+      let (type_checked, _, _) = T.typecheck disambiguated in
+      let consumption_checked = C.consumption_check type_checked in
+      let memory_managed = M.mast_of_fast consumption_checked in 
+      print_string (Mast.string_of_program memory_managed)
   | Compile ->
     let disambiguated = D.disambiguate ast in
     let (type_checked, _, _) = T.typecheck disambiguated in

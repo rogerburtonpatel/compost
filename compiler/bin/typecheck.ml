@@ -203,7 +203,7 @@ let rec exp gamma delta expr =
     | U.Apply (e, es) as app -> let _ = typeof' app in 
                                   let es' = List.map exp' es in 
                                   T.Apply (exp' e, es')
-   | U.Dup n -> let _ = typeof' e in T.Dup n
+   | U.Dup n -> let ty = typeof' e in T.Dup (ty, n)
   in exp' expr
 
 let typecheckDef (defs, gamma, delta) = function
