@@ -74,7 +74,7 @@ let string_of_lit = function
  | SymLit(lit) -> string_of_symlit lit 
  | UnitLit -> "unit"
 
-let is_int = String.for_all (function '0' .. '1' -> true | _ -> false)
+let is_int = String.for_all (function '0' .. '9' -> true | _ -> false)
 
 let string_of_nameorwildcard = function
    name when is_int name -> "_"
