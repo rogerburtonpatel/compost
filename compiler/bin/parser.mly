@@ -142,7 +142,7 @@ nameorwildcardlist:
 
 nameorwildcard:
    NAME { $1 }
- | WILDCARD { fresh_name }
+ | WILDCARD { fresh_name () }
 
 literal:
    INTLIT { IntLit($1) }
