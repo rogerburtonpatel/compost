@@ -120,6 +120,7 @@ main () {
 
     case $1 in
       -a) run_tests ast "$comFiles" compost -a ;;
+      -p) run_tests pre "$comFiles" compost -p ;;
       -d) run_tests uast "$comFiles" compost -d ;;
       -l) run_tests llvmir "$comFiles" compost -l ;;
       -c) ;&
