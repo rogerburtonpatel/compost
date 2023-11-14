@@ -15,3 +15,14 @@ let rec preprocessdepth deflist depth = List.fold_right (fun def deflist ->
 ) deflist []
 
 let preprocess deflist = preprocessdepth deflist 0
+
+(*
+let rec desugar_let bindings body = match bindings with
+  | [] -> body
+  | ((name, expr) :: bs) -> Let(name, expr, desugar_let bs body)
+
+let rec desugar_begin exprs = match exprs with
+  | [] -> Literal(UnitLit)
+  | [e] -> e
+  | (e :: es) -> Begin(e, desugar_begin es)
+*)
