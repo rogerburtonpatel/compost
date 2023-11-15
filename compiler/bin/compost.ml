@@ -8,14 +8,14 @@ module M = Memorymanage
 module G = Codegen
 module Pre = Preprocess
 
-type action = Ast | Past | UAst | TAst | MAst | Compile
+type action = Ast | PAst | UAst | TAst | MAst | Compile
 
 let () =
   let action = ref Compile in
   let set_action a () = action := a in
   let speclist = [
     ("-a", Arg.Unit (set_action Ast), "Print the AST");
-    ("-p", Arg.Unit (set_action Past), "Preprocess & Print the AST");
+    ("-p", Arg.Unit (set_action PAst), "Preprocess & Print the AST");
     ("-u", Arg.Unit (set_action UAst), "Print the UAST");
     ("-t", Arg.Unit (set_action TAst), "Typecheck and print UAst");
     ("-m", Arg.Unit (set_action MAst), "Typecheck, analyze consumption, add explicit memory management, and print MAst");
@@ -27,35 +27,25 @@ let () =
   Arg.parse speclist (fun filename -> channel := open_in filename) usage_msg;
 
   let lexbuf = Lexing.from_channel !channel in
-  let ast = Parser.program Scanner.token lexbuf in
-  match !action with
-    Ast ->
-    print_string (Ast.string_of_program ast)
-  | Past ->
+
+  let output =
+    let ast = Parser.program Scanner.token lexbuf in
+    if !action = Ast then (Ast.string_of_program ast) else
+
     let past = Pre.preprocess ast in
-    print_string (Past.string_of_program past)
-  | UAst ->
-    let past = Pre.preprocess ast in
+    if !action = PAst then (Past.string_of_program past) else
+
     let uast = D.disambiguate past in
-    print_string(Uast.string_of_program uast)
-  | TAst ->
-    let past = Pre.preprocess ast in
-    let uast = D.disambiguate past in
-    let _ = Typecheck.typecheck uast in
-    print_string (Uast.string_of_program uast)
-  | MAst ->
-    let past = Pre.preprocess ast in
-    let disambiguated = D.disambiguate past in
-    let (type_checked, _, _) = T.typecheck disambiguated in
+    if !action = UAst then (Uast.string_of_program uast) else
+
+    let (type_checked, _, _) = T.typecheck uast in
+    if !action = TAst then (Uast.string_of_program uast) else
+
     let consumption_checked = C.consumption_check type_checked in
     let memory_managed = M.mast_of_fast consumption_checked in 
-    print_string (Mast.string_of_program memory_managed)
-  | Compile ->
-    let past = Pre.preprocess ast in
-    let disambiguated = D.disambiguate past in
-    let (type_checked, _, _) = T.typecheck disambiguated in
-    let consumption_checked = C.consumption_check type_checked in
-    let memory_managed = M.mast_of_fast consumption_checked in
+    if !action = MAst then (Mast.string_of_program memory_managed) else
+
     let m = G.codegen memory_managed in
     (* Llvm_analysis.assert_valid_module m; *)
-    print_string (Llvm.string_of_llmodule m)
+    Llvm.string_of_llmodule m
+  in print_string output
