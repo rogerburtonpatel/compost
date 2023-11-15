@@ -126,7 +126,7 @@ main () {
       -m) run_tests mast "$comFiles" compost -m ;;
       -c) run_tests llvm "$comFiles" compost -c ;;
       -r) ;&
-       *) run_tests compile "$comFiles" compileAndRun ;;
+       *) run_tests run "$comFiles" compileAndRun ;;
     esac
 }
 
