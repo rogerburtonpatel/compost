@@ -94,20 +94,6 @@ run_tests () {
     done
 
     popd > /dev/null
-
-    if [[ "$numtests" -eq "0" ]]; then
-        >&2 echo "No tests run. Check why that might be."
-        exit 1
-    fi
-
-    if [[ "$numfail" -eq "0" ]]; then 
-        echo "All $numtests tests passed."
-    else 
-        numpassed=$((numtests - $numfail))
-        echo "$numpassed / $numtests tests passed."
-        echo "See above output for details."
-        exit 1
-    fi
 }
 
 main () {
@@ -125,9 +111,29 @@ main () {
       -t) run_tests tast "$comFiles" compost -t ;;
       -m) run_tests mast "$comFiles" compost -m ;;
       -c) run_tests llvm "$comFiles" compost -c ;;
-      -r) ;&
-       *) run_tests run "$comFiles" compileAndRun ;;
+      -r) run_tests run "$comFiles" compileAndRun ;;
+      --all | *) run_tests ast "$comFiles" compost -a ;
+                 run_tests past "$comFiles" compost -p ;
+                 run_tests uast "$comFiles" compost -u ;
+                 run_tests tast "$comFiles" compost -t ;
+                 run_tests mast "$comFiles" compost -m ;
+                 run_tests llvm "$comFiles" compost -c ;
+                 run_tests run "$comFiles" compileAndRun ;;
     esac
+
+    if [[ "$numtests" -eq "0" ]]; then
+        >&2 echo "No tests run. Check why that might be."
+        exit 1
+    fi
+
+    if [[ "$numfail" -eq "0" ]]; then 
+        echo "All $numtests tests passed."
+    else 
+        numpassed=$((numtests - $numfail))
+        echo "$numpassed / $numtests tests passed."
+        echo "See above output for details."
+        exit 1
+    fi
 }
 
 main "${@}"
