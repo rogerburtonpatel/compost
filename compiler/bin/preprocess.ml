@@ -1,8 +1,11 @@
 module P = Past
 module A = Ast
+module D = Difflist
 
 exception UseDepth
 let maxdepth = 50
+
+(* adl = Ast def list, pe = Past expr *)
 
 let rec apes_to_ppes = function
     [] -> []
@@ -26,15 +29,15 @@ let rec ad_to_pdl depth = function
     let lexbuf = Lexing.from_channel channel in
     let ast = Parser.program Scanner.token lexbuf in
     adl_to_pdl ast (depth + 1)
-  | A.Val(n, e) -> [P.Val(n, ae_to_pe e)]
-  | A.Define(n, ns, e) -> [P.Define(n, ns, ae_to_pe e)]
-  | A.Datatype(n, ntss) -> [P.Datatype(n, ntss)]
-  | A.TyAnnotation(n, t) -> [P.TyAnnotation(n, t)]
+  | A.Val(n, e) -> D.singleton (P.Val(n, ae_to_pe e))
+  | A.Define(n, ns, e) -> D.singleton (P.Define(n, ns, ae_to_pe e))
+  | A.Datatype(n, ntss) -> D.singleton (P.Datatype(n, ntss))
+  | A.TyAnnotation(n, t) -> D.singleton (P.TyAnnotation(n, t))
 
-and fold_adl_to_pdl depth ad pdl = List.append (ad_to_pdl depth ad) pdl
+and fold_adl_to_pdl depth ad pdl = D.cons (ad_to_pdl depth ad) pdl
 
 and adl_to_pdl adl depth = 
   if depth > maxdepth then raise UseDepth else
-  List.fold_right (fold_adl_to_pdl depth) adl []
+  List.fold_right (fold_adl_to_pdl depth) adl (D.empty)
 
-let preprocess adeflist = adl_to_pdl adeflist 0
+let preprocess adeflist = D.tolist (adl_to_pdl adeflist 0)
