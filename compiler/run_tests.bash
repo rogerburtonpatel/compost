@@ -120,10 +120,12 @@ main () {
 
     case $1 in
       -a) run_tests ast "$comFiles" compost -a ;;
-      -p) run_tests pre "$comFiles" compost -p ;;
-      -d) run_tests uast "$comFiles" compost -d ;;
-      -l) run_tests llvmir "$comFiles" compost -l ;;
-      -c) ;&
+      -p) run_tests past "$comFiles" compost -p ;;
+      -u) run_tests uast "$comFiles" compost -u ;;
+      -t) run_tests tast "$comFiles" compost -t ;;
+      -m) run_tests mast "$comFiles" compost -m ;;
+      -c) run_tests llvm "$comFiles" compost -c ;;
+      -r) ;&
        *) run_tests compile "$comFiles" compileAndRun ;;
     esac
 }

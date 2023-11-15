@@ -16,7 +16,7 @@ let () =
   let speclist = [
     ("-a", Arg.Unit (set_action Ast), "Print the AST");
     ("-p", Arg.Unit (set_action Pre), "Preprocess & Print the AST");
-    ("-d", Arg.Unit (set_action UAst), "Print the UAST");
+    ("-u", Arg.Unit (set_action UAst), "Print the UAST");
     ("-t", Arg.Unit (set_action TAst), "Typecheck and print UAst");
     ("-m", Arg.Unit (set_action MAst), "Typecheck, analyze consumption, add explicit memory management, and print MAst");
     ("-c", Arg.Unit (set_action Compile),
