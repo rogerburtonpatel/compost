@@ -29,8 +29,8 @@ type program = def list
 
 (* Pretty printing functions *)
 
-let rec string_of_namelist = Ast.string_of_namelist
-let rec string_of_ty = Ast.string_of_ty
+let string_of_namelist = Ast.string_of_namelist
+let string_of_ty = Ast.string_of_ty
 let string_of_symlit = Ast.string_of_symlit
 let string_of_lit = Ast.string_of_lit
 let is_int = Ast.is_int
