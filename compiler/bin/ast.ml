@@ -21,8 +21,8 @@ and expr =
   | NameExpr of name 
   | Case of expr * (pattern * expr) list
   | If of expr * expr * expr 
-  | Begin of expr * expr
-  | Let of name * expr * expr
+  | Begin of expr list 
+  | Let of ((name * expr) list) * expr 
   | Apply of expr * (expr list) 
   | Dup of name 
 
@@ -34,17 +34,6 @@ type def =
   | Use of filename 
 
 type program = def list
-
-(* Desugaring functions *)
-
-let rec desugar_let bindings body = match bindings with
-  | [] -> body
-  | ((name, expr) :: bs) -> Let(name, expr, desugar_let bs body)
-
-let rec desugar_begin exprs = match exprs with
-  | [] -> Literal(UnitLit)
-  | [e] -> e
-  | (e :: es) -> Begin(e, desugar_begin es)
 
 (* Pretty printing functions *)
 
@@ -93,10 +82,10 @@ let rec string_of_expr = function
  | NameExpr(name) -> name 
  | If(expr1, expr2, expr3) -> 
      "(if " ^ string_of_expr expr1 ^ " " ^ string_of_expr expr2 ^ " " ^ string_of_expr expr3 ^ ")"
- | Begin(expr1, expr2) ->
-     "(begin " ^ string_of_expr expr1 ^ " " ^ string_of_expr expr2 ^ ")"
- | Let(name, expr1, expr2) ->
-     "(let " ^ "([" ^ name ^ " " ^ string_of_expr expr1 ^ "]) " ^ string_of_expr expr2 ^ ")"
+ | Begin(exprlist) -> 
+     "(begin " ^ String.concat " " (List.map string_of_expr exprlist) ^ ")"
+ | Let(bindlist, expr) ->
+     "(let " ^ "(" ^ String.concat " " (List.map string_of_bind bindlist) ^ ") " ^ string_of_expr expr ^ ")"
  | Apply(expr, exprlist) -> 
      "(" ^ string_of_expr expr ^ " " ^ String.concat " " (List.map string_of_expr exprlist) ^ ")"
  | Case(expr, casebranchlist) ->

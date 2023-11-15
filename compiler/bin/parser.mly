@@ -96,9 +96,9 @@ expr:
 
 exprinternal:
    IF expr expr expr { If($2, $3, $4) }
- | BEGIN exprlist { desugar_begin($2)}
+ | BEGIN exprlist { Begin($2)}
  | expr exprlist { Apply($1, $2) }
- | LET parenbindlist expr { desugar_let $2 $3 }
+ | LET parenbindlist expr { Let($2, $3) }
  | CASE expr parencasebranchlist { Case($2, $3) }
  | DUP NAME { Dup($2) }
 

@@ -1,28 +1,42 @@
-exception UseDepth
+module P = Past
+module A = Ast
 
+exception UseDepth
 let maxdepth = 50
 
-let rec preprocessdepth deflist depth = List.fold_right (fun def deflist -> 
+let rec apes_to_ppes = function
+    [] -> []
+  | ((p, e) :: pes) -> (p, ae_to_pe e) :: (apes_to_ppes pes)
+and ae_to_pe = function
+    A.Begin(es) -> (match es with
+      | [] -> P.Literal(A.UnitLit)
+      | [e] -> ae_to_pe e
+      | (e :: es1) -> P.Begin(ae_to_pe e, ae_to_pe (A.Begin(es1))))
+  | A.Let(bs, e) -> (match bs with
+      | [] -> ae_to_pe e
+      | ((n, e1) :: bs) -> P.Let(n, ae_to_pe e1, ae_to_pe (A.Let(bs, e))))
+  | A.Literal(l) -> P.Literal(l)
+  | A.NameExpr(n) -> P.NameExpr(n)
+  | A.Case(e, pes) -> P.Case(ae_to_pe e, apes_to_ppes pes)
+  | A.If(e1, e2, e3) -> P.If(ae_to_pe e1, ae_to_pe e2, ae_to_pe e3)
+  | A.Apply(e, es) -> P.Apply(ae_to_pe e, List.map ae_to_pe es)
+  | A.Dup(n) -> P.Dup(n)
+
+let rec ad_to_pdl depth = function
+    A.Use(filename) ->
+    let channel = open_in filename in
+    let lexbuf = Lexing.from_channel channel in
+    let ast = Parser.program Scanner.token lexbuf in
+    adl_to_pdl ast (depth + 1)
+  | A.Val(n, e) -> [P.Val(n, ae_to_pe e)]
+  | A.Define(n, ns, e) -> [P.Define(n, ns, ae_to_pe e)]
+  | A.Datatype(n, ntss) -> [P.Datatype(n, ntss)]
+  | A.TyAnnotation(n, t) -> [P.TyAnnotation(n, t)]
+
+and fold_adl_to_pdl depth ad pdl = List.append (ad_to_pdl depth ad) pdl
+
+and adl_to_pdl adl depth = 
   if depth > maxdepth then raise UseDepth else
-  match (def, deflist) with
-   | (Ast.Use(filename), deflist) ->
-     let channel = open_in filename in
-     let lexbuf = Lexing.from_channel channel in
-     let ast = Parser.program Scanner.token lexbuf in
-     preprocessdepth (List.append ast deflist) (depth + 1)
-   | (otherdef, deflist) ->
-     otherdef::deflist
-) deflist []
+  List.fold_right (fold_adl_to_pdl depth) adl []
 
-let preprocess deflist = preprocessdepth deflist 0
-
-(*
-let rec desugar_let bindings body = match bindings with
-  | [] -> body
-  | ((name, expr) :: bs) -> Let(name, expr, desugar_let bs body)
-
-let rec desugar_begin exprs = match exprs with
-  | [] -> Literal(UnitLit)
-  | [e] -> e
-  | (e :: es) -> Begin(e, desugar_begin es)
-*)
+let preprocess adeflist = adl_to_pdl adeflist 0

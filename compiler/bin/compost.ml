@@ -33,7 +33,7 @@ let () =
     print_string (Ast.string_of_program ast)
   | Pre ->
     let pre = Pre.preprocess ast in
-    print_string (Ast.string_of_program pre)
+    print_string (Past.string_of_program pre)
   | UAst ->
     let pre = Pre.preprocess ast in
     let uast = D.disambiguate pre in
