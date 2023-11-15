@@ -1,1 +1,1 @@
-(use tests/pre/depth.com)
+(use tests/past/depth.com)
