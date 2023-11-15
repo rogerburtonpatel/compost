@@ -1,0 +1,132 @@
+; ModuleID = 'Compost'
+source_filename = "Compost"
+
+@sym_lit = global [14 x i8] c"Hello, World!\00"
+@unit = private unnamed_addr constant [5 x i8] c"unit\00", align 1
+@true = private unnamed_addr constant [5 x i8] c"true\00", align 1
+@false = private unnamed_addr constant [6 x i8] c"false\00", align 1
+@fmt_int = private unnamed_addr constant [3 x i8] c"%d\00", align 1
+
+declare i32 @printf(i8*, ...)
+
+declare i32 @getchar()
+
+define i1 @"<="(i32 %0, i32 %1) {
+entry:
+  %tmp = icmp sle i32 %0, %1
+  ret i1 %tmp
+}
+
+define i1 @">="(i32 %0, i32 %1) {
+entry:
+  %tmp = icmp sge i32 %0, %1
+  ret i1 %tmp
+}
+
+define i1 @"<"(i32 %0, i32 %1) {
+entry:
+  %tmp = icmp slt i32 %0, %1
+  ret i1 %tmp
+}
+
+define i1 @">"(i32 %0, i32 %1) {
+entry:
+  %tmp = icmp sgt i32 %0, %1
+  ret i1 %tmp
+}
+
+define i32 @neg(i32 %0) {
+entry:
+  %tmp = sub i32 0, %0
+  ret i32 %tmp
+}
+
+define i32 @"%"(i32 %0, i32 %1) {
+entry:
+  %tmp = srem i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @"/"(i32 %0, i32 %1) {
+entry:
+  %tmp = sdiv i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @"*"(i32 %0, i32 %1) {
+entry:
+  %tmp = mul i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @-(i32 %0, i32 %1) {
+entry:
+  %tmp = sub i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @"+"(i32 %0, i32 %1) {
+entry:
+  %tmp = add i32 %0, %1
+  ret i32 %tmp
+}
+
+define i1 @"u="(i1 %0, i1 %1) {
+entry:
+  ret i1 true
+}
+
+define i1 @"b="(i1 %0, i1 %1) {
+entry:
+  %tmp = icmp eq i1 %0, %1
+  ret i1 %tmp
+}
+
+define i1 @"s="(i8* %0, i8* %1) {
+entry:
+  %tmp = icmp eq i8* %0, %1
+  ret i1 %tmp
+}
+
+define i1 @"i="(i32 %0, i32 %1) {
+entry:
+  %tmp = icmp eq i32 %0, %1
+  ret i1 %tmp
+}
+
+define i32 @in() {
+entry:
+  %tmp = call i32 @getchar()
+  ret i32 %tmp
+}
+
+define i1 @print-unit(i1 %0) {
+entry:
+  %tmp = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([5 x i8], [5 x i8]* @unit, i32 0, i32 0))
+  ret i1 false
+}
+
+define i1 @print-bool(i1 %0) {
+entry:
+  %tmp = select i1 %0, i8* getelementptr inbounds ([5 x i8], [5 x i8]* @true, i32 0, i32 0), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @false, i32 0, i32 0)
+  %tmp1 = call i32 (i8*, ...) @printf(i8* %tmp)
+  ret i1 false
+}
+
+define i1 @print-int(i32 %0) {
+entry:
+  %tmp = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @fmt_int, i32 0, i32 0), i32 %0)
+  ret i1 false
+}
+
+define i1 @print-sym(i8* %0) {
+entry:
+  %tmp = call i32 (i8*, ...) @printf(i8* %0)
+  ret i1 false
+}
+
+define i1 @main() {
+entry:
+  %tmp = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([14 x i8], [14 x i8]* @sym_lit, i32 0, i32 0))
+  ret i1 false
+}
