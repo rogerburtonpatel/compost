@@ -8,13 +8,11 @@ let rec apes_to_ppes = function
     [] -> []
   | ((p, e) :: pes) -> (p, ae_to_pe e) :: (apes_to_ppes pes)
 and ae_to_pe = function
-    A.Begin(es) -> (match es with
-      | [] -> P.Literal(A.UnitLit)
-      | [e] -> ae_to_pe e
-      | (e :: es1) -> P.Begin(ae_to_pe e, ae_to_pe (A.Begin(es1))))
-  | A.Let(bs, e) -> (match bs with
-      | [] -> ae_to_pe e
-      | ((n, e1) :: bs) -> P.Let(n, ae_to_pe e1, ae_to_pe (A.Let(bs, e))))
+    A.Begin([]) -> P.Literal(A.UnitLit)
+  | A.Begin([e]) -> ae_to_pe e
+  | A.Begin(e :: es) -> P.Begin(ae_to_pe e, ae_to_pe (A.Begin(es)))
+  | A.Let([], e) -> ae_to_pe e
+  | A.Let(((n, eb) :: bs), e) -> P.Let(n, ae_to_pe eb, ae_to_pe (A.Let(bs, e)))
   | A.Literal(l) -> P.Literal(l)
   | A.NameExpr(n) -> P.NameExpr(n)
   | A.Case(e, pes) -> P.Case(ae_to_pe e, apes_to_ppes pes)
