@@ -43,20 +43,32 @@ let rec tyString = function
                     ^ String.concat " " (List.map tyString arg_ts) ^ ")" 
                     ^ tyString ret_t ^ ")"
 | A.CustomTy name -> name 
-let typesMatchOrError t1 t2 metainfo = 
+(* let typesMatchOrError t1 t2 metainfo = 
   if eqType t1 t2 
   then true
   else raise 
       (TypeError ("type mismatch: expected "
                   ^ tyString t1
-                  ^ " but got"
-                  ^ tyString t2 ^ metainfo))
-let rec checkFunArgTypes ts ts' = match (ts, ts') with 
+                  ^ " but got "
+                  ^ tyString t2 ^ metainfo)) *)
+
+let funtysMismatchError n ts ts' ret_t = 
+  "type mismatch: expected "
+                      ^ tyString (A.FunTy (ts, ret_t))
+                      ^ " but got "
+                      ^ tyString (A.FunTy (ts', ret_t)) 
+                      ^ " in function application of \"" ^ n ^ "\""
+let checkFunTypes n ts ts' ret_t = 
+  let rec go t_s t_s' = 
+  match (t_s, t_s') with 
 | ([], []) -> ()
-| (tau::taus, tau'::taus') -> let metainfo = " in function application" in 
-                              if typesMatchOrError tau tau' metainfo
-                              then checkFunArgTypes taus taus'
+| (tau::taus, tau'::taus') -> 
+      if eqType tau tau' 
+      then go taus taus'
+      else raise 
+          (TypeError (funtysMismatchError n ts ts' ret_t))
 | (_, _) -> raise (Impossible "mismatch in number of types in checkFunArgTypes")
+    in go ts ts' 
 
 let curry f x y = f (x, y)
 
@@ -105,7 +117,8 @@ let rec typeof gamma delta e =
                                         ^ Int.to_string n_given 
                                         ^ " were given."))
                 (* typecheck arguments - purely side-effecting *)
-                  else let () = checkFunArgTypes (List.map typ es) arg_ts in 
+                  else 
+                    let () = checkFunTypes n (List.map typ es) arg_ts ret_t in 
                   ret_t (* type is return type *)
                 | _ -> raise 
                           (TypeError 
@@ -227,22 +240,26 @@ let typecheckDef (defs, gamma, delta) = function
                               ^ "\" but a definition was given that has type \""
                               ^ tyString (A.FunTy (argtys, ret_ty )) ^ "\""))
       else 
-        let def' = T.Define (n, Ast.FunTy (argtys, ret_ty), args, 
-                             exp extended_gamma delta body) in
+        let funty = Ast.FunTy (argtys, ret_ty) in 
+        let def' = T.Define (n, funty, args, exp extended_gamma delta body) in
         (List.append defs [def'], gamma, delta)
     | _ -> raise (Impossible "found non-func name in top-level environment"))
 | U.Datatype (n, variants) -> 
-  let check_variant delta' (vname, ns_ts)  =
-    if not (StringMap.mem vname delta') 
-    then (StringMap.add vname (ns_ts, A.CustomTy n) delta') 
+  let check_variant delta' (vname, ts)  =
+    if not (StringMap.mem vname delta')
+    then (StringMap.add vname (ts, A.CustomTy n) delta') 
     else 
       let (_, existing_type) = StringMap.find vname delta in 
       raise (TypeError ("duplicate type constructor \"" 
                         ^ vname ^ "\": constructor already exists for type \"" 
                         ^ tyString existing_type ^ "\"")) 
-    in let extended_delta = List.fold_left check_variant delta variants in 
+    in let extended_delta = List.fold_left check_variant delta variants in
+    let add_variant gamma' (vname, ts) = 
+      StringMap.add vname (Ast.FunTy (ts, A.CustomTy n)) gamma' 
+    in 
+    let extended_gamma = List.fold_left add_variant gamma variants in 
     let datatype' = T.Datatype (n, variants) in
-    (List.append defs [datatype'], gamma, extended_delta)
+    (List.append defs [datatype'], extended_gamma, extended_delta)
 
 | U.TyAnnotation (n, ty) -> 
   if not (StringMap.mem n gamma)

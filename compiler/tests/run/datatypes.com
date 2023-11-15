@@ -23,6 +23,6 @@
 (: main (-> () unit))
 (define main ()
     (let 
-        ([x (cons-int 3 nil-intlist)]
+        ([x (cons-int 3 (nil-intlist))]
          [y (dup x)])
          unit))
