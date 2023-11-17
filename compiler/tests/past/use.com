@@ -1,3 +1,3 @@
 (val x 1)
-(use tests/past/test.com)
+(use 'tests/past/test.com')
 (val x 4)

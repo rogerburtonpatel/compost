@@ -1,1 +1,1 @@
-(use tests/past/depth.com)
+(use 'tests/past/depth.com')

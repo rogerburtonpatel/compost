@@ -85,8 +85,7 @@ ty:
 funtyinternal:
    ARROW parentylist ty { FunTy($2, $3) }
 
-/* NEEDSWORK: Decide if we want more specific restrictions on filenames */
-filename: NAME { $1 } 
+filename: SYMLIT { $1 } 
 
 expr:
    literal { Literal($1) }

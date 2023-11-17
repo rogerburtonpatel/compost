@@ -2,14 +2,16 @@
 
 type name = string 
 
-type filename = name (* NEEDSWORK: Decide if we want different rules for filenames *)
-
 type ty = FunTy of (ty list) * ty | Int | Bool | Unit | Sym | CustomTy of name 
+
+type symlit = string
+
+type filename = symlit
 
 type literal = 
     IntLit of int 
   | BoolLit of bool 
-  | SymLit of string 
+  | SymLit of symlit 
   | UnitLit 
 
 type pattern =
