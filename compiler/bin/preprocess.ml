@@ -5,7 +5,6 @@ module D = Difflist
 module S = Set.Make(String)
 
 exception RecursiveUse
-let maxdepth = 50
 
 (* adl = Ast def list, pe = Past expr *)
 
