@@ -1,0 +1,7 @@
+(val x 10)
+(use tests/past/test.com)
+(val x 20)
+(use tests/past/use.com)
+(val x 30)
+(use tests/past/nest.com)
+(val x 40)
