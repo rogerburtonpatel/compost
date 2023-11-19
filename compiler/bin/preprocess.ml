@@ -2,7 +2,9 @@ module P = Past
 module A = Ast
 module D = Difflist
 
-exception UseDepth
+module S = Set.Make(String)
+
+exception RecursiveUse
 let maxdepth = 50
 
 (* adl = Ast def list, pe = Past expr *)
@@ -23,21 +25,29 @@ and ae_to_pe = function
   | A.Apply(e, es) -> P.Apply(ae_to_pe e, List.map ae_to_pe es)
   | A.Dup(n) -> P.Dup(n)
 
-let rec ad_to_pdl depth = function
+let rec ad_to_pdl use_all use_recur = function
     A.Use(filename) ->
+    if S.mem filename use_recur then raise RecursiveUse else
+    if S.mem filename use_all then (D.empty, use_all) else
     let channel = open_in filename in
     let lexbuf = Lexing.from_channel channel in
     let ast = Parser.program Scanner.token lexbuf in
-    adl_to_pdl ast (depth + 1)
-  | A.Val(n, e) -> D.singleton (P.Val(n, ae_to_pe e))
-  | A.Define(n, ns, e) -> D.singleton (P.Define(n, ns, ae_to_pe e))
-  | A.Datatype(n, ntss) -> D.singleton (P.Datatype(n, ntss))
-  | A.TyAnnotation(n, t) -> D.singleton (P.TyAnnotation(n, t))
+    let use_all = S.add filename use_all in
+    let use_recur = S.add filename use_recur in
+    adl_to_pdl ast use_all use_recur
+  | A.Val(n, e) -> (D.singleton (P.Val(n, ae_to_pe e)), use_all)
+  | A.Define(n, ns, e) -> (D.singleton (P.Define(n, ns, ae_to_pe e)), use_all)
+  | A.Datatype(n, ntss) -> (D.singleton (P.Datatype(n, ntss)), use_all)
+  | A.TyAnnotation(n, t) -> (D.singleton (P.TyAnnotation(n, t)), use_all)
 
-and fold_adl_to_pdl depth ad pdl = D.cons (ad_to_pdl depth ad) pdl
+and fold_adl_to_pdl use_recur pdl ad = match pdl with
+    (pdl, use_all) -> ( 
+      match (ad_to_pdl use_all use_recur ad) with
+        | (pdl2, use_all2) -> (D.cons pdl pdl2, use_all2)
+    )
 
-and adl_to_pdl adl depth = 
-  if depth > maxdepth then raise UseDepth else
-  List.fold_right (fold_adl_to_pdl depth) adl (D.empty)
+and adl_to_pdl adl use_all use_recur = 
+  List.fold_left (fold_adl_to_pdl use_recur) (D.empty, use_all) adl
 
-let preprocess adeflist = D.tolist (adl_to_pdl adeflist 0)
+let preprocess adeflist = match (adl_to_pdl adeflist S.empty S.empty) with
+  | (pdl, _) -> D.tolist pdl
