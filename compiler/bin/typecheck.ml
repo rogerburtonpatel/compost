@@ -40,7 +40,7 @@ let rec tyString = function
 | A.Unit -> "Unit"
 | A.FunTy (arg_ts, ret_t) -> 
                     "(-> (" 
-                    ^ String.concat " " (List.map tyString arg_ts) ^ ")" 
+                    ^ String.concat " " (List.map tyString arg_ts) ^ ") " 
                     ^ tyString ret_t ^ ")"
 | A.CustomTy name -> name 
 (* let typesMatchOrError t1 t2 metainfo = 
@@ -69,6 +69,16 @@ let checkFunTypes n ts ts' ret_t =
           (TypeError (funtysMismatchError n ts ts' ret_t))
 | (_, _) -> raise (Impossible "mismatch in number of types in checkFunArgTypes")
     in go ts ts' 
+
+let extendGammaWithPat gamma delta pat = 
+  match pat with 
+  | A.WildcardPattern -> gamma
+  | A.Pattern (pn, ns) -> 
+    let (typ_args, _) = StringMap.find pn delta in 
+    let gamma' = 
+      List.fold_left2 (fun g n t -> StringMap.add n t g) 
+                        gamma ns typ_args in 
+      gamma' 
 
 let curry f x y = f (x, y)
 
@@ -158,17 +168,9 @@ let rec typeof gamma delta expr =
         3. ensure all types are equal *)
         let typeCheckRHS pattern rhs = 
           (* extends gamma with bindings introduced by pat *)
-          let mkBindings gamma' pat = 
-            match pat with 
-            | A.WildcardPattern -> gamma'
-            | A.Pattern (pn, ns) -> 
-              let (typ_args, _) = StringMap.find pn delta in 
-              let gamma'' = 
-                List.fold_left2 (fun g n t -> StringMap.add n t g) 
-                                 gamma' ns typ_args in 
-                gamma'' 
-              in 
-              let extended_gamma = mkBindings gamma pattern in 
+              let extended_gamma = extendGammaWithPat gamma delta pattern in 
+              print_endline "Typechecking rhs with gamma: \n";
+              StringMap.iter (fun s t -> print_endline (s ^ " -> " ^ tyString t)) extended_gamma ;
               typeof extended_gamma delta rhs
             in 
             
@@ -219,7 +221,10 @@ let rec exp gamma delta expr =
               let names_tys = List.combine ns vartys in 
               T.Pattern (n, names_tys)
           in 
-        let rhs_es        = List.map exp' rhss in 
+        let rhs_es = 
+          List.map2 (fun pat rhs -> 
+                      let extended_gamma = extendGammaWithPat gamma delta pat 
+                      in exp extended_gamma delta rhs) pats rhss in 
         let pats'         = List.map patconvert pats in 
         let branches'     = List.combine pats' rhs_es in 
         (* let branches'     = List.map (fun (pat, (e, t)) -> 
