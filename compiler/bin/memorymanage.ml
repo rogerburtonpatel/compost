@@ -26,28 +26,49 @@ exception Unimplemented of string
 exception Impossible of string 
 
 (* Convert Compost type `ty` to the appropriate LLVM type *)
-let rec convert_ty ty = 
+let rec convert_builtin_ty ty = 
     match ty with 
     | Ast.FunTy(tylist, ty) ->
         let convert_param_ty = function
-            | Ast.FunTy _  as fun_ty -> M.Ptr(convert_ty fun_ty)
-            | other_ty -> convert_ty other_ty
+            | Ast.FunTy _  as fun_ty -> M.Ptr(convert_builtin_ty fun_ty)
+            | other_ty -> convert_builtin_ty other_ty
         in
-        M.Fun(convert_ty ty, List.map convert_param_ty tylist)
+        M.Fun(convert_builtin_ty ty, List.map convert_param_ty tylist)
     | Ast.Unit -> M.Int(1)
     | Ast.Int -> M.Int(32) (* 32-bit integer *)
     | Ast.Bool -> M.Int(1) (* 1-bit integer *)
     | Ast.Sym -> M.Ptr(Int(8)) (* pointer to a 8-bit integer *)
-    | Ast.CustomTy(_) -> 
-        (* LLVM type for a custom type is a pointer to a struct containing a 
-         * 32-bit variant identifier, followed by a pointer to a 64-bit integer
-         * where the pointer is meant to hold the address of the struct 
-         * representing that variant (64-bit integer is a placeholder because 
-         * the struct definition depends on the variant 
-         *)
-        M.Ptr(M.Struct([M.Int(32) ; M.Ptr(M.Int(64))]))
+    | Ast.CustomTy(_) -> raise (Impossible "Erroneously called convert_builtin_ty on a custom datatype")
 
 let mast_of_fast fast = 
+    (* Get all datatype definitions *)
+    let datatypes = 
+        let add_datatype map def = 
+            match def with 
+            | F.Datatype(name, variants) -> StringMap.add name variants map 
+            | _ -> map
+        in
+        List.fold_left add_datatype StringMap.empty fast 
+    in
+    (* Convert fast ty to mast ty *)
+    let convert_ty ty = 
+        match ty with 
+        (* LLVM type for a custom type is a pointer to a struct containing a 
+         * 32-bit variant identifier (i.e. tag), followed by $n$ i64s, where 
+         * $n$ equals the maximum number of arguments for a variant constructor 
+         * of this type
+         *)
+        | Ast.CustomTy(tyname) -> 
+            let variants = StringMap.find tyname datatypes in
+            let update_maxnum_variantargs currmax currvariant = 
+                let (_, currvarianttys) = currvariant in 
+                max currmax (List.length currvarianttys) 
+            in
+            let maxnum_variantargs = List.fold_left update_maxnum_variantargs 0 variants in 
+            let gen_i64 _ = M.Int(64) in 
+            M.Ptr(M.Struct(M.Int(32) :: List.init maxnum_variantargs gen_i64))
+        | _ -> convert_builtin_ty ty 
+    in
     (* Convert fast expr to mast expr *)
     let rec convert_expr fast_expr =
         match fast_expr with
@@ -99,7 +120,7 @@ let mast_of_fast fast =
                         (* Let variant_varnames just be a sequence of integers starting from 0, prepended by "var" *)
                         let varname_of_int int = "var" ^ string_of_int int in 
                         let variant_varnames = List.init (List.length variant_tys) varname_of_int in 
-                        let pattern = M.Pattern(variant_name, variant_varnames) in 
+                        let pattern = M.Pattern("_" ^ variant_name, variant_varnames) in 
                         let expr = 
                             let alloc_ty index ty = 
                             match ty with 
@@ -126,7 +147,7 @@ let mast_of_fast fast =
                         (* Let variant_varnames just be a sequence of integers starting from 0, prepended by "var" *)
                         let varname_of_int int = "var" ^ string_of_int int in 
                         let variant_varnames = List.init (List.length variant_tys) varname_of_int in 
-                        let pattern = M.Pattern(variant_name, variant_varnames) in 
+                        let pattern = M.Pattern("_" ^ variant_name, variant_varnames) in 
                         let expr = 
                             let unitlit = M.Literal(Ast.UnitLit) in 
                             let gen_free_call varname ty = 
