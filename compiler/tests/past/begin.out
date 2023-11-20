@@ -1,0 +1,1 @@
+(val x (let ([4 (dup one)]) (let ([3 (dup two)]) (let ([2 (dup three)]) (let ([1 four]) five)))))
