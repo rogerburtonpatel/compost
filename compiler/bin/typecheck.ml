@@ -169,8 +169,9 @@ let rec typeof gamma delta expr =
         let typeCheckRHS pattern rhs = 
           (* extends gamma with bindings introduced by pat *)
               let extended_gamma = extendGammaWithPat gamma delta pattern in 
-              print_endline "Typechecking rhs with gamma: \n";
-              StringMap.iter (fun s t -> print_endline (s ^ " -> " ^ tyString t)) extended_gamma ;
+              (* print_endline "Typechecking rhs with gamma: \n";
+              StringMap.iter (fun s t -> print_endline (s ^ " -> " ^ tyString t)) 
+              extended_gamma ; *)
               typeof extended_gamma delta rhs
             in 
             
