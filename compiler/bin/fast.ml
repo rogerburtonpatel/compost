@@ -19,7 +19,6 @@ and expr =
   | Global of name
   | Case of ty * expr * (pattern * expr) list
   | If of expr * expr * expr
-  | Begin of expr * expr
   | Let of name * expr * expr
   | Apply of expr * expr list
   | Dup of ty * name

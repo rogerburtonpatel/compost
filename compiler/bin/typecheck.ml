@@ -95,8 +95,7 @@ let rec typeof gamma delta e =
                           | _ -> raise 
                                (TypeError ("condition failed to typecheck to "
                                           ^ "boolean in \"if\" expression")))
-  | U.Begin (e1, e2) -> let (_, t) = (typ e1, typ e2) in t
-  | U.Let (n, e, e') -> 
+  | U.Let (n, e, e') ->
     let rhs_t = typ e in 
                         let extended_gamma = (StringMap.add n rhs_t gamma) in 
                         typeof extended_gamma delta e'
@@ -204,10 +203,7 @@ let rec exp gamma delta expr =
     | U.If (e1, e2, e3) -> 
         let _ = typeof' e in
           T.If (exp' e1, exp' e2, exp' e3)
-    | U.Begin (e1, e2)       -> let _ = typeof' e1 in
-                                let _ = typeof' e2 in
-                                T.Begin (exp' e1, exp' e2)
-    | U.Let (n, e1, e') as lt ->   
+    | U.Let (n, e1, e') as lt ->
       let _      = typeof' lt in 
                                    let ty_e   = typeof' e1 in 
                                    let gamma' = StringMap.add n ty_e gamma in 

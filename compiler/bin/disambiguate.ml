@@ -23,10 +23,6 @@ let rec expr locals = function
     let e2' = expr locals e2 in
     let e3' = expr locals e3 in
     U.If (e1', e2', e3')
-  | P.Begin (e1, e2) ->
-    let e1' = expr locals e1 in
-    let e2' = expr locals e2 in
-    U.Begin (e1', e2')
   | P.Let (n, e, body) ->
     let e' = expr locals e in
     let body' = expr (S.add n locals) body in

@@ -28,10 +28,6 @@ let rec check bound consumed expr =
     let (e2', c2) = check bound (S.union consumed c1) e2 in
     let (e3', c3) = check bound (unions [consumed; c1; c2]) e3 in
     (F.If (e1', e2', e3'), unions [c1; c2; c3])
-  | T.Begin (e1, e2) ->
-    let (e1', c1) = check bound consumed e1 in
-    let (e2', c2) = check bound (S.union consumed c1) e2 in
-    (F.Begin (e1', e2'), S.union c1 c2)
   | T.Let (n, e_ty, e, body) ->
     let (e', c) = check bound consumed e in
     let (body', cb) = check ((n, e_ty) :: bound) (S.union consumed c) body in
@@ -77,10 +73,6 @@ let rec check_last bound consumed expr =
     let (e2', c2) = check_last bound (S.union consumed c1) e2 in
     let (e3', c3) = check_last bound (unions [consumed; c1; c2]) e3 in
     (F.If (e1', e2', e3'), unions [c1; c2; c3])
-  | T.Begin (e1, e2) ->
-    let (e1', c1) = check bound consumed e1 in
-    let (e2', c2) = check_last bound (S.union consumed c1) e2 in
-    (F.Begin (e1', e2'), S.union c1 c2)
   | T.Let (n, e_ty, e, body) ->
     let (e', c) = check bound consumed e in
     let (body', cb) = check_last ((n, e_ty) :: bound) (S.union consumed c) body in
@@ -102,7 +94,10 @@ let rec check_last bound consumed expr =
     let (e', c) = check bound consumed e in
     let (es', c') = check_args es c in
     (F.Apply (e', es'), c')
-  | _ -> raise (Impossible "unimplemented")
+  (* | T.Case (e_ty, e, branches) ->  *)
+  (*   let (e', c) = check bound consumed e in *)
+  (*   let check_branch consumed_acc (pat, body) = *)
+
 
 let check_def = function
   | T.Define (fun_name, Ast.FunTy (param_tys, return_ty), params, body) ->

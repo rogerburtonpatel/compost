@@ -22,7 +22,6 @@ and expr =
   | Global of name
   | Case of ty * expr * (pattern * expr) list
   | If of expr * expr * expr
-  | Begin of expr * expr
   | Let of name * expr * expr
   | Apply of expr * expr list
   (* Memory-Related *)
@@ -68,8 +67,6 @@ let rec string_of_expr = function
      "(case (type " ^ string_of_ty ty ^ ") " ^ string_of_expr expr ^ " (" ^ String.concat " " (List.map string_of_casebranch casebranchlist) ^ "))"
  | If(expr1, expr2, expr3) -> 
      "(if " ^ string_of_expr expr1 ^ " " ^ string_of_expr expr2 ^ " " ^ string_of_expr expr3 ^ ")"
- | Begin(expr1, expr2) ->
-     "(begin " ^ string_of_expr expr1 ^ " " ^ string_of_expr expr2 ^ ")"
  | Let(name, expr1, expr2) ->
      "(let " ^ "([" ^ name ^ " " ^ string_of_expr expr1 ^ "]) " ^ string_of_expr expr2 ^ ")"
  | Apply(expr, exprlist) -> 

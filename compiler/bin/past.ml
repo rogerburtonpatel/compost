@@ -13,7 +13,6 @@ and expr =
   | NameExpr of name 
   | Case of expr * (pattern * expr) list
   | If of expr * expr * expr 
-  | Begin of expr * expr
   | Let of name * expr * expr
   | Apply of expr * (expr list) 
   | Dup of name 
@@ -43,8 +42,6 @@ let rec string_of_expr = function
  | NameExpr(name) -> name 
  | If(expr1, expr2, expr3) -> 
      "(if " ^ string_of_expr expr1 ^ " " ^ string_of_expr expr2 ^ " " ^ string_of_expr expr3 ^ ")"
- | Begin(expr1, expr2) ->
-     "(begin " ^ string_of_expr expr1 ^ " " ^ string_of_expr expr2 ^ ")"
  | Let(name, expr1, expr2) ->
      "(let " ^ "([" ^ name ^ " " ^ string_of_expr expr1 ^ "]) " ^ string_of_expr expr2 ^ ")"
  | Apply(expr, exprlist) -> 

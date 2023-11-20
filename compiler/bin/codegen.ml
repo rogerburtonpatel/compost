@@ -36,7 +36,6 @@ let codegen program =
         let branch_lits = unions (List.map (fun (_, e) -> get_sym_lits e) branches) in
         StringSet.union (get_sym_lits e) branch_lits
       | M.If (e1, e2, e3) -> unions [get_sym_lits e1; get_sym_lits e2; get_sym_lits e3]
-      | M.Begin (e1, e2) -> unions [get_sym_lits e1; get_sym_lits e2]
       | M.Let (_, e1, e2) -> unions [get_sym_lits e1; get_sym_lits e2]
       | M.Apply (e, args) -> unions ((get_sym_lits e) :: (List.map get_sym_lits args))
       | M.Free (_, e) -> get_sym_lits e
@@ -221,9 +220,6 @@ let codegen program =
         end
       | M.Local n -> (StringMap.find n locals, builder)
       | M.Global n -> (StringMap.find n functions, builder)
-      | M.Begin (e1, e2) ->
-        let (_, builder') = non_tail locals builder e1 in
-        tail locals builder' e2
       | M.Let (n, e, body) ->
         let (e_val, builder') = non_tail locals builder e in
         let locals' = StringMap.add n e_val locals in

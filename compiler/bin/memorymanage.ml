@@ -89,7 +89,6 @@ let mast_of_fast fast =
             M.Case(convert_ty ty, convert_expr expr, List.map convert_casebranch casebranches)
         | F.If(expr1, expr2, expr3) ->
             M.If(convert_expr expr1, convert_expr expr2, convert_expr expr3)
-        | F.Begin(expr1, expr2) -> M.Begin(convert_expr expr1, convert_expr expr2)
         | F.Let(name, expr, body) -> M.Let(name, convert_expr expr, convert_expr body)
         | F.Apply(expr, exprlist) -> M.Apply(convert_expr expr, List.map (convert_expr) exprlist)
         | F.Dup(ty, name) -> 
@@ -98,7 +97,7 @@ let mast_of_fast fast =
               | _ -> M.Local(name) (* no-op for now that returns the name; another option is to throw InvalidDup exception *))
         | F.FreeRec(ty, name, expr) -> 
             (match ty with 
-              | CustomTy(tyname) -> M.Begin(M.Apply(M.Global("free_" ^ tyname), [M.Local(name)]), convert_expr expr)
+              | CustomTy(tyname) -> M.Let(Freshnames.fresh_name (), M.Apply(M.Global("free_" ^ tyname), [M.Local(name)]), convert_expr expr)
               | _ -> raise (Impossible "Erroneously called FreeRec on something that was not a custom type"))
         | F.Free(_, name, expr) -> M.Free(name, convert_expr expr)
     in 
@@ -161,7 +160,7 @@ let mast_of_fast fast =
                                 match free_calls with 
                                  | [] -> unitlit
                                  | [call] -> call 
-                                 | call :: calls -> M.Begin(call, free_expr_of_calls calls) 
+                                 | call :: calls -> M.Let(Freshnames.fresh_name (), call, free_expr_of_calls calls)
                             in 
                             M.Free("instance", free_expr_of_calls free_calls)
                         in 

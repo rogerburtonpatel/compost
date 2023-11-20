@@ -14,7 +14,7 @@ let rec apes_to_ppes = function
 and ae_to_pe = function
     A.Begin([]) -> P.Literal(A.UnitLit)
   | A.Begin([e]) -> ae_to_pe e
-  | A.Begin(e :: es) -> P.Begin(ae_to_pe e, ae_to_pe (A.Begin(es)))
+  | A.Begin(e :: es) -> P.Let(Freshnames.fresh_name (), ae_to_pe e, ae_to_pe (A.Begin(es)))
   | A.Let([], e) -> ae_to_pe e
   | A.Let(((n, eb) :: bs), e) -> P.Let(n, ae_to_pe eb, ae_to_pe (A.Let(bs, e)))
   | A.Literal(l) -> P.Literal(l)
