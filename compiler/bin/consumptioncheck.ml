@@ -121,6 +121,7 @@ let rec check_last bound consumed expr =
     (F.Apply (e', es'), c')
   | T.Case (e_ty, e, branches) ->
     let (e', c) = check bound consumed e in
+    let scrutinee_name = Freshnames.fresh_name () in
     let check_branch (pat, body) =
       let bound' = match pat with
         | T.Pattern (_, binds) -> binds @ bound
@@ -133,10 +134,10 @@ let rec check_last bound consumed expr =
         | _ -> F.WildcardPattern
       in
       let (body', branch_c) = check_last bound' c body in
-      ((convert_pat pat, body'), branch_c)
+      ((convert_pat pat, F.Free (e_ty, scrutinee_name, body')), branch_c)
     in
     let (branches', branch_cs) = List.split (List.map check_branch branches) in
-    (F.Case (e_ty, e', branches'), unions (c :: branch_cs))
+    (F.Let (scrutinee_name, e', F.Case (e_ty, F.Local scrutinee_name, branches')), unions (c :: branch_cs))
 
 let check_def = function
   | T.Define (fun_name, Ast.FunTy (param_tys, return_ty), params, body) ->

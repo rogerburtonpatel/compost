@@ -99,6 +99,7 @@ let mast_of_fast fast =
             (match ty with 
               | CustomTy(tyname) -> M.Let(Freshnames.fresh_name (), M.Apply(M.Global("free_" ^ tyname), [M.Local(name)]), convert_expr expr)
               | _ -> raise (Impossible "Erroneously called FreeRec on something that was not a custom type"))
+        | F.Free(_, name, expr) -> M.Free(name, convert_expr expr)
     in
     (* Converts a fast definition to a _list_ of mast definitions *)
     let convert_defs fast_def =

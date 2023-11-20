@@ -23,6 +23,7 @@ and expr =
   | Apply of expr * expr list
   | Dup of ty * name
   (* Memory-Related *)
+  | Free of ty * name * expr (* Corresponds to a call to `free()` *)
   | FreeRec of ty * name * expr (* Corresponds to a call to "_free_" ^ (name_of ty) *)
 
 type def =
