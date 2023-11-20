@@ -1,0 +1,23 @@
+Starting intlist test
+012
+Finished intlist test
+Starting direction test
+LeftRight
+Finished direction test
+Starting bst test
+012345
+Finishing bst test
+Starting multilist test
+1
+true
+2
+false
+1
+2
+Finished intlist test
+Starting twointlist test
+List 1:
+012
+List 2:
+-1012
+Finishing twointlist test

@@ -1,1 +1,1 @@
-(define main type:(-> () i1) () (@print-sym 'Hello, World!'))
+(define main (type (-> () i1)) () (@print-sym 'Hello, World!'))
