@@ -11,12 +11,13 @@ type literal = Ast.literal
 
 type pattern =
     Pattern of name * name list
-  | WildcardPattern (* hmmm perhaps names are not consumed if matched by wildcard? *)
+  | WildcardPattern
 
 and expr =
     Literal of literal
   | Local of name
   | Global of name
+  (* Case no longer implicity frees the top level of its scrutinee *)
   | Case of ty * expr * (pattern * expr) list
   | If of expr * expr * expr
   | Let of name * expr * expr

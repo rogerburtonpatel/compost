@@ -121,20 +121,19 @@ let rec check_last bound consumed expr =
     (F.Apply (e', es'), c')
   | T.Case (e_ty, e, branches) ->
     let (e', c) = check bound consumed e in
+    (* Bind the scrutinee to a name that can be freed in the branches *)
     let scrutinee_name = Freshnames.fresh_name () in
-    let check_branch (pat, body) =
-      let bound' = match pat with
-        | T.Pattern (_, binds) -> binds @ bound
-        | T.WildcardPattern -> bound
-      in
-      let convert_pat = function
-        | T.Pattern (n, binds) ->
-          let (bound, _) = List.split binds in
-          F.Pattern (n, bound)
-        | _ -> F.WildcardPattern
-      in
-      let (body', branch_c) = check_last bound' c body in
-      ((convert_pat pat, F.Free (e_ty, scrutinee_name, body')), branch_c)
+    let check_branch (pat, body) = match pat with
+      | T.Pattern (n, binds) ->
+        let bound' = binds @ bound in
+        let (body', branch_c) = check_last bound' c body in
+        let (bound, _) = List.split binds in
+        (* Explicity free the top level struct of the scrutinee *)
+        ((F.Pattern (n, bound), F.Free (e_ty, scrutinee_name, body')), branch_c)
+      | _ ->
+        (* No need to free the scrutinee immediately in a wildcard branch *)
+        let (body', branch_c) = check_last ((scrutinee_name, e_ty) :: bound) c body in
+        ((F.WildcardPattern, body'), branch_c)
     in
     let (branches', branch_cs) = List.split (List.map check_branch branches) in
     (F.Let (scrutinee_name, e', F.Case (e_ty, F.Local scrutinee_name, branches')), unions (c :: branch_cs))
