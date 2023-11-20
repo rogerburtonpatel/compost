@@ -163,7 +163,7 @@
     (case inst 
         ([(cons-multi-int x xs) (begin (print-int x) (print-endline) (print-multilist-ints xs))]
          [(cons-multi-bool _ xs) (print-multilist-ints xs)]
-         [(nil-multilist) unit])))
+         [_ unit])))
 
 ;; Tests functionality of a twointlist datatype 
 (: test-twointlist (-> () unit))
