@@ -65,7 +65,8 @@ let rec check bound consumed expr =
     let (branches', branch_cs) = List.split (List.map check_branch branches) in
     (F.Case (e_ty, e', branches'), unions (c :: branch_cs))
 
-let rec dealloc_in to_free expr = match to_free with
+let rec dealloc_in to_free expr =
+  match to_free with
   | [] -> expr
   | ((n, n_ty) :: xs) -> match n_ty with
     (* Only emit calls to _free_ functions for variant values *)
@@ -73,18 +74,25 @@ let rec dealloc_in to_free expr = match to_free with
     | _ -> dealloc_in xs expr
 
 (* Note: we assume here that all names bound by nested lets are distinct *)
-let freeable bound consumed = List.filter (fun (n, _) -> S.mem n consumed) bound
+let freeable bound consumed = List.filter (fun (n, _) -> not (S.mem n consumed)) bound
 
 (* We only deallocate at the last executed terminal expression*)
 let rec check_last bound consumed expr =
   match expr with
+  (* === Base Cases (names may be freed here) === *)
+  (* Fail when the programmer attempts to reference dead names *)
   | T.Local n when S.mem n consumed -> raise (NameAlreadyConsumed n)
+  (* If n is still live, consume n and free any unused bound variables *)
   | T.Local n when has_funty n bound -> (dealloc_in (freeable bound (S.remove n consumed)) (F.Local n), S.singleton n)
   | T.Local n -> (dealloc_in (freeable bound (S.remove n consumed)) (F.Local n), S.empty)
+  (* Global names are always live *)
   | T.Global n -> (dealloc_in (freeable bound (S.remove n consumed)) (F.Global n), S.empty)
-  | T.Dup (_, n) when S. mem n consumed -> raise (NameAlreadyConsumed n)
+  | T.Dup (_, n) when S.mem n consumed -> raise (NameAlreadyConsumed n)
   | T.Dup (ty, n) -> (dealloc_in (freeable bound (S.remove n consumed)) (F.Dup (ty, n)), S.empty)
-  | T.Literal (l) -> (dealloc_in (freeable bound consumed) (F.Literal l), S.empty)
+  | T.Literal (l) ->
+    let _ = freeable bound consumed in
+    (dealloc_in (freeable bound consumed) (F.Literal l), S.empty)
+  (* === Recursive Cases === *)
   | T.If (e1, e2, e3) ->
     let (e1', c1) = check bound consumed e1 in
     let (e2', c2) = check_last bound (S.union consumed c1) e2 in
@@ -133,7 +141,7 @@ let rec check_last bound consumed expr =
 let check_def = function
   | T.Define (fun_name, Ast.FunTy (param_tys, return_ty), params, body) ->
     let fun_ty = Ast.FunTy (param_tys, return_ty) in
-    let init_bound = (fun_name, fun_ty) :: List.combine params param_tys in
+    let init_bound = List.combine params param_tys in
     let (body', _) = check_last init_bound S.empty body in
     F.Define (fun_name, fun_ty, params, body')
   | T.Define _ -> raise (Impossible "function with non-function type")
