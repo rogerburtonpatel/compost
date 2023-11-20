@@ -46,7 +46,24 @@ let rec check bound consumed expr =
     let (e', c) = check bound consumed e in
     let (es', c') = check_args es c in
     (F.Apply (e', es'), c')
-  | _ -> raise (Impossible "unimplemented")
+  | T.Case (e_ty, e, branches) ->
+    let (e', c) = check bound consumed e in
+    let check_branch (pat, body) =
+      let bound' = match pat with
+        | T.Pattern (_, binds) -> binds @ bound
+        | T.WildcardPattern -> bound
+      in
+      let convert_pat = function
+        | T.Pattern (n, binds) ->
+          let (bound, _) = List.split binds in
+          F.Pattern (n, bound)
+        | _ -> F.WildcardPattern
+      in
+      let (body', branch_c) = check bound' c body in
+      ((convert_pat pat, body'), branch_c)
+    in
+    let (branches', branch_cs) = List.split (List.map check_branch branches) in
+    (F.Case (e_ty, e', branches'), unions (c :: branch_cs))
 
 let rec dealloc_in to_free expr = match to_free with
   | [] -> expr
@@ -94,10 +111,24 @@ let rec check_last bound consumed expr =
     let (e', c) = check bound consumed e in
     let (es', c') = check_args es c in
     (F.Apply (e', es'), c')
-  (* | T.Case (e_ty, e, branches) ->  *)
-  (*   let (e', c) = check bound consumed e in *)
-  (*   let check_branch consumed_acc (pat, body) = *)
-
+  | T.Case (e_ty, e, branches) ->
+    let (e', c) = check bound consumed e in
+    let check_branch (pat, body) =
+      let bound' = match pat with
+        | T.Pattern (_, binds) -> binds @ bound
+        | T.WildcardPattern -> bound
+      in
+      let convert_pat = function
+        | T.Pattern (n, binds) ->
+          let (bound, _) = List.split binds in
+          F.Pattern (n, bound)
+        | _ -> F.WildcardPattern
+      in
+      let (body', branch_c) = check_last bound' c body in
+      ((convert_pat pat, body'), branch_c)
+    in
+    let (branches', branch_cs) = List.split (List.map check_branch branches) in
+    (F.Case (e_ty, e', branches'), unions (c :: branch_cs))
 
 let check_def = function
   | T.Define (fun_name, Ast.FunTy (param_tys, return_ty), params, body) ->
