@@ -72,7 +72,7 @@ let checkFunTypes n ts ts' ret_t =
 
 let curry f x y = f (x, y)
 
-let rec typeof gamma delta e = 
+let rec typeof gamma delta expr = 
   let rec typ = function  
   | U.Literal l -> 
     (match l with A.IntLit _ -> A.Int
@@ -131,39 +131,65 @@ let rec typeof gamma delta e =
 
   | U.Case (_, []) -> raise (TypeError "empty case expression")
   | U.Case (e, branches) -> 
-    (* scrutinee MUST be custom type; no literal pattern matching *)
     let typ_scrutinee = typ e in 
+    (* scrutinee MUST be custom type; no literal pattern matching *)
       (match typ_scrutinee with A.CustomTy sname -> 
-        let bs' = List.map (fun (p, e) -> (p, e)) branches in
-        let (patterns, rhss) = List.split bs' in 
+        let (patterns, rhss) = List.split branches in 
         (* check all patterns to be well-formed with regards to the scrutinee *)
-        let typeCheckPattern pat = match pat with 
+        let typeCheckPattern = function
           | A.WildcardPattern -> ()
           | A.Pattern (pname, _) -> 
             (* ensure pattern maps to a type *)
             if not (StringMap.mem pname delta)
-            then raise (TypeError 
-            ("unknown type constructor \"" ^ sname 
-            ^ "\" in case branch"))
-            (* ensure the type it matches to is correct *)
+            then raise (TypeError ("unknown type constructor \"" ^ pname 
+                                   ^ "\" in case branch"))
             else 
-              let (_, typ_of_pat) = StringMap.find pname delta in 
-            if not (eqType typ_scrutinee typ_of_pat)
-            then raise (TypeError 
-                          ("scrutinee in case has type \"" ^ sname 
-                            ^ "\" but a branch is a pattern of type " 
-                            ^ pname ^ " \""))
-            else () (* success *)
+            (* ensure the type it matches to is correct *)
+            let (_, typ_of_pat) = StringMap.find pname delta in 
+              if not (eqType typ_scrutinee typ_of_pat)
+              then raise (TypeError ("scrutinee in case has type \"" ^ sname 
+                                      ^ "\" but a branch is a pattern of type " 
+                                      ^ pname ^ " \""))
+              else () (* success *)
         in 
-        let _ = List.iter typeCheckPattern patterns in 
-        let typ_first_rhs = typ (List.hd rhss) in 
+        (* typeCheckRHS to be mapped over branches. 
+        1. extends rhs environments with pattern-introduced names and types
+        2. typechecks rhss
+        3. ensure all types are equal *)
+        let typeCheckRHS pattern rhs = 
+          (* extends gamma with bindings introduced by pat *)
+          let mkBindings gamma' pat = 
+            match pat with 
+            | A.WildcardPattern -> gamma'
+            | A.Pattern (pn, ns) -> 
+              let (typ_args, _) = StringMap.find pn delta in 
+              let gamma'' = 
+                List.fold_left2 (fun g n t -> StringMap.add n t g) 
+                                 gamma' ns typ_args in 
+                gamma'' 
+              in 
+              let extended_gamma = mkBindings gamma pattern in 
+              typeof extended_gamma delta rhs
+            in 
+            
+        (* make bindings over pattern types *)
+        let _           = List.iter typeCheckPattern patterns in 
+        let typs_rhss   = List.map2 typeCheckRHS patterns rhss in 
+
+        let typ_fst_rhs = List.hd typs_rhss in 
         (* check all rhs's to be of the same type *)
-        let _ = List.for_all (eqType typ_first_rhs) (List.map typ rhss) in 
-        typ_first_rhs
-      | _ -> raise (TypeError
-                      ("expected custom datatype in case expression but got " 
-                      ^ tyString typ_scrutinee)))
-                    in typ e
+        let check_rhs_ty_match rhs' = 
+          if not (eqType rhs' typ_fst_rhs) 
+          then raise (TypeError ("a case expression's first branch has type " 
+                      ^ tyString typ_fst_rhs ^ ", but a later branch has type "
+                      ^ tyString rhs'))
+        in 
+        let _ = List.iter check_rhs_ty_match typs_rhss in 
+        typ_fst_rhs
+        | _ -> raise (TypeError
+                        ("expected custom datatype in case expression but got " 
+                        ^ tyString typ_scrutinee)))
+    in typ expr
 
 (* true type inference cookery in the works *)
                     (* and checkApplyAndExtendBindings fun_name (arg_typs, param_names_and_typs) ret_typ gamma delta = 
