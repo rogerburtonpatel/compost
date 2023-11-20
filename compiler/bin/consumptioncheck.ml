@@ -10,14 +10,14 @@ let unions sets = List.fold_right S.union sets S.empty
 exception NameAlreadyConsumed of string
 exception Impossible of string
 
-let has_funty n env = match List.assoc n env with
-    | Ast.FunTy _ -> true
+let has_dataty n env = match List.assoc n env with
+    | Ast.CustomTy _ -> true
     | _ -> false
 
 let rec check bound consumed expr =
   match expr with
   | T.Local n when S.mem n consumed -> raise (NameAlreadyConsumed n)
-  | T.Local n when has_funty n bound -> (F.Local n, S.singleton n)
+  | T.Local n when has_dataty n bound -> (F.Local n, S.singleton n)
   | T.Local n -> (F.Local n, S.empty)
   | T.Global n -> (F.Global n, S.empty)
   | T.Dup (_, n) when S.mem n consumed -> raise (NameAlreadyConsumed n)
@@ -48,22 +48,21 @@ let rec check bound consumed expr =
     (F.Apply (e', es'), c')
   | T.Case (e_ty, e, branches) ->
     let (e', c) = check bound consumed e in
-    let check_branch (pat, body) =
-      let bound' = match pat with
-        | T.Pattern (_, binds) -> binds @ bound
-        | T.WildcardPattern -> bound
-      in
-      let convert_pat = function
-        | T.Pattern (n, binds) ->
-          let (bound, _) = List.split binds in
-          F.Pattern (n, bound)
-        | _ -> F.WildcardPattern
-      in
-      let (body', branch_c) = check bound' c body in
-      ((convert_pat pat, body'), branch_c)
+    (* Bind the scrutinee to a name that can be freed in the branches *)
+    let scrutinee_name = Freshnames.fresh_name () in
+    let check_branch (pat, body) = match pat with
+      | T.Pattern (n, binds) ->
+        let bound' = binds @ bound in
+        let (body', branch_c) = check bound' c body in
+        let (bound, _) = List.split binds in
+        (* Explicity free the top level struct of the scrutinee *)
+        ((F.Pattern (n, bound), F.Free (e_ty, scrutinee_name, body')), branch_c)
+      | _ ->
+        let (body', branch_c) = check bound c body in
+        ((F.WildcardPattern, F.Free (e_ty, scrutinee_name, body')), branch_c)
     in
     let (branches', branch_cs) = List.split (List.map check_branch branches) in
-    (F.Case (e_ty, e', branches'), unions (c :: branch_cs))
+    (F.Let (scrutinee_name, e', F.Case (e_ty, F.Local scrutinee_name, branches')), unions (c :: branch_cs))
 
 let rec dealloc_in to_free expr =
   match to_free with
@@ -83,8 +82,8 @@ let rec check_last bound consumed expr =
   (* Fail when the programmer attempts to reference dead names *)
   | T.Local n when S.mem n consumed -> raise (NameAlreadyConsumed n)
   (* If n is still live, consume n and free any unused bound variables *)
-  | T.Local n when has_funty n bound -> (dealloc_in (freeable bound (S.remove n consumed)) (F.Local n), S.singleton n)
-  | T.Local n -> (dealloc_in (freeable bound (S.remove n consumed)) (F.Local n), S.empty)
+  | T.Local n when has_dataty n bound -> (dealloc_in (freeable bound (S.remove n consumed)) (F.Local n), S.empty)
+  | T.Local n -> (dealloc_in (freeable bound (S.remove n consumed)) (F.Local n), S.singleton n)
   (* Global names are always live *)
   | T.Global n -> (dealloc_in (freeable bound (S.remove n consumed)) (F.Global n), S.empty)
   | T.Dup (_, n) when S.mem n consumed -> raise (NameAlreadyConsumed n)
@@ -132,8 +131,8 @@ let rec check_last bound consumed expr =
         ((F.Pattern (n, bound), F.Free (e_ty, scrutinee_name, body')), branch_c)
       | _ ->
         (* No need to free the scrutinee immediately in a wildcard branch *)
-        let (body', branch_c) = check_last ((scrutinee_name, e_ty) :: bound) c body in
-        ((F.WildcardPattern, body'), branch_c)
+        let (body', branch_c) = check_last bound c body in
+        ((F.WildcardPattern, F.Free (e_ty, scrutinee_name, body')), branch_c)
     in
     let (branches', branch_cs) = List.split (List.map check_branch branches) in
     (F.Let (scrutinee_name, e', F.Case (e_ty, F.Local scrutinee_name, branches')), unions (c :: branch_cs))

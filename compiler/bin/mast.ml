@@ -68,11 +68,11 @@ let rec string_of_expr = function
  | If(expr1, expr2, expr3) -> 
      "(if " ^ string_of_expr expr1 ^ " " ^ string_of_expr expr2 ^ " " ^ string_of_expr expr3 ^ ")"
  | Let(name, expr1, expr2) ->
-     "(let " ^ "([" ^ name ^ " " ^ string_of_expr expr1 ^ "]) " ^ string_of_expr expr2 ^ ")"
+     "(let " ^ "([%" ^ name ^ " " ^ string_of_expr expr1 ^ "]) " ^ string_of_expr expr2 ^ ")"
  | Apply(expr, exprlist) -> 
      "(" ^ string_of_expr expr ^ " " ^ String.concat " " (List.map string_of_expr exprlist) ^ ")"
  | Free(name, expr) -> 
-     "(free " ^ name ^ " " ^ string_of_expr expr ^ ")"
+     "(free %" ^ name ^ " " ^ string_of_expr expr ^ ")"
  | Alloc(ty, tag, exprlist) -> 
      "(alloc (type " ^ string_of_ty ty ^ ") " ^ string_of_int tag ^ " [ " ^ String.concat "; " (List.map string_of_expr exprlist) ^ " ] " 
 
