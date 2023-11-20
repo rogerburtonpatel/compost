@@ -45,7 +45,7 @@ let rec string_of_ty = function
  | Int(int) -> "i" ^ string_of_int int 
  | Ptr(ty) -> string_of_ty ty ^ " *"
  | Struct(tylist) -> 
-      "{ " ^ String.concat "; " (List.map string_of_ty tylist) ^ " }"
+      "(struct (members " ^ String.concat " " (List.map string_of_ty tylist) ^ "))"
 
 let string_of_lit lit = Ast.string_of_lit lit 
 
@@ -65,7 +65,7 @@ let rec string_of_expr = function
  | Local(name) -> "%" ^ name 
  | Global(name) -> "@" ^ name 
  | Case(ty, expr, casebranchlist) ->
-     "(case " ^ "type:" ^ string_of_ty ty ^ " " ^ string_of_expr expr ^ " (" ^ String.concat " " (List.map string_of_casebranch casebranchlist) ^ "))"
+     "(case (type " ^ string_of_ty ty ^ ") " ^ string_of_expr expr ^ " (" ^ String.concat " " (List.map string_of_casebranch casebranchlist) ^ "))"
  | If(expr1, expr2, expr3) -> 
      "(if " ^ string_of_expr expr1 ^ " " ^ string_of_expr expr2 ^ " " ^ string_of_expr expr3 ^ ")"
  | Begin(expr1, expr2) ->
@@ -77,7 +77,7 @@ let rec string_of_expr = function
  | Free(name, expr) -> 
      "(free " ^ name ^ " " ^ string_of_expr expr ^ ")"
  | Alloc(ty, tag, exprlist) -> 
-     "(alloc " ^ "type:" ^ string_of_ty ty ^ " " ^ string_of_int tag ^ " [ " ^ String.concat "; " (List.map string_of_expr exprlist) ^ " ] " 
+     "(alloc (type " ^ string_of_ty ty ^ ") " ^ string_of_int tag ^ " [ " ^ String.concat "; " (List.map string_of_expr exprlist) ^ " ] " 
 
 and string_of_bind = function 
    (name, expr) -> "[" ^ name ^ " " ^ string_of_expr expr ^ "]"
@@ -87,6 +87,6 @@ and string_of_casebranch = function
   
 let string_of_def = function 
  | Define(name, ty, namelist, expr) -> 
-     "(define " ^ name ^ " " ^ "type:" ^ string_of_ty ty ^ " (" ^ String.concat " " namelist ^ ") " ^ string_of_expr expr ^ ")"
+     "(define " ^ name ^ " (type " ^ string_of_ty ty ^ ") (" ^ String.concat " " namelist ^ ") " ^ string_of_expr expr ^ ")"
 
 let string_of_program deflist = String.concat "\n" (List.map string_of_def deflist)

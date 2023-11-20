@@ -73,7 +73,7 @@ let mast_of_fast fast =
         | F.Apply(expr, exprlist) -> M.Apply(convert_expr expr, List.map (convert_expr) exprlist)
         | F.Dup(ty, name) -> 
             (match ty with 
-              | CustomTy(tyname) -> M.Apply(M.Global("dup_" ^ tyname), [M.Local(name)]) 
+              | CustomTy(tyname) -> M.Apply(M.Global("alloc_" ^ tyname), [M.Local(name)]) 
               | _ -> M.Local(name) (* no-op for now that returns the name; another option is to throw InvalidDup exception *))
         | F.FreeRec(ty, name, expr) -> 
             (match ty with 
