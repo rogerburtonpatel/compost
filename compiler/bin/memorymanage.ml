@@ -102,15 +102,17 @@ let mast_of_fast fast =
         | F.Free(_, name, expr) -> M.Free(name, convert_expr expr)
     in
     (* Converts a fast definition to a _list_ of mast definitions *)
-    let convert_defs fast_def =
+    let convert_defs variant_idx_map fast_def =
         match fast_def with
         | F.Define("main", fun_ty, params, body) ->
-            [ M.Define("main", convert_ty fun_ty, params, convert_expr body) ]
+            (variant_idx_map, [ M.Define("main", convert_ty fun_ty, params, convert_expr body) ])
         | F.Define(name, fun_ty, params, body) ->
             (* Prefix each function name with "_" to guarantee it does not conflict with generated functions *)
-            [ M.Define("_" ^ name, convert_ty fun_ty, params, convert_expr body) ]
-        | F.Datatype(name, variants) -> 
-            let data_ty = convert_ty (Ast.CustomTy(name)) in 
+            (variant_idx_map, [ M.Define("_" ^ name, convert_ty fun_ty, params, convert_expr body) ])
+        | F.Datatype(name, variants) ->
+            let tag_indices = List.mapi (fun i (tag, _) -> (tag, i)) variants in
+            let variant_idx_map' = List.fold_right (fun (tag, i) map -> StringMap.add tag i map) tag_indices variant_idx_map in
+            let data_ty = convert_ty (Ast.CustomTy(name)) in
             let alloc_func = 
                 let func_type = M.Fun(data_ty, [data_ty]) in 
                 let param_names = ["instance"] in 
@@ -172,6 +174,7 @@ let mast_of_fast fast =
                 in 
                 M.Define("free_" ^ name, func_type, param_names, body) 
             in
-            [ alloc_func ; free_func ] 
+            (variant_idx_map', [ alloc_func ; free_func ])
     in
-    List.flatten (List.map convert_defs fast)
+    let (variant_idx_map, defs) = List.fold_left_map convert_defs StringMap.empty fast in
+    (List.flatten defs, variant_idx_map)

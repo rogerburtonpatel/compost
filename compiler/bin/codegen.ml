@@ -9,7 +9,7 @@ let ctx = L.create_context
 
 exception Impossible of string
 
-let codegen program =
+let codegen program variant_idx_map =
   let context = L.global_context () in
   let i32_t = L.i32_type context
   and i8_t = L.i8_type context
@@ -24,7 +24,7 @@ let codegen program =
       L.function_type ret_ty' (Array.of_list param_tys')
     | M.Struct tys ->
       let tys' = List.map lltype_of_ty tys in
-      L.struct_type context (Array.of_list tys')
+      L.pointer_type (L.struct_type context (Array.of_list tys'))
     | M.Ptr ty -> L.pointer_type (lltype_of_ty ty)
   in
   let unions sets = List.fold_right StringSet.union sets StringSet.empty in
@@ -291,9 +291,57 @@ let codegen program =
                       (else_val', L.insertion_block else_builder')]
            "if_result" merge_builder, merge_builder)
 
-        (* TODO Alloc *)
-        (* TODO Case *)
-      | _ -> raise (Impossible "Unimplemented")
+      | M.Alloc (ty, tag, args) ->
+        print_endline "alloc";
+        let struct_val = L.build_malloc (lltype_of_ty ty) "struct" builder in
+        let tag_val = L.const_int i32_t tag in
+        let tag_ptr = L.build_struct_gep struct_val 0 "tag_ptr" builder in
+        let _ = L.build_store tag_val tag_ptr builder in
+        let (builder', _) = List.fold_left
+            (fun (b, i) arg ->
+               let (arg_val, b') = non_tail locals b arg in
+               let elem_ptr = L.build_struct_gep struct_val i "elem_ptr" b' in
+               let _ = L.build_store arg_val elem_ptr b' in
+               (b', i+ 1)
+            ) (builder, 1) args in
+        (struct_val, builder')
+      | M.Case (_, scrutinee, branches) ->
+        print_endline "case";
+        let (scrutinee_val, builder') = non_tail locals builder scrutinee in
+        let tag_ptr = L.build_struct_gep scrutinee_val 0 "tag_ptr" builder' in (* error here *)
+        let tag_val = L.build_load tag_ptr "tag_val" builder' in
+        let switch = L.build_switch tag_val (L.insertion_block builder') (List.length branches) builder' in
+
+        let merge_bb = L.append_block context "merge" the_function in
+        let branch_instr = L.build_br merge_bb in
+        print_endline "here";
+
+        let build_branch (pat, body) = match pat with
+            | M.Pattern(variant_name, names) ->
+              print_endline "pattern";
+              let branch_bb = L.append_block context "case_branch" the_function in
+              let branch_builder = L.builder_at_end context branch_bb in
+              let (locals', _) = List.fold_left
+                                  (fun (locals, i) n ->
+                                    let arg_ptr = L.build_struct_gep scrutinee_val i "arg_ptr" branch_builder in
+                                    let arg_val = L.build_load arg_ptr "arg_val" branch_builder in
+                                    (StringMap.add n arg_val locals, i + 1)
+                                  ) (locals, 1) names
+              in
+              let (body_val, body_builder (* ha ha *)) = non_tail locals' branch_builder body in
+              let _ = branch_instr body_builder in
+              let idx_val = L.const_int i32_t (StringMap.find variant_name variant_idx_map) in
+              let _ = L.add_case switch idx_val branch_bb in
+              (body_val, L.insertion_block body_builder)
+            | M.WildcardPattern ->
+              let default_bb = L.switch_default_dest switch in
+              let branch_builder = L.builder_at_end context default_bb in
+              let (body_val, body_builder) = non_tail locals branch_builder body in
+              let _ = branch_instr body_builder in
+              (body_val, L.insertion_block body_builder)
+        in
+        let merge_builder = L.builder_at_end context merge_bb in
+        (L.build_phi (List.map build_branch branches) "case_result" merge_builder, merge_builder)
     in
     let builder = L.builder_at_end context (L.entry_block the_function) in
 
