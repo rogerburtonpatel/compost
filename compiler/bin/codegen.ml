@@ -9,9 +9,10 @@ let ctx = L.create_context
 
 exception Impossible of string
 
-let codegen program =
+let codegen program variant_idx_map =
   let context = L.global_context () in
-  let i32_t = L.i32_type context
+  let i64_t = L.i64_type context
+  and i32_t = L.i32_type context
   and i8_t = L.i8_type context
   and i1_t = L.i1_type context
   and the_module = L.create_module context "Compost" in
@@ -32,7 +33,7 @@ let codegen program =
   let symbols =
     let rec get_sym_lits = function
       | M.Literal (Ast.SymLit str) -> StringSet.singleton str
-      | M.Case (_, e, branches) ->
+      | M.Case (e, branches) ->
         let branch_lits = unions (List.map (fun (_, e) -> get_sym_lits e) branches) in
         StringSet.union (get_sym_lits e) branch_lits
       | M.If (e1, e2, e3) -> unions [get_sym_lits e1; get_sym_lits e2; get_sym_lits e3]
@@ -60,13 +61,21 @@ let codegen program =
 
     let unit_value = L.const_int i1_t 0 in
     [
+      ("print-newline", fun builder ->
+          function
+          | [| |] ->
+            let newline = L.build_global_stringptr "\n" "newline" builder in
+            let _ = L.build_call printf_func [| newline |] "tmp" builder in
+            unit_value
+          | _ -> raise (Impossible "print-sym has 1 parameter")
+
+      );
       ("print-sym", fun builder ->
           function
           | [| s |] ->
             let _ = L.build_call printf_func [| s |] "tmp" builder in
             unit_value
           | _ -> raise (Impossible "print-sym has 1 parameter")
-
       );
       ("print-int", fun builder ->
          function
@@ -260,9 +269,18 @@ let codegen program =
         let _ = L.build_cond_br cond_val then_bb else_bb builder' in
 
         let branch_ty = L.type_of else_val in
+        let bogus_val = match L.classify_type branch_ty with
+          | L.TypeKind.Pointer ->
+            let bogus_int = L.const_int i64_t 0 in
+            L.build_inttoptr bogus_int branch_ty "" builder'
+          | L.TypeKind.Integer ->
+            let bitwidth = L.integer_bitwidth branch_ty in
+            L.const_int (L.integer_type context bitwidth) 0
+          | _ -> raise (Impossible "Non-pointer, non-integer return type")
+        in
 
         (* Throw up something for the enclosing call to use - we will never return this *)
-        (L.const_int branch_ty 0, builder')
+        (bogus_val, builder')
 
       | M.If (cond, b1, b2) ->
         let (cond_val, builder') = non_tail locals builder cond in
@@ -273,15 +291,13 @@ let codegen program =
         let then_bb = L.append_block context "then" the_function in
         let then_builder = L.builder_at_end context then_bb in
         let (then_val, then_builder') = non_tail locals then_builder b1 in
-        let branch_ty = L.type_of then_val in
-        let const_zero = L.const_int branch_ty 0 in
-        let then_val' = L.build_add then_val const_zero "then_result" then_builder' in
+        let then_val' = then_val in
         let _ = branch_instr then_builder' in
 
         let else_bb = L.append_block context "else" the_function in
         let else_builder = L.builder_at_end context else_bb in
         let (else_val, else_builder') = non_tail locals else_builder b2 in
-        let else_val' = L.build_add else_val const_zero "else_result" else_builder' in
+        let else_val' = else_val in
         let _ = branch_instr else_builder' in
 
         let _ = L.build_cond_br cond_val then_bb else_bb builder' in
@@ -291,9 +307,69 @@ let codegen program =
                       (else_val', L.insertion_block else_builder')]
            "if_result" merge_builder, merge_builder)
 
-        (* TODO Alloc *)
-        (* TODO Case *)
-      | _ -> raise (Impossible "Unimplemented")
+      | M.Alloc (ty, tag, args) ->
+        let struct_val = L.build_malloc (lltype_of_ty ty) "struct" builder in
+        let tag_val = L.const_int i32_t tag in
+        let tag_ptr = L.build_struct_gep struct_val 0 "tag_ptr" builder in
+        let _ = L.build_store tag_val tag_ptr builder in
+        let (builder', _) = List.fold_left
+            (fun (b, i) arg ->
+              let (arg_val, b') = non_tail locals b arg in
+              let convert_to_i64 v = match L.classify_type (L.type_of v) with
+                | L.TypeKind.Pointer -> L.build_ptrtoint v i64_t "" b'
+                | _ -> L.build_zext v i64_t "" b'
+              in
+              let converted_val = convert_to_i64 arg_val in
+              let elem_ptr = L.build_struct_gep struct_val i "elem_ptr" b' in
+              let _ = L.build_store converted_val elem_ptr b' in
+              (b', i + 1)
+            ) (builder, 1) args in
+        (struct_val, builder')
+      | M.Case (scrutinee, branches) ->
+        let (scrutinee_val, builder') = non_tail locals builder scrutinee in
+        let tag_ptr = L.build_struct_gep scrutinee_val 0 "tag_ptr" builder' in (* error here *)
+        let tag_val = L.build_load tag_ptr "tag_val" builder' in
+        let default_bb = L.append_block context "default" the_function in
+        let switch = L.build_switch tag_val default_bb (List.length branches) builder' in
+
+        let merge_bb = L.append_block context "merge" the_function in
+        let branch_instr = L.build_br merge_bb in
+
+        let build_branch (pat, body) = match pat with
+            | M.Pattern(variant_name, names) ->
+              let branch_bb = L.append_block context "case_branch" the_function in
+              let branch_builder = L.builder_at_end context branch_bb in
+              let convert_i64 ty v = match ty with
+                | M.Int n ->
+                  let in_ty = L.integer_type context n in
+                  L.build_trunc v in_ty "" branch_builder
+                | _ -> L.build_inttoptr v (lltype_of_ty ty) "" branch_builder
+              in
+              let (locals', _) = List.fold_left
+                                  (fun (locals, i) (n, ty) ->
+                                    let arg_ptr = L.build_struct_gep scrutinee_val i "arg_ptr" branch_builder in
+                                    let arg_val = L.build_load arg_ptr "arg_val" branch_builder in
+                                    let converted_val = convert_i64 ty arg_val in
+                                    (StringMap.add n converted_val locals, i + 1)
+                                  ) (locals, 1) names
+              in
+              let (body_val, body_builder (* ha ha *)) = non_tail locals' branch_builder body in
+              let idx_val = L.const_int i32_t (StringMap.find variant_name variant_idx_map) in
+              let _ = L.add_case switch idx_val branch_bb in
+              let _ = branch_instr body_builder in
+              (body_val, L.insertion_block body_builder)
+            | M.WildcardPattern ->
+              let branch_builder = L.builder_at_end context default_bb in
+              let (body_val, body_builder) = non_tail locals branch_builder body in
+              let _ = branch_instr body_builder in
+              (body_val, L.insertion_block body_builder)
+        in
+        (* WARNING: HACK ZONE *)
+        let default_builder = L.builder_at_end context default_bb in
+        let _ = L.build_unreachable default_builder in
+
+        let merge_builder = L.builder_at_end context merge_bb in
+        (L.build_phi (List.map build_branch branches) "case_result" merge_builder, merge_builder)
     in
     let builder = L.builder_at_end context (L.entry_block the_function) in
 

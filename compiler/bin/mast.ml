@@ -11,7 +11,7 @@ type ty = Fun of ty * ty list | Int of int | Ptr of ty | Struct of ty list
 type literal = Ast.literal
 
 type pattern =
-    Pattern of name * name list
+    Pattern of name * (name * ty) list
   | WildcardPattern (* hmmm perhaps names are not consumed if matched by wildcard? *)
 
 and bind = name * expr
@@ -20,7 +20,7 @@ and expr =
     Literal of literal
   | Local of name
   | Global of name
-  | Case of ty * expr * (pattern * expr) list
+  | Case of expr * (pattern * expr) list
   | If of expr * expr * expr
   | Let of name * expr * expr
   | Apply of expr * expr list
@@ -50,9 +50,9 @@ let string_of_lit lit = Ast.string_of_lit lit
 
 let is_int = String.for_all (function '0' .. '1' -> true | _ -> false)
 
-let string_of_nameorwildcard = function
-   name when is_int name -> "_"
- | name -> name
+let string_of_nameorwildcard (name, ty) =
+  if is_int name then "_"
+  else name
 
 let string_of_pattern = function
    Pattern(name, nameorwildcardlist) -> 
@@ -63,8 +63,8 @@ let rec string_of_expr = function
    Literal(lit) -> string_of_lit lit 
  | Local(name) -> "%" ^ name 
  | Global(name) -> "@" ^ name 
- | Case(ty, expr, casebranchlist) ->
-     "(case (type " ^ string_of_ty ty ^ ") " ^ string_of_expr expr ^ " (" ^ String.concat " " (List.map string_of_casebranch casebranchlist) ^ "))"
+ | Case(expr, casebranchlist) ->
+     "(case " ^ string_of_expr expr ^ " (" ^ String.concat " " (List.map string_of_casebranch casebranchlist) ^ "))"
  | If(expr1, expr2, expr3) -> 
      "(if " ^ string_of_expr expr1 ^ " " ^ string_of_expr expr2 ^ " " ^ string_of_expr expr3 ^ ")"
  | Let(name, expr1, expr2) ->
