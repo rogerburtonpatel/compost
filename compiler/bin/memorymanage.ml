@@ -118,16 +118,20 @@ let mast_of_fast fast =
         | F.Datatype(name, variants) ->
             let tag_indices = List.mapi (fun i (tag, _) -> (tag, i)) variants in
             let variant_idx_map' = List.fold_right (fun (tag, i) map -> StringMap.add tag i map) tag_indices variant_idx_map in
-            let data_ty = convert_ty (Ast.CustomTy(name)) in
+            let data_ty = match convert_ty (Ast.CustomTy(name)) with
+              | M.Ptr ty -> ty
+              | _ -> raise (Impossible "custom type is not pointer to struct")
+            in
+            let data_ty_ptr = M.Ptr data_ty in
             let alloc_func = 
-                let func_type = M.Fun(data_ty, [data_ty]) in 
+                let func_type = M.Fun(data_ty_ptr, [data_ty_ptr]) in
                 let param_names = ["instance"] in 
                 let body = 
                     let gen_casebranch variant_idx (variant_name, variant_tys) = 
                         (* Let variant_varnames just be a sequence of integers starting from 0, prepended by "var" *)
                         let varname_of_int int = "var" ^ string_of_int int in 
                         let variant_varnames = List.init (List.length variant_tys) varname_of_int in 
-                        let pattern = M.Pattern("_" ^ variant_name, variant_varnames) in 
+                        let pattern = M.Pattern(variant_name, variant_varnames) in
                         let expr = 
                             let alloc_ty index ty = 
                             match ty with 
@@ -142,19 +146,19 @@ let mast_of_fast fast =
                     in 
                     let (_, casebranches) = List.fold_left_map gen_casebranch 0 variants 
                     in 
-                    M.Case(data_ty, Local("instance"), casebranches) 
+                    M.Case(data_ty_ptr, Local("instance"), casebranches)
                 in 
                 M.Define("alloc_" ^ name, func_type, param_names, body)
             in 
             let free_func = 
-                let func_type = M.Fun(convert_ty Ast.Unit, [data_ty]) in
+                let func_type = M.Fun(convert_ty Ast.Unit, [data_ty_ptr]) in
                 let param_names = ["instance"] in 
                 let body = 
                     let gen_casebranch (variant_name, variant_tys) = 
                         (* Let variant_varnames just be a sequence of integers starting from 0, prepended by "var" *)
                         let varname_of_int int = "var" ^ string_of_int int in 
                         let variant_varnames = List.init (List.length variant_tys) varname_of_int in 
-                        let pattern = M.Pattern("_" ^ variant_name, variant_varnames) in 
+                        let pattern = M.Pattern(variant_name, variant_varnames) in
                         let expr = 
                             let unitlit = M.Literal(Ast.UnitLit) in 
                             let gen_free_call varname ty = 

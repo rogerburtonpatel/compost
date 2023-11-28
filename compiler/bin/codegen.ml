@@ -14,6 +14,7 @@ let codegen program variant_idx_map =
   let i32_t = L.i32_type context
   and i8_t = L.i8_type context
   and i1_t = L.i1_type context
+  and void_t = L.void_type context
   and the_module = L.create_module context "Compost" in
 
   let rec lltype_of_ty = function
@@ -24,7 +25,7 @@ let codegen program variant_idx_map =
       L.function_type ret_ty' (Array.of_list param_tys')
     | M.Struct tys ->
       let tys' = List.map lltype_of_ty tys in
-      L.pointer_type (L.struct_type context (Array.of_list tys'))
+      L.struct_type context (Array.of_list tys')
     | M.Ptr ty -> L.pointer_type (lltype_of_ty ty)
   in
   let unions sets = List.fold_right StringSet.union sets StringSet.empty in
@@ -49,6 +50,9 @@ let codegen program variant_idx_map =
     in
     StringSet.fold build_symbol sym_lits StringMap.empty
   in
+
+  let abort_t = L.var_arg_function_type void_t [| |] in
+  let abort_func = L.declare_function "abort" abort_t the_module in
 
   (* Association list of primitive functions names and how to build them *)
   let primitives =
@@ -292,7 +296,6 @@ let codegen program variant_idx_map =
            "if_result" merge_builder, merge_builder)
 
       | M.Alloc (ty, tag, args) ->
-        print_endline "alloc";
         let struct_val = L.build_malloc (lltype_of_ty ty) "struct" builder in
         let tag_val = L.const_int i32_t tag in
         let tag_ptr = L.build_struct_gep struct_val 0 "tag_ptr" builder in
@@ -306,19 +309,17 @@ let codegen program variant_idx_map =
             ) (builder, 1) args in
         (struct_val, builder')
       | M.Case (_, scrutinee, branches) ->
-        print_endline "case";
         let (scrutinee_val, builder') = non_tail locals builder scrutinee in
         let tag_ptr = L.build_struct_gep scrutinee_val 0 "tag_ptr" builder' in (* error here *)
         let tag_val = L.build_load tag_ptr "tag_val" builder' in
-        let switch = L.build_switch tag_val (L.insertion_block builder') (List.length branches) builder' in
+        let default_bb = L.append_block context "default" the_function in
+        let switch = L.build_switch tag_val default_bb (List.length branches) builder' in
 
         let merge_bb = L.append_block context "merge" the_function in
         let branch_instr = L.build_br merge_bb in
-        print_endline "here";
 
         let build_branch (pat, body) = match pat with
             | M.Pattern(variant_name, names) ->
-              print_endline "pattern";
               let branch_bb = L.append_block context "case_branch" the_function in
               let branch_builder = L.builder_at_end context branch_bb in
               let (locals', _) = List.fold_left
@@ -329,17 +330,20 @@ let codegen program variant_idx_map =
                                   ) (locals, 1) names
               in
               let (body_val, body_builder (* ha ha *)) = non_tail locals' branch_builder body in
-              let _ = branch_instr body_builder in
               let idx_val = L.const_int i32_t (StringMap.find variant_name variant_idx_map) in
               let _ = L.add_case switch idx_val branch_bb in
+              let _ = branch_instr body_builder in
               (body_val, L.insertion_block body_builder)
             | M.WildcardPattern ->
-              let default_bb = L.switch_default_dest switch in
               let branch_builder = L.builder_at_end context default_bb in
               let (body_val, body_builder) = non_tail locals branch_builder body in
               let _ = branch_instr body_builder in
               (body_val, L.insertion_block body_builder)
         in
+        (* WARNING: HACK ZONE *)
+        let default_builder = L.builder_at_end context default_bb in
+        let _ = L.build_unreachable default_builder in
+
         let merge_builder = L.builder_at_end context merge_bb in
         (L.build_phi (List.map build_branch branches) "case_result" merge_builder, merge_builder)
     in
