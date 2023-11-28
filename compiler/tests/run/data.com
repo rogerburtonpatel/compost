@@ -12,9 +12,13 @@
             (print-sym ' ')
             (print-int-list xs)
             (print-sym ')'))]
-       [(int-nil) (print-sym 'int-nil')])))
+       [(int-nil) (print-sym '(int-nil)')])))
 
 (: main (-> () unit))
 (define main ()
-  (print-int-list
-    (int-cons 1 (int-cons 2 (int-nil)))))
+  (let ([x (int-cons 1 (int-cons 2 (int-nil)))]
+        [y (dup x)])
+    (begin
+        (print-int-list x)
+        (print-newline)
+        (print-int-list y))))

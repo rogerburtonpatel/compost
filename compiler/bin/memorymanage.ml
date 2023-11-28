@@ -99,7 +99,7 @@ let mast_of_fast fast =
         | F.Apply(expr, exprlist) -> M.Apply(convert_expr expr, List.map (convert_expr) exprlist)
         | F.Dup(ty, name) -> 
             (match ty with 
-              | CustomTy(tyname) -> M.Apply(M.Global("alloc_" ^ tyname), [M.Local(name)]) 
+              | CustomTy(tyname) -> M.Apply(M.Global("dup_" ^ tyname), [M.Local(name)])
               | _ -> M.Local(name) (* no-op for now that returns the name; another option is to throw InvalidDup exception *))
         | F.FreeRec(ty, name, expr) -> 
             (match ty with 
@@ -135,7 +135,7 @@ let mast_of_fast fast =
                         let expr = 
                             let alloc_ty index ty = 
                             match ty with 
-                             | Ast.CustomTy(name) -> (index + 1, M.Apply(Global("alloc_" ^ name), [Local(varname_of_int index)])) 
+                             | Ast.CustomTy(name) -> (index + 1, M.Apply(Global("dup_" ^ name), [Local(varname_of_int index)]))
                              | _ -> (index + 1, Local(varname_of_int index)) 
                             in 
                             let (_, alloc_expr) = List.fold_left_map alloc_ty 0 variant_tys 
@@ -148,7 +148,7 @@ let mast_of_fast fast =
                     in 
                     M.Case(Local("instance"), casebranches)
                 in 
-                M.Define("alloc_" ^ name, func_type, param_names, body)
+                M.Define("dup_" ^ name, func_type, param_names, body)
             in 
             let free_func = 
                 let func_type = M.Fun(convert_ty Ast.Unit, [data_ty_ptr]) in

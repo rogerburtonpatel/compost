@@ -81,7 +81,8 @@ let rec check_last bound consumed expr =
   (* Fail when the programmer attempts to reference dead names *)
   | T.Local n when S.mem n consumed -> raise (NameAlreadyConsumed n)
   (* If n is still live, consume n and free any unused bound variables *)
-  | T.Local n when has_dataty n bound -> (dealloc_in (freeable bound (S.remove n consumed)) (F.Local n), S.empty)
+  | T.Local n when has_dataty n bound ->
+    (dealloc_in (freeable bound (S.add n consumed)) (F.Local n), S.empty)
   | T.Local n -> (dealloc_in (freeable bound (S.remove n consumed)) (F.Local n), S.singleton n)
   (* Global names are always live *)
   | T.Global n -> (dealloc_in (freeable bound (S.remove n consumed)) (F.Global n), S.empty)

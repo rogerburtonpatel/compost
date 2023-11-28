@@ -2,6 +2,7 @@
 let primitives =
   [
     (* I/O *)
+    ("print-newline", Ast.FunTy ([], Ast.Unit));
     ("print-sym", Ast.FunTy ([Ast.Sym], Ast.Unit));
     ("print-int", Ast.FunTy ([Ast.Int], Ast.Unit));
     ("print-bool", Ast.FunTy ([Ast.Bool], Ast.Unit));

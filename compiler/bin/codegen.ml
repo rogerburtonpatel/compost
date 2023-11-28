@@ -65,13 +65,21 @@ let codegen program variant_idx_map =
 
     let unit_value = L.const_int i1_t 0 in
     [
+      ("print-newline", fun builder ->
+          function
+          | [| |] ->
+            let newline = L.build_global_stringptr "\n" "newline" builder in
+            let _ = L.build_call printf_func [| newline |] "tmp" builder in
+            unit_value
+          | _ -> raise (Impossible "print-sym has 1 parameter")
+
+      );
       ("print-sym", fun builder ->
           function
           | [| s |] ->
             let _ = L.build_call printf_func [| s |] "tmp" builder in
             unit_value
           | _ -> raise (Impossible "print-sym has 1 parameter")
-
       );
       ("print-int", fun builder ->
          function
