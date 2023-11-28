@@ -34,7 +34,6 @@ let rec expr locals = function
   | P.Dup n -> U.Dup n
 
 let def = function
-  | P.Val (n, body) -> U.Val (n, expr S.empty body)
   | P.Define (n, args, body) -> U.Define (n, args, expr (S.of_list args) body)
   | P.Datatype (n, variants) -> U.Datatype (n, variants)
   | P.TyAnnotation (n, ty) -> U.TyAnnotation (n, ty)

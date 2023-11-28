@@ -18,8 +18,7 @@ and expr =
   | Dup of name 
 
 type def =
-    Val of name * expr
-  | Define of name * (name list) * expr 
+    Define of name * (name list) * expr 
   | Datatype of name * (name * ty list) list
   | TyAnnotation of name * ty 
 
@@ -58,8 +57,7 @@ and string_of_casebranch = function
    (pattern, expr) -> "[" ^ string_of_pattern pattern ^ " " ^ string_of_expr expr ^ "]"
 
 let string_of_def = function 
-   Val(name, expr) -> "(val " ^ name ^ " " ^ string_of_expr expr ^ ")"
- | Define(name, namelist, expr) -> 
+   Define(name, namelist, expr) -> 
      "(define " ^ name ^ " (" ^ String.concat " " namelist ^ ") " ^ string_of_expr expr ^ ")"
  | Datatype(name, variantlist) ->
      "(datatype " ^ name ^ " (" ^ String.concat " " (List.map string_of_variant variantlist) ^ "))"

@@ -3,8 +3,10 @@ module A = Ast
 module D = Difflist
 
 module S = Set.Make(String)
+module SM = Map.Make(String)
 
 exception RecursiveUse
+exception DuplicateTop
 
 (* adl = Ast def list, pe = Past expr *)
 
@@ -34,14 +36,14 @@ let rec ad_to_pdl use_all use_recur = function
     let use_all = S.add filename use_all in
     let use_recur = S.add filename use_recur in
     adl_to_pdl ast use_all use_recur
-  | A.Val(n, e) -> (D.singleton (P.Val(n, ae_to_pe e)), use_all)
+  | A.Val(n, e) -> (D.empty, use_all)
+  (*| A.Val(n, e) -> (D.singleton (P.Val(n, ae_to_pe e)), use_all)*)
   | A.Define(n, ns, e) -> (D.singleton (P.Define(n, ns, ae_to_pe e)), use_all)
   | A.Datatype(n, ntss) -> (D.singleton (P.Datatype(n, ntss)), use_all)
   | A.TyAnnotation(n, t) -> (D.singleton (P.TyAnnotation(n, t)), use_all)
 
 and fold_adl_to_pdl use_recur pdl ad = match pdl with
-    (pdl, use_all) -> ( 
-      match (ad_to_pdl use_all use_recur ad) with
+    (pdl, use_all) -> (match (ad_to_pdl use_all use_recur ad) with
         | (pdl2, use_all2) -> (D.cons pdl pdl2, use_all2)
     )
 

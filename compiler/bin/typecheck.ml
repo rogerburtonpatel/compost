@@ -4,8 +4,7 @@ module T = Tast
 
 module StringMap = Map.Make(String)
 (* type def =
-    Val of name * expr
-  | Define of name * (name list) * expr
+    Define of name * (name list) * expr
   | Datatype of name * (variant list)
   | TyAnnotation of name * ty *)
 
@@ -300,11 +299,9 @@ let typecheckDef (defs, gamma, delta) = function
     ^ tyString found_typ
     ^ "\" but a second annotation was given that has type \""
     ^ tyString ty ^ "\""))
-else (defs, gamma, delta)
+    else (defs, gamma, delta)
   (* T.Define ("", [], (T.Literal (Ast.IntLit 0), Ast.Unit)) *)
-| U.Val (n, _) -> raise (Impossible 
-                                ("attempting to typecheck val \"" ^ n ^ 
-                                "\"; val forms should be eliminated by now."))
+
 (* walks the program, building environments and typechecking against them. *)
 let typecheck prog =
   let gamma =
