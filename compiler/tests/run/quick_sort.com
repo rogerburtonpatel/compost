@@ -10,22 +10,13 @@
          [l-sorted (quick-sort l)])
         (print-intlist l-sorted)))
 
-(: filter-ge (-> (int int-list) int-list))
-(define filter-ge (n xxs)
+(: filter-cmp (-> ((-> (int int) bool) int int-list) int-list))
+(define filter-cmp (f n xxs)
     (case xxs
         ([(cons-int x xs) 
-            (if (>= x n) 
-                (cons-int x (filter-ge n xs))
-                (filter-ge n xs))]
-         [(nil-int-list) (nil-int-list)])))
-
-(: filter-lt (-> (int int-list) int-list))
-(define filter-lt (n xxs)
-    (case xxs
-        ([(cons-int x xs) 
-            (if (< x n) 
-                (cons-int x (filter-lt n xs))
-                (filter-lt n xs))]
+            (if (f x n)
+                (cons-int x (filter-cmp f n xs))
+                (filter-cmp f n xs))]
          [(nil-int-list) (nil-int-list)])))
 
 (: concat (-> (int-list int-list) int-list))
@@ -40,8 +31,8 @@
         ([(nil-int-list) (nil-int-list)]
          [(cons-int x xs) 
             (let 
-                ([lesser (filter-lt x (dup xs))]
-                 [greater (filter-ge x xs)])
+                ([lesser (filter-cmp < x (dup xs))]
+                 [greater (filter-cmp >= x xs)])
                 (concat 
                     (quick-sort lesser)
                     (cons-int x (quick-sort greater))))])))
