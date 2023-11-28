@@ -5,51 +5,6 @@ val name_email_map : (string * string) list =
  ("Jasper Geer", "jasper.geer@tufts.edu");
  ("Jackson Warhover", "jackson.warhover@tufts.edu")]  
 
-------------------------------------------------------------------------
-Programs in our integration testing suite:
-
-Currently, in our integration testing suite, we have the following test 
-files (all of which work with this version of our compiler). Such files 
-can be found in the tests/compile subdirectory, and the expected output 
-of running each test can be found in the `.out` file with the same name.
-Such expected output can be the expected output of the compiled program, 
-the expected output of a pretty-printer at an intermediate compilation 
-stage, or the expected error message to be thrown at an intermediate 
-compilation stage in the case of a negative test.
-
-`arith.com`: Tests primitive arithmetic operators including addition, 
-             multiplication, and mod.
-
-`emoji.com`: Tests the use of an emoji as a name and the ability to 
-             print a symbol containing an emoji. 
-
-`fib.com`: Contains the implementation of a naive fibonacci algorithm 
-           and computes the 35th fibonacci number.
-
-`gcd.com`: Contains the implementation of Euclid's Algorithm to compute 
-           the GCD of two numbers.
-
-`hello-ho.com`: Prints "Hello, World!" with the use of higher order 
-                functions. This is very much a flex. 
-
-`hello-newline.com`: Prints "Hello, World!" followed by a newline character.
-
-`hello-world.com`: Simply prints "Hello, World!"
-
-`if.com`: Tests the proper usage of conditional (`if`) expressions.
-
-`in.com`: Tests the ability to read user input via stdin. This program will 
-          read in one character from stdin and print out the integer representation 
-          of that character (according to the ASCII table).
-
-`print.com`: Tests all four built-in print functions (print-int, print-bool, print-sym,
-             and print-unit).
-
-`recurse.com`: Tests recursion functionality via a recursive "count-down" function.
-
-`tail.com`: Calls a recursive function that will result in a stack overflow
-            without our tailcall optimization.
-
 ----------------------------------------------------------------------------------------
 How to run scripts:
 
@@ -99,6 +54,57 @@ compile and run.
 To print the LLVM IR produced by our compiler, run:
     dune exec compost file.com
 where `file.com` is the name of the file containing a Compost program. 
+
+------------------------------------------------------------------------
+Programs in our integration testing suite:
+
+Currently, in our integration testing suite, we have the following test 
+files (most of which work with this version of our compiler). Such files 
+can be found in subdirectories of the tests/ subdirectory, and the 
+expected output of running each test can be found in the `.out` file with 
+the same name. Such expected output can be the expected output of the 
+compiled program, the expected output of a pretty-printer at an intermediate 
+compilation stage, or the expected error message to be thrown in the case of 
+a negative test.
+
+We will not be describing each individual test in the tests/ast/ subdirectory 
+because there are a lot of them and they test the scanner and parser, which 
+do not seem to be important for this deliverable.
+
+TODO: Update the following descriptions 
+
+`arith.com`: Tests primitive arithmetic operators including addition, 
+             multiplication, and mod.
+
+`emoji.com`: Tests the use of an emoji as a name and the ability to 
+             print a symbol containing an emoji. 
+
+`fib.com`: Contains the implementation of a naive fibonacci algorithm 
+           and computes the 35th fibonacci number.
+
+`gcd.com`: Contains the implementation of Euclid's Algorithm to compute 
+           the GCD of two numbers.
+
+`hello-ho.com`: Prints "Hello, World!" with the use of higher order 
+                functions. This is very much a flex. 
+
+`hello-newline.com`: Prints "Hello, World!" followed by a newline character.
+
+`hello-world.com`: Simply prints "Hello, World!"
+
+`if.com`: Tests the proper usage of conditional (`if`) expressions.
+
+`in.com`: Tests the ability to read user input via stdin. This program will 
+          read in one character from stdin and print out the integer representation 
+          of that character (according to the ASCII table).
+
+`print.com`: Tests all four built-in print functions (print-int, print-bool, print-sym,
+             and print-unit).
+
+`recurse.com`: Tests recursion functionality via a recursive "count-down" function.
+
+`tail.com`: Calls a recursive function that will result in a stack overflow
+            without our tailcall optimization.
 
 ----------------------------------------------------------------------------------
 How test validates compilation or reports issues.

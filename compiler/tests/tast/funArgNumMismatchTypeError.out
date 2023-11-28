@@ -1,0 +1,1 @@
+Fatal error: exception Dune__exe__Typecheck.TypeError("mismatch in number of arguments in application of function "takes-sym-and-int": expected 2 but 1 were given.")

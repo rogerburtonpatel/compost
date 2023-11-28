@@ -5,6 +5,7 @@ source_filename = "Compost"
 @true = private unnamed_addr constant [5 x i8] c"true\00", align 1
 @false = private unnamed_addr constant [6 x i8] c"false\00", align 1
 @fmt_int = private unnamed_addr constant [3 x i8] c"%d\00", align 1
+@newline = private unnamed_addr constant [2 x i8] c"\0A\00", align 1
 @fmt_int.1 = private unnamed_addr constant [3 x i8] c"%d\00", align 1
 
 declare i32 @printf(i8*, ...)
@@ -122,6 +123,12 @@ entry:
 define i1 @print-sym(i8* %0) {
 entry:
   %tmp = call i32 (i8*, ...) @printf(i8* %0)
+  ret i1 false
+}
+
+define i1 @print-newline() {
+entry:
+  %tmp = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @newline, i32 0, i32 0))
   ret i1 false
 }
 

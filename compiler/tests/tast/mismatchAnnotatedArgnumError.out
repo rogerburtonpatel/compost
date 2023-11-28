@@ -1,0 +1,1 @@
+Fatal error: exception Dune__exe__Typecheck.TypeError("prior annotation defined function "annotated-mismatch" has 1 arguments, but its definition has 2 arguments.")

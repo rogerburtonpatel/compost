@@ -1,0 +1,1 @@
+Fatal error: exception Dune__exe__Typecheck.TypeError("a case expression's first branch has type int, but a later branch has type symbol")
