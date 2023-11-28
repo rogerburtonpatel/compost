@@ -11,7 +11,8 @@ exception Impossible of string
 
 let codegen program variant_idx_map =
   let context = L.global_context () in
-  let i32_t = L.i32_type context
+  let i64_t = L.i64_type context
+  and i32_t = L.i32_type context
   and i8_t = L.i8_type context
   and i1_t = L.i1_type context
   and void_t = L.void_type context
@@ -33,7 +34,7 @@ let codegen program variant_idx_map =
   let symbols =
     let rec get_sym_lits = function
       | M.Literal (Ast.SymLit str) -> StringSet.singleton str
-      | M.Case (_, e, branches) ->
+      | M.Case (e, branches) ->
         let branch_lits = unions (List.map (fun (_, e) -> get_sym_lits e) branches) in
         StringSet.union (get_sym_lits e) branch_lits
       | M.If (e1, e2, e3) -> unions [get_sym_lits e1; get_sym_lits e2; get_sym_lits e3]
@@ -302,13 +303,19 @@ let codegen program variant_idx_map =
         let _ = L.build_store tag_val tag_ptr builder in
         let (builder', _) = List.fold_left
             (fun (b, i) arg ->
-               let (arg_val, b') = non_tail locals b arg in
-               let elem_ptr = L.build_struct_gep struct_val i "elem_ptr" b' in
-               let _ = L.build_store arg_val elem_ptr b' in
-               (b', i+ 1)
+              let (arg_val, b') = non_tail locals b arg in
+              let convert_to_i64 v = match L.classify_type (L.type_of v) with
+                | L.TypeKind.Pointer -> L.build_ptrtoint v i64_t "" b'
+                | _ -> L.build_zext v i64_t "" b'
+              in
+              print_endline (L.string_of_llvalue arg_val);
+              let converted_val = convert_to_i64 arg_val in
+              let elem_ptr = L.build_struct_gep struct_val i "elem_ptr" b' in
+              let _ = L.build_store converted_val elem_ptr b' in
+              (b', i + 1)
             ) (builder, 1) args in
         (struct_val, builder')
-      | M.Case (_, scrutinee, branches) ->
+      | M.Case (scrutinee, branches) ->
         let (scrutinee_val, builder') = non_tail locals builder scrutinee in
         let tag_ptr = L.build_struct_gep scrutinee_val 0 "tag_ptr" builder' in (* error here *)
         let tag_val = L.build_load tag_ptr "tag_val" builder' in
@@ -322,11 +329,18 @@ let codegen program variant_idx_map =
             | M.Pattern(variant_name, names) ->
               let branch_bb = L.append_block context "case_branch" the_function in
               let branch_builder = L.builder_at_end context branch_bb in
+              let convert_i64 ty v = match ty with
+                | M.Int n ->
+                  let in_ty = L.integer_type context n in
+                  L.build_trunc v in_ty "" branch_builder
+                | _ -> L.build_inttoptr v (lltype_of_ty ty) "" branch_builder
+              in
               let (locals', _) = List.fold_left
-                                  (fun (locals, i) n ->
+                                  (fun (locals, i) (n, ty) ->
                                     let arg_ptr = L.build_struct_gep scrutinee_val i "arg_ptr" branch_builder in
                                     let arg_val = L.build_load arg_ptr "arg_val" branch_builder in
-                                    (StringMap.add n arg_val locals, i + 1)
+                                    let converted_val = convert_i64 ty arg_val in
+                                    (StringMap.add n converted_val locals, i + 1)
                                   ) (locals, 1) names
               in
               let (body_val, body_builder (* ha ha *)) = non_tail locals' branch_builder body in

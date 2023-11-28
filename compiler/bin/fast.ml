@@ -10,7 +10,7 @@ type ty = Ast.ty
 type literal = Ast.literal
 
 type pattern =
-    Pattern of name * name list
+    Pattern of name * (name * ty) list
   | WildcardPattern
 
 and expr =
@@ -18,7 +18,7 @@ and expr =
   | Local of name
   | Global of name
   (* Case no longer implicity frees the top level of its scrutinee *)
-  | Case of ty * expr * (pattern * expr) list
+  | Case of expr * (pattern * expr) list
   | If of expr * expr * expr
   | Let of name * expr * expr
   | Apply of expr * expr list

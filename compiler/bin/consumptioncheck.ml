@@ -56,13 +56,13 @@ let rec check bound consumed expr =
         let (body', branch_c) = check bound' c body in
         let (bound, _) = List.split binds in
         (* Explicity free the top level struct of the scrutinee *)
-        ((F.Pattern (n, bound), F.Free (e_ty, scrutinee_name, body')), branch_c)
+        ((F.Pattern (n, binds), F.Free (e_ty, scrutinee_name, body')), branch_c)
       | _ ->
         let (body', branch_c) = check bound c body in
         ((F.WildcardPattern, F.Free (e_ty, scrutinee_name, body')), branch_c)
     in
     let (branches', branch_cs) = List.split (List.map check_branch branches) in
-    (F.Let (scrutinee_name, e', F.Case (e_ty, F.Local scrutinee_name, branches')), unions (c :: branch_cs))
+    (F.Let (scrutinee_name, e', F.Case (F.Local scrutinee_name, branches')), unions (c :: branch_cs))
 
 let rec dealloc_in to_free expr =
   match to_free with
@@ -124,18 +124,19 @@ let rec check_last bound consumed expr =
     let scrutinee_name = Freshnames.fresh_name () in
     let check_branch (pat, body) = match pat with
       | T.Pattern (n, binds) ->
+        let (names, _) = List.split binds in
         let bound' = binds @ bound in
         let (body', branch_c) = check_last bound' c body in
         let (bound, _) = List.split binds in
         (* Explicity free the top level struct of the scrutinee *)
-        ((F.Pattern (n, bound), F.Free (e_ty, scrutinee_name, body')), branch_c)
+        ((F.Pattern (n, binds), F.Free (e_ty, scrutinee_name, body')), branch_c)
       | _ ->
         (* No need to free the scrutinee immediately in a wildcard branch *)
         let (body', branch_c) = check_last bound c body in
         ((F.WildcardPattern, F.Free (e_ty, scrutinee_name, body')), branch_c)
     in
     let (branches', branch_cs) = List.split (List.map check_branch branches) in
-    (F.Let (scrutinee_name, e', F.Case (e_ty, F.Local scrutinee_name, branches')), unions (c :: branch_cs))
+    (F.Let (scrutinee_name, e', F.Case (F.Local scrutinee_name, branches')), unions (c :: branch_cs))
 
 let check_def = function
   | T.Define (fun_name, Ast.FunTy (param_tys, return_ty), params, body) ->

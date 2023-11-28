@@ -83,16 +83,16 @@ let mast_of_fast fast =
         | F.Global("main") -> M.Global("main")
         | F.Global(name) when List.mem_assoc name Primitives.primitives -> M.Global(name)
         | F.Global(name) -> M.Global("_" ^ name)
-        | F.Case(ty, expr, casebranches) -> 
+        | F.Case(expr, casebranches) ->
             let convert_casebranch (pattern, pexpr) = 
                 let convert_pattern pattern = 
                     match pattern with 
-                    | F.Pattern(name, names) -> M.Pattern(name, names)
+                    | F.Pattern(name, names) -> M.Pattern(name, List.map (fun (name, ty) -> (name, convert_ty ty)) names)
                     | F.WildcardPattern -> M.WildcardPattern 
                 in
                 (convert_pattern pattern, convert_expr pexpr) 
             in 
-            M.Case(convert_ty ty, convert_expr expr, List.map convert_casebranch casebranches)
+            M.Case(convert_expr expr, List.map convert_casebranch casebranches)
         | F.If(expr1, expr2, expr3) ->
             M.If(convert_expr expr1, convert_expr expr2, convert_expr expr3)
         | F.Let(name, expr, body) -> M.Let(name, convert_expr expr, convert_expr body)
@@ -131,7 +131,7 @@ let mast_of_fast fast =
                         (* Let variant_varnames just be a sequence of integers starting from 0, prepended by "var" *)
                         let varname_of_int int = "var" ^ string_of_int int in 
                         let variant_varnames = List.init (List.length variant_tys) varname_of_int in 
-                        let pattern = M.Pattern(variant_name, variant_varnames) in
+                        let pattern = M.Pattern(variant_name, List.combine variant_varnames (List.map convert_ty variant_tys)) in
                         let expr = 
                             let alloc_ty index ty = 
                             match ty with 
@@ -146,7 +146,7 @@ let mast_of_fast fast =
                     in 
                     let (_, casebranches) = List.fold_left_map gen_casebranch 0 variants 
                     in 
-                    M.Case(data_ty_ptr, Local("instance"), casebranches)
+                    M.Case(Local("instance"), casebranches)
                 in 
                 M.Define("alloc_" ^ name, func_type, param_names, body)
             in 
@@ -158,7 +158,7 @@ let mast_of_fast fast =
                         (* Let variant_varnames just be a sequence of integers starting from 0, prepended by "var" *)
                         let varname_of_int int = "var" ^ string_of_int int in 
                         let variant_varnames = List.init (List.length variant_tys) varname_of_int in 
-                        let pattern = M.Pattern(variant_name, variant_varnames) in
+                        let pattern = M.Pattern(variant_name, List.combine variant_varnames (List.map convert_ty variant_tys)) in
                         let expr = 
                             let unitlit = M.Literal(Ast.UnitLit) in 
                             let gen_free_call varname ty = 
@@ -180,7 +180,7 @@ let mast_of_fast fast =
                     in 
                     let casebranches = List.map gen_casebranch variants 
                     in 
-                    M.Case(data_ty, Local("instance"), casebranches) 
+                    M.Case(Local("instance"), casebranches)
                 in 
                 M.Define("free_" ^ name, func_type, param_names, body) 
             in
