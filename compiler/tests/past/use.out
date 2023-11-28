@@ -1,4 +1,4 @@
-(val x 1)
-(val x 2)
-(val x 3)
-(val x 4)
+(define one () 1)
+(define two () 2)
+(define three () 3)
+(define four () 4)

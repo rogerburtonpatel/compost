@@ -1,0 +1,6 @@
+(define a () (let () x))
+(define b () (let ([x 5]) x))
+(val x 10)
+(define c () (let () x))
+(define d () (let ([x 5]) x))
+(define e () (let ([y 5]) 10))

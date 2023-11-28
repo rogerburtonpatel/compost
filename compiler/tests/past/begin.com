@@ -1,1 +1,1 @@
-(val x (begin (dup one) (dup two) (dup three) four five))
+(define x () (begin (dup one) (dup two) (dup three) four five))

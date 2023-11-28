@@ -10,45 +10,63 @@ exception DuplicateTop
 
 (* adl = Ast def list, pe = Past expr *)
 
-let rec apes_to_ppes = function
+let rec apes_to_ppes lb rb = function
     [] -> []
-  | ((p, e) :: pes) -> (p, ae_to_pe e) :: (apes_to_ppes pes)
-and ae_to_pe = function
+  | ((A.Pattern(n, ns), e) :: pes) ->
+    let rb = List.fold_right S.add ns rb in
+    (A.Pattern(n, ns), ae_to_pe lb rb e) :: (apes_to_ppes lb rb pes)
+  | ((A.WildcardPattern, e) :: pes) ->
+    (A.WildcardPattern, ae_to_pe lb rb e) :: (apes_to_ppes lb rb pes)
+and ae_to_pe lb rb = function
     A.Begin([]) -> P.Literal(A.UnitLit)
-  | A.Begin([e]) -> ae_to_pe e
-  | A.Begin(e :: es) -> P.Let(Freshnames.fresh_name (), ae_to_pe e, ae_to_pe (A.Begin(es)))
-  | A.Let([], e) -> ae_to_pe e
-  | A.Let(((n, eb) :: bs), e) -> P.Let(n, ae_to_pe eb, ae_to_pe (A.Let(bs, e)))
+  | A.Begin([e]) -> ae_to_pe lb rb e
+  | A.Begin(e :: es) -> P.Let(Freshnames.fresh_name (), ae_to_pe lb rb e, ae_to_pe lb rb (A.Begin(es)))
+  | A.Let([], e) -> ae_to_pe lb rb e
+  | A.Let(((abn, abe) :: abs), e) ->
+    let rb = S.add abn rb in
+    P.Let(abn, ae_to_pe lb rb abe, ae_to_pe lb rb (A.Let(abs, e)))
   | A.Literal(l) -> P.Literal(l)
-  | A.NameExpr(n) -> P.NameExpr(n)
-  | A.Case(e, pes) -> P.Case(ae_to_pe e, apes_to_ppes pes)
-  | A.If(e1, e2, e3) -> P.If(ae_to_pe e1, ae_to_pe e2, ae_to_pe e3)
-  | A.Apply(e, es) -> P.Apply(ae_to_pe e, List.map ae_to_pe es)
+  | A.NameExpr(n) ->
+    if (not (S.mem n rb)) && (SM.mem n lb)
+    then SM.find n lb
+    else P.NameExpr(n)
+  | A.Case(e, pes) -> P.Case(ae_to_pe lb rb e, apes_to_ppes lb rb pes)
+  | A.If(e1, e2, e3) -> P.If(ae_to_pe lb rb e1, ae_to_pe lb rb e2, ae_to_pe lb rb e3)
+  | A.Apply(e, es) -> P.Apply(ae_to_pe lb rb e, List.map (ae_to_pe lb rb) es)
   | A.Dup(n) -> P.Dup(n)
 
-let rec ad_to_pdl use_all use_recur = function
+let rec ad_to_pdl use_recur use_all let_bind top_bind = function
     A.Use(filename) ->
     if S.mem filename use_recur then raise RecursiveUse else
-    if S.mem filename use_all then (D.empty, use_all) else
+    if S.mem filename use_all then (D.empty, use_all, let_bind, top_bind) else
     let channel = open_in filename in
     let lexbuf = Lexing.from_channel channel in
     let ast = Parser.program Scanner.token lexbuf in
     let use_all = S.add filename use_all in
     let use_recur = S.add filename use_recur in
-    adl_to_pdl ast use_all use_recur
-  | A.Val(n, e) -> (D.empty, use_all)
-  (*| A.Val(n, e) -> (D.singleton (P.Val(n, ae_to_pe e)), use_all)*)
-  | A.Define(n, ns, e) -> (D.singleton (P.Define(n, ns, ae_to_pe e)), use_all)
-  | A.Datatype(n, ntss) -> (D.singleton (P.Datatype(n, ntss)), use_all)
-  | A.TyAnnotation(n, t) -> (D.singleton (P.TyAnnotation(n, t)), use_all)
+    adl_to_pdl ast use_recur use_all let_bind top_bind
+  | A.Val(n, e) -> 
+    if S.mem n top_bind then raise DuplicateTop else
+    let pe = ae_to_pe let_bind S.empty e in
+    let let_bind = SM.add n pe let_bind in
+    let top_bind = S.add n top_bind in
+    (D.empty, use_all, let_bind, top_bind)
+  | A.Define(n, ns, e) -> 
+    if S.mem n top_bind then raise DuplicateTop else
+    let top_bind = S.add n top_bind in
+    let rb = List.fold_right S.add ns S.empty in
+    let pe = ae_to_pe let_bind rb e in
+    (D.singleton (P.Define(n, ns, pe)), use_all, let_bind, top_bind)
+  | A.Datatype(n, ntss) -> (D.singleton (P.Datatype(n, ntss)), use_all, let_bind, top_bind)
+  | A.TyAnnotation(n, t) -> (D.singleton (P.TyAnnotation(n, t)), use_all, let_bind, top_bind)
 
 and fold_adl_to_pdl use_recur pdl ad = match pdl with
-    (pdl, use_all) -> (match (ad_to_pdl use_all use_recur ad) with
-        | (pdl2, use_all2) -> (D.cons pdl pdl2, use_all2)
+    (pdl, use_all, let_bind, top_bind) -> (match (ad_to_pdl use_recur use_all let_bind top_bind ad) with
+        | (pdl2, use_all2, let_bind2, top_bind2) -> (D.cons pdl pdl2, use_all2, let_bind2, top_bind2)
     )
 
-and adl_to_pdl adl use_all use_recur = 
-  List.fold_left (fold_adl_to_pdl use_recur) (D.empty, use_all) adl
+and adl_to_pdl adl use_recur use_all let_bind top_bind = 
+  List.fold_left (fold_adl_to_pdl use_recur) (D.empty, use_all, let_bind, top_bind) adl
 
-let preprocess adeflist = match (adl_to_pdl adeflist S.empty S.empty) with
-  | (pdl, _) -> D.tolist pdl
+let preprocess adeflist = match (adl_to_pdl adeflist S.empty S.empty SM.empty S.empty) with
+  | (pdl, _, _, _) -> D.tolist pdl

@@ -1,0 +1,4 @@
+(define a () x)
+(define b (x) x)
+(define c () 10)
+(define d (x) x)

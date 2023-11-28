@@ -1,0 +1,5 @@
+(define a () x)
+(define b (x) x)
+(val x 10)
+(define c () x)
+(define d (x) x)

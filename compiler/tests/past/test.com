@@ -1,2 +1,2 @@
-(val x 2)
-(val x 3)
+(define two () 2)
+(define three () 3)
