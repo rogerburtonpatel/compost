@@ -51,7 +51,7 @@ let mast_of_fast fast =
         List.fold_left add_datatype StringMap.empty fast 
     in
     (* Convert fast ty to mast ty *)
-    let convert_ty ty = 
+    let rec convert_ty ty = 
         match ty with 
         (* LLVM type for a custom type is a pointer to a struct containing a 
          * 32-bit variant identifier (i.e. tag), followed by $n$ i64s, where 
@@ -67,6 +67,12 @@ let mast_of_fast fast =
             let maxnum_variantargs = List.fold_left update_maxnum_variantargs 0 variants in 
             let gen_i64 _ = M.Int(64) in 
             M.Ptr(M.Struct(M.Int(32) :: List.init maxnum_variantargs gen_i64))
+        | Ast.FunTy(tylist, ty) ->
+            let convert_param_ty = function
+                | Ast.FunTy _  as fun_ty -> M.Ptr(convert_ty fun_ty)
+                | other_ty -> convert_ty other_ty
+            in
+            M.Fun(convert_ty ty, List.map convert_param_ty tylist)
         | _ -> convert_builtin_ty ty 
     in
     (* Convert fast expr to mast expr *)
