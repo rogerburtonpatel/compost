@@ -15,7 +15,6 @@ let codegen program variant_idx_map =
   and i32_t = L.i32_type context
   and i8_t = L.i8_type context
   and i1_t = L.i1_type context
-  and void_t = L.void_type context
   and the_module = L.create_module context "Compost" in
 
   let rec lltype_of_ty = function
@@ -51,9 +50,6 @@ let codegen program variant_idx_map =
     in
     StringSet.fold build_symbol sym_lits StringMap.empty
   in
-
-  let abort_t = L.var_arg_function_type void_t [| |] in
-  let abort_func = L.declare_function "abort" abort_t the_module in
 
   (* Association list of primitive functions names and how to build them *)
   let primitives =
@@ -273,9 +269,18 @@ let codegen program variant_idx_map =
         let _ = L.build_cond_br cond_val then_bb else_bb builder' in
 
         let branch_ty = L.type_of else_val in
+        let bogus_val = match L.classify_type branch_ty with
+          | L.TypeKind.Pointer ->
+            let bogus_int = L.const_int i64_t 0 in
+            L.build_inttoptr bogus_int branch_ty "" builder'
+          | L.TypeKind.Integer ->
+            let bitwidth = L.integer_bitwidth branch_ty in
+            L.const_int (L.integer_type context bitwidth) 0
+          | _ -> raise (Impossible "Non-pointer, non-integer return type")
+        in
 
         (* Throw up something for the enclosing call to use - we will never return this *)
-        (L.const_int branch_ty 0, builder')
+        (bogus_val, builder')
 
       | M.If (cond, b1, b2) ->
         let (cond_val, builder') = non_tail locals builder cond in
@@ -286,15 +291,13 @@ let codegen program variant_idx_map =
         let then_bb = L.append_block context "then" the_function in
         let then_builder = L.builder_at_end context then_bb in
         let (then_val, then_builder') = non_tail locals then_builder b1 in
-        let branch_ty = L.type_of then_val in
-        let const_zero = L.const_int branch_ty 0 in
-        let then_val' = L.build_add then_val const_zero "then_result" then_builder' in
+        let then_val' = then_val in
         let _ = branch_instr then_builder' in
 
         let else_bb = L.append_block context "else" the_function in
         let else_builder = L.builder_at_end context else_bb in
         let (else_val, else_builder') = non_tail locals else_builder b2 in
-        let else_val' = L.build_add else_val const_zero "else_result" else_builder' in
+        let else_val' = else_val in
         let _ = branch_instr else_builder' in
 
         let _ = L.build_cond_br cond_val then_bb else_bb builder' in

@@ -16,9 +16,8 @@ let has_dataty n env = match List.assoc n env with
 
 let rec check bound consumed expr =
   match expr with
-  | T.Local n when S.mem n consumed -> raise (NameAlreadyConsumed n)
-  | T.Local n when has_dataty n bound -> (F.Local n, S.singleton n)
-  | T.Local n -> (F.Local n, S.empty)
+  | T.Local n when S.mem n consumed && has_dataty n bound -> raise (NameAlreadyConsumed n)
+  | T.Local n -> (F.Local n, S.singleton n)
   | T.Global n -> (F.Global n, S.empty)
   | T.Dup (_, n) when S.mem n consumed -> raise (NameAlreadyConsumed n)
   | T.Dup (ty, n) -> (F.Dup (ty, n), S.empty)
@@ -79,11 +78,9 @@ let rec check_last bound consumed expr =
   match expr with
   (* === Base Cases (names may be freed here) === *)
   (* Fail when the programmer attempts to reference dead names *)
-  | T.Local n when S.mem n consumed -> raise (NameAlreadyConsumed n)
+  | T.Local n when S.mem n consumed && has_dataty n bound -> raise (NameAlreadyConsumed n)
   (* If n is still live, consume n and free any unused bound variables *)
-  | T.Local n when has_dataty n bound ->
-    (dealloc_in (freeable bound (S.add n consumed)) (F.Local n), S.empty)
-  | T.Local n -> (dealloc_in (freeable bound (S.remove n consumed)) (F.Local n), S.singleton n)
+  | T.Local n -> (dealloc_in (freeable bound (S.add n consumed)) (F.Local n), S.empty)
   (* Global names are always live *)
   | T.Global n -> (dealloc_in (freeable bound (S.remove n consumed)) (F.Global n), S.empty)
   | T.Dup (_, n) when S.mem n consumed -> raise (NameAlreadyConsumed n)
