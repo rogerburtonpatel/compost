@@ -188,7 +188,7 @@ let mast_of_fast fast =
                 let alloc_variant_func (variant_name, variant_tys) = 
                     (* Let variant_varnames just be a sequence of integers starting from 0, prepended by "var" *)
                     let varname_of_int int = "var" ^ string_of_int int in 
-                    let func_type = M.Fun(data_ty, (List.map convert_ty variant_tys)) in 
+                    let func_type = M.Fun(data_ty_ptr, (List.map convert_ty variant_tys)) in
                     let func_argnames = List.init (List.length variant_tys) varname_of_int in 
                     let alloc_ty index _ = (index + 1, M.Local(varname_of_int index)) in 
                     let (_, alloc_expr) = List.fold_left_map alloc_ty 0 variant_tys in 

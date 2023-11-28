@@ -1,9 +1,18 @@
 (datatype int-list
-  ([int-list (int int-list)]
+  ([int-cons (int int-list)]
   [int-nil ()]))
 
+(: print-int-list (-> (int-list) unit))
+(define print-int-list (xxs)
+    (case xxs
+      ([(int-cons x xs)
+         (begin
+            (print-sym '(int-cons ')
+            (print-int x)
+            (print-sym ' ')
+            (print-int-list xs)
+            (print-sym ')'))]
+       [(int-nil) (print-sym 'int-nil')])))
+
 (: main (-> () unit))
-(define main () (print-sym 'foobar'))
-;;    (case (true2)
-;;        ([(true2) (print-sym 'true2')]
-;;         [(false2) (print-sym 'false2')])))
+(define main () (print-int-list (int-cons 1 (int-nil))))

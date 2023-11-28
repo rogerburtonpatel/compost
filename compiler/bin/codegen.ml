@@ -247,7 +247,7 @@ let codegen program variant_idx_map =
         L.set_tail_call is_tail call_val;
         (call_val, builder)
       | M.Free (n, e) ->
-        let _ = L.build_free (StringMap.find n locals) builder in
+        (* let _ = L.build_free (StringMap.find n locals) builder in *)
         tail locals builder e
       | M.If (cond, b1, b2) when is_tail ->
         let (cond_val, builder') = non_tail locals builder cond in
@@ -308,7 +308,6 @@ let codegen program variant_idx_map =
                 | L.TypeKind.Pointer -> L.build_ptrtoint v i64_t "" b'
                 | _ -> L.build_zext v i64_t "" b'
               in
-              print_endline (L.string_of_llvalue arg_val);
               let converted_val = convert_to_i64 arg_val in
               let elem_ptr = L.build_struct_gep struct_val i "elem_ptr" b' in
               let _ = L.build_store converted_val elem_ptr b' in

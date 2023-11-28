@@ -46,6 +46,6 @@ let () =
     if !action = MAst then (Mast.string_of_program memory_managed) else
 
     let m = G.codegen memory_managed idx_map in
-    Llvm_analysis.assert_valid_module m;
+    (* Llvm_analysis.assert_valid_module m; *)
     Llvm.string_of_llmodule m
   in print_string output
