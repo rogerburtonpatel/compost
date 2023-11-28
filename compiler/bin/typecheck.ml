@@ -3,6 +3,7 @@ module U = Uast
 module T = Tast
 
 module StringMap = Map.Make(String)
+module StringSet = Set.Make(String)
 (* type def =
     Define of name * (name list) * expr
   | Datatype of name * (variant list)
@@ -16,7 +17,7 @@ exception Todo
 exception NotFound of string
 exception TypeError of string
 
-
+(* TODO: test double-bound vcon names (ie. bind cons with let) *)
 
 
 let rec eqType t1 t2 = match (t1, t2) with 
@@ -51,23 +52,24 @@ let rec tyString = function
                   ^ " but got "
                   ^ tyString t2 ^ metainfo)) *)
 
-let funtysMismatchError n ts ts' ret_t = 
-  "type mismatch: expected "
-                      ^ tyString (A.FunTy (ts, ret_t))
-                      ^ " but got "
-                      ^ tyString (A.FunTy (ts', ret_t)) 
-                      ^ " in function application of \"" ^ n ^ "\""
-let checkFunTypes n ts ts' ret_t = 
+
+let checkFunTypes n param_ts arg_ts ret_t = 
   let rec go t_s t_s' = 
   match (t_s, t_s') with 
 | ([], []) -> ()
 | (tau::taus, tau'::taus') -> 
       if eqType tau tau' 
       then go taus taus'
-      else raise 
-          (TypeError (funtysMismatchError n ts ts' ret_t))
+      else
+        let funtysMismatchError n ts ts' ret_t = 
+          "type mismatch: expected "
+                              ^ tyString (A.FunTy (ts, ret_t))
+                              ^ " but got "
+                              ^ tyString (A.FunTy (ts', ret_t)) 
+                              ^ " in function application of \"" ^ n ^ "\""
+        in raise (TypeError (funtysMismatchError n param_ts arg_ts ret_t))
 | (_, _) -> raise (Impossible "mismatch in number of types in checkFunArgTypes")
-    in go ts ts' 
+    in go param_ts arg_ts 
 
 let extendGammaWithPat gamma delta pat = 
   match pat with 
@@ -79,7 +81,31 @@ let extendGammaWithPat gamma delta pat =
                         gamma ns typ_args in 
       gamma' 
 
+      (* val transformCase : A.ty -> (A.pattern * U.expr) list -> T.expr *)
+(* let transformCase (ty, e) (possibleVariants : Ast.name list) (branches : (T.pattern * T.expr) list) = 
+  let checkBranch (newbranches, foundvariants, warn) branch = 
+    match branch with 
+    | T.WildcardPattern -> 
+         (List.append newbranches [branch], possibleVariants, warn)
+      | T.Pattern (vcon, ns) -> 
+        let warn' = if List.exists (fun vc -> vc = vcon) foundvariants then 
+          let (names, tys) = List.split ns in 
+          "unreachable pattern \"" ^ vcon
+        else ""
+        
+    (* if List.exists (fun s -> s = branch)
+    raise Todo  *)
+  in 
+  let (newbranches, warn) = List.fold_left checkBranch ([], [], "") branches in 
+  let _ = if not (warn = "") then Printf.eprintf ("Warning: %s") warn else () in
+  (* todo add wildcard *)
+  T.Case (ty, e, newbranches) *)
+
+
 let curry f x y = f (x, y)
+
+(* gamma: name -> ty *)
+(* delta: value constructor name -> (types-of-its-arguments, type-it-constructs) *)
 
 let rec typeof gamma delta expr = 
   let rec typ = function  
@@ -234,12 +260,11 @@ let rec exp gamma delta expr =
     | U.If (e1, e2, e3) -> 
         let _ = typeof' e in
           T.If (exp' e1, exp' e2, exp' e3)
-    | U.Let (n, e1, e') as lt ->
-      let _      = typeof' lt in 
-                                   let ty_e   = typeof' e1 in 
-                                   let gamma' = StringMap.add n ty_e gamma in 
-                                   let _      = typeof gamma' delta e' in
-                                   T.Let (n, ty_e, exp gamma delta e1, exp gamma' delta e')
+    | U.Let (n, e1, e') ->  let ty_e   = typeof' e1 in 
+                            let gamma' = StringMap.add n ty_e gamma in 
+                            let _      = typeof gamma' delta e' in
+                            T.Let (n, ty_e, exp gamma delta e1, 
+                                            exp gamma' delta e')
     | U.Apply (e, es) as app -> let _ = typeof' app in 
                                   let es' = List.map exp' es in 
                                   T.Apply (exp' e, es')
@@ -251,18 +276,25 @@ let typecheckDef (defs, gamma, delta) = function
   if not (StringMap.mem n gamma)
   then raise (TypeError 
                 ("definition of function \"" ^ n 
-                ^ "\" with no prior type annotation. This error will be "
-                ^ "removed if we go for full inference."))
+                ^ "\" with no prior type annotation."))
   else let known_annotated_ty = StringMap.find n gamma in
   (match known_annotated_ty with 
     | (A.FunTy (argtys, expected_ret_ty)) -> 
+      let known_argscount = List.length argtys in 
+      let given_argscount = List.length args in 
+      if not (known_argscount = given_argscount)
+      then raise (TypeError ("prior annotation defined function \"" 
+                             ^ n ^ "\" has " ^ Int.to_string known_argscount 
+                             ^ " arguments, but its definition has "
+                             ^ Int.to_string given_argscount ^ " arguments."))
+      else 
       let extended_gamma = 
         List.fold_left2 (* insane folding *)
             (fun env name ty -> StringMap.add name ty env) gamma args argtys in 
       let ret_ty = typeof extended_gamma delta body in 
         if not (eqType expected_ret_ty ret_ty) 
-        then raise (TypeError ("prior annotation defined function \"" ^ n ^ 
-                              "\" to be of type \"" 
+        then raise (TypeError ("prior annotation defined function \"" 
+                              ^ n ^ "\" to be of type \"" 
                               ^ tyString known_annotated_ty
                               ^ "\" but a definition was given that has type \""
                               ^ tyString (A.FunTy (argtys, ret_ty )) ^ "\""))
@@ -278,7 +310,8 @@ let typecheckDef (defs, gamma, delta) = function
     else 
       let (_, existing_type) = StringMap.find vname delta in 
       raise (TypeError ("duplicate type constructor \"" 
-                        ^ vname ^ "\": constructor already exists for type \"" 
+                        ^ vname ^ "\" in user-defined datatype \""
+                        ^ n ^ "\": constructor already exists for type \"" 
                         ^ tyString existing_type ^ "\"")) 
     in let extended_delta = List.fold_left check_variant delta variants in
     let add_variant gamma' (vname, ts) = 
@@ -286,7 +319,7 @@ let typecheckDef (defs, gamma, delta) = function
     in 
     let extended_gamma = List.fold_left add_variant gamma variants in 
     let datatype' = T.Datatype (n, variants) in
-    (List.append defs [datatype'], extended_gamma, extended_delta)
+      List.append defs [datatype'], extended_gamma, extended_delta
 
 | U.TyAnnotation (n, ty) -> 
   if not (StringMap.mem n gamma)
@@ -299,9 +332,11 @@ let typecheckDef (defs, gamma, delta) = function
     ^ tyString found_typ
     ^ "\" but a second annotation was given that has type \""
     ^ tyString ty ^ "\""))
-    else (defs, gamma, delta)
-  (* T.Define ("", [], (T.Literal (Ast.IntLit 0), Ast.Unit)) *)
 
+else (defs, gamma, delta)
+| U.Val (n, _) -> raise (Impossible 
+                                ("attempting to typecheck val \"" ^ n ^ 
+                                "\"; val forms should be eliminated by now."))
 (* walks the program, building environments and typechecking against them. *)
 let typecheck prog =
   let gamma =
@@ -312,12 +347,14 @@ let typecheck prog =
     let fun_constraints = List.fold_right
         (function
           | U.TyAnnotation (n, ty) -> StringMap.add n ty
-          | _ -> fun x -> x)
+          | _ -> fun env -> env)
         prog StringMap.empty
     in
     StringMap.union
-      (fun _ _ -> raise (Impossible "user-defined and primitive function
-                                  share a name"))
+      (fun n _ _ -> raise 
+                      (TypeError ("attempted to define a function with "
+                                  ^ "name \"" ^ n ^ "\", but a primitive "
+                                  ^ "function with that name already exists.")))
       prim_constraints fun_constraints
   in
   let delta = StringMap.empty in
