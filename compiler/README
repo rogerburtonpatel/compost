@@ -12,9 +12,10 @@ Currently, in our integration testing suite, we have the following test
 files (all of which work with this version of our compiler). Such files 
 can be found in the tests/compile subdirectory, and the expected output 
 of running each test can be found in the `.out` file with the same name.
-`hello-world.com` is the simplest of those tests, and we consider that 
-to be our "Hello World" program if looking at only one of these tests 
-is desired.
+Such expected output can be the expected output of the compiled program, 
+the expected output of a pretty-printer at an intermediate compilation 
+stage, or the expected error message to be thrown at an intermediate 
+compilation stage in the case of a negative test.
 
 `arith.com`: Tests primitive arithmetic operators including addition, 
              multiplication, and mod.
@@ -58,13 +59,30 @@ Or, alternatively, you can type:
     make
 
 To run all tests in our test suite, type the following command:
-    ./run_tests.bash -c 
+    ./run_tests.bash 
 
-To run a specific test in our test suite, type the following command:
-    ./run_tests.bash -c test_name.com 
-where `test_name.com` is the name of a Compost program that can be found 
-in the tests/compile/ subdirectory. For example, to run our simple 
-"Hello World" test, run: `./run_tests.bash -c hello-world.com`
+To run a specific test in our test suite, the usage is defined as follows:
+    ./run_tests.bash -{a|p|u|t|m|c|r} test_name.com 
+where the inputted flag specifies which phase to test:
+    -a: test scanning and parsing
+    -p: test all phases specified in -a *and* preprocessing 
+    -u: test all phases specified in -p *and* disambiguation of globals and locals
+    -t: test all phases specified in -u *and* type checking 
+    -m: test all phases specified in -t *and* explicit memory management 
+    -c: test all phases of compilation and diff the LLVM output against a gold standard 
+    -r: test all phases of compilation, *run the program*, and diff the program's output 
+        against a gold standard.
+and `test_name.com` is the name of a Compost program that can be found 
+in some subdirectory within tests/ dependent on the inputted flag: 
+    -a: looks in tests/ast/
+    -p: looks in tests/past/
+    -u: looks in tests/uast/
+    -t: looks in tests/tast/
+    -m: looks in tests/mast/
+    -c: looks in tests/llvm/
+    -r: looks in tests/run
+For example, to run our simple "Hello World" test, run: 
+`./run_tests.bash -r hello-world.com`
 
 To run *just* the compiler on a source file (producing the executable), run:
     ./compile-compost file.com
@@ -87,7 +105,7 @@ How test validates compilation or reports issues.
 
 The tests compile the Compost program with our compiler, runs the 
 executable, and diffs the output against the `.out` file found in the 
-tests/compile/ subdirectory with the same name. The script reports that the test 
+subdirectory containing that test with the same name. The script reports that the test 
 passed iff the output of the executable matches the output of the `.out` file,
 and reports a test failure if there is a difference in the output or if the 
 program could not be compiled. 
