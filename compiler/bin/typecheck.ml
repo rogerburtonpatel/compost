@@ -334,9 +334,6 @@ let typecheckDef (defs, gamma, delta) = function
     ^ tyString ty ^ "\""))
 
 else (defs, gamma, delta)
-| U.Val (n, _) -> raise (Impossible 
-                                ("attempting to typecheck val \"" ^ n ^ 
-                                "\"; val forms should be eliminated by now."))
 (* walks the program, building environments and typechecking against them. *)
 let typecheck prog =
   let gamma =
