@@ -138,7 +138,7 @@
         (let 
             ([multilistinst (init-multilist)]
              [multilistinst2 (dup multilistinst)])
-            (begin (print-multilist multilistinst2)
+            (begin (print-multilist multilistinst)
                 (print-multilist-ints multilistinst2)))
         (print-sym 'Finished intlist test')
         (print-endline)))
