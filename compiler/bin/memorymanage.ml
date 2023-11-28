@@ -174,7 +174,21 @@ let mast_of_fast fast =
                 in 
                 M.Define("free_" ^ name, func_type, param_names, body) 
             in
-            (variant_idx_map', [ alloc_func ; free_func ])
-    in
-    let (variant_idx_map, defs) = List.fold_left_map convert_defs StringMap.empty fast in
+            let alloc_variant_funcs = 
+                let alloc_variant_func (variant_name, variant_tys) = 
+                    (* Let variant_varnames just be a sequence of integers starting from 0, prepended by "var" *)
+                    let varname_of_int int = "var" ^ string_of_int int in 
+                    let func_type = M.Fun(data_ty, (List.map convert_ty variant_tys)) in 
+                    let func_argnames = List.init (List.length variant_tys) varname_of_int in 
+                    let alloc_ty index _ = (index + 1, M.Local(varname_of_int index)) in 
+                    let (_, alloc_expr) = List.fold_left_map alloc_ty 0 variant_tys in 
+                    let alloc_call = M.Alloc(data_ty, StringMap.find variant_name variant_idx_map', alloc_expr) in 
+                    M.Define("_" ^ variant_name, func_type, func_argnames, alloc_call)
+                in
+                let variants = StringMap.find name datatypes in 
+                List.map alloc_variant_func variants 
+            in
+            (variant_idx_map', alloc_func :: free_func :: alloc_variant_funcs )
+    in 
+    let (variant_idx_map, defs) = List.fold_left_map convert_defs StringMap.empty fast in 
     (List.flatten defs, variant_idx_map)
