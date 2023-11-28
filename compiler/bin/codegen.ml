@@ -247,7 +247,7 @@ let codegen program variant_idx_map =
         L.set_tail_call is_tail call_val;
         (call_val, builder)
       | M.Free (n, e) ->
-        (* let _ = L.build_free (StringMap.find n locals) builder in *)
+        let _ = L.build_free (StringMap.find n locals) builder in
         tail locals builder e
       | M.If (cond, b1, b2) when is_tail ->
         let (cond_val, builder') = non_tail locals builder cond in

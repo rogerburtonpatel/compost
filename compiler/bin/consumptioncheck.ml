@@ -44,7 +44,7 @@ let rec check bound consumed expr =
         (e' :: ees', c'')
     in
     let (e', c) = check bound consumed e in
-    let (es', c') = check_args es c in
+    let (es', c') = check_args es (S.union consumed c) in
     (F.Apply (e', es'), c')
   | T.Case (e_ty, e, branches) ->
     let (e', c) = check bound consumed e in
@@ -54,7 +54,6 @@ let rec check bound consumed expr =
       | T.Pattern (n, binds) ->
         let bound' = binds @ bound in
         let (body', branch_c) = check bound' c body in
-        let (bound, _) = List.split binds in
         (* Explicity free the top level struct of the scrutinee *)
         ((F.Pattern (n, binds), F.Free (e_ty, scrutinee_name, body')), branch_c)
       | _ ->
@@ -116,7 +115,7 @@ let rec check_last bound consumed expr =
         (e' :: ees', c'')
     in
     let (e', c) = check bound consumed e in
-    let (es', c') = check_args es c in
+    let (es', c') = check_args es (S.union consumed c) in
     (F.Apply (e', es'), c')
   | T.Case (e_ty, e, branches) ->
     let (e', c) = check bound consumed e in
@@ -124,10 +123,8 @@ let rec check_last bound consumed expr =
     let scrutinee_name = Freshnames.fresh_name () in
     let check_branch (pat, body) = match pat with
       | T.Pattern (n, binds) ->
-        let (names, _) = List.split binds in
         let bound' = binds @ bound in
         let (body', branch_c) = check_last bound' c body in
-        let (bound, _) = List.split binds in
         (* Explicity free the top level struct of the scrutinee *)
         ((F.Pattern (n, binds), F.Free (e_ty, scrutinee_name, body')), branch_c)
       | _ ->

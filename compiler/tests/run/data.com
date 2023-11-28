@@ -15,4 +15,6 @@
        [(int-nil) (print-sym 'int-nil')])))
 
 (: main (-> () unit))
-(define main () (print-int-list (int-cons 1 (int-nil))))
+(define main ()
+  (print-int-list
+    (int-cons 1 (int-cons 2 (int-nil)))))
