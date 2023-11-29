@@ -50,7 +50,7 @@ let string_of_lit lit = Ast.string_of_lit lit
 
 let is_int = String.for_all (function '0' .. '1' -> true | _ -> false)
 
-let string_of_nameorwildcard (name, ty) =
+let string_of_nameorwildcard (name, _) =
   if is_int name then "_"
   else name
 
