@@ -35,7 +35,7 @@ in some subdirectory within tests/ dependent on the inputted flag:
     -t: looks in tests/tast/
     -m: looks in tests/mast/
     -c: looks in tests/llvm/
-    -r: looks in tests/run
+    -r: looks in tests/run/
 For example, to run our simple "Hello World" test, run: 
 `./run_tests.bash -r hello-world.com`
 
@@ -59,22 +59,236 @@ where `file.com` is the name of the file containing a Compost program.
 Programs in our integration testing suite:
 
 Currently, in our integration testing suite, we have the following test 
-files (most of which work with this version of our compiler). Such files 
+files (all of which work with this version of our compiler). Such files 
 can be found in subdirectories of the tests/ subdirectory, and the 
 expected output of running each test can be found in the `.out` file with 
 the same name. Such expected output can be the expected output of the 
 compiled program, the expected output of a pretty-printer at an intermediate 
 compilation stage, or the expected error message to be thrown in the case of 
-a negative test.
+a negative test. If a `.out` file is *not* found in that subdirectory, then 
+the expected output is the same as the Compost program.
 
-We will not be describing each individual test in the tests/ast/ subdirectory 
-because there are a lot of them and they test the scanner and parser, which 
-do not seem to be important for this deliverable.
+See the "run" tests for mostly positive tests and the type checker tests
+for mostly negative tests.
 
-TODO: Update the following descriptions 
+SCANNER / PARSER TESTS (found in tests/ast/):
+
+`annotation.com`: tests scanning/parsing of function type annotations 
+
+`arrow.com`: tests scanning/parsing of names containing arrows (e.g. `->a`)
+
+`begin.com`: tests scanning/parsing of begin statement
+
+`case.com`: tests scanning/parsing of basic pattern match
+
+`comments1.com`: tests scanning/parsing of code containing comments at end of 
+                 lines, each of which may or may not be separated from the code 
+                 with whitespace
+
+`comments2.com`: tests scanning/parsing of code with a comment containing a 
+                 closing parentheses, ensuring the comment parentheses is ignored
+
+`comments3.com`: tests that code containing an open parenthesis matched by a 
+                 closing parenthesis in a comment (and thus ignored) does *not* parse
+
+`comments4.com`: tests that semicolons in symbols *do* parse correctly, as they do not 
+                 indicate a comment when inside a string
+
+`datatype.com`: tests scanning/parsing of a simple list datatype definition 
+
+`define.com`: tests scanning/parsing of a simple function definition 
+
+`defineArgs.com`: tests scanning/parsing of a function definition with multiple arguments 
+
+`defineErr.com`: tests that function definition without a body does *not* parse
+
+`emoji.com`: tests scanning/parsing of code with an emoji variable name 
+
+`exprlist.com`: tests scanning/parsing of code applying many arguments to a function 
+
+`funCall.com`: tests scanning/parsing of code that applies multiple functions, some of 
+               which in a higher-order manner
+
+`hello.com`: simple test for scanning/parsing of a symbol literal
+
+`ifnest.com`: tests scanning/parsing of nested if statements 
+
+`illegal.com`: tests that illegal symbol literals (symbols containing a backslash followed 
+               by a character that is not a quotation or another backslash) do *not* parse 
+
+`let.com`: tests scanning/parsing of let statement 
+
+`lit.com`: tests scanning/parsing of multiple types of literals 
+
+`litfbool.com`: tests that attempting to use a pre-determined boolean keyword (`false`) for 
+                a variable name does *not* parse
+
+`litfintlit.com`: tests that attempting to use an integer literal for a variable name does 
+                  *not* parse
+
+`litfintlit2.com`: tests that attempting to use a negative integer literal for a variable 
+                   name does *not* parse
+
+`litfsymlit.com`: tests that attempting to use a symbol literal for a variable name does 
+                  *not* parse
+
+`litfunit.com`: tests that attempting to use the unit literal for a variable name does 
+                *not* parse
+
+`lrm1.com` through `lrm10.com`: tests successful scanning/parsing of a variety of functionality 
+                                described in the LRM (mainly to ensure that examples given in 
+                                the LRM were syntactically correct)
+
+`semi0.com`: tests scanning/parsing of code containing a semicolon inside a symbol
+
+`semi1.com`: tests scanning/parsing of code containing a semicolon inside a symbol that is passed 
+             in as a function argument
+
+`semi2.com`: tests that code with a semicolon inside a symbol that tries to treat the rest of the 
+             line as a comment does *not* parse, verifying that semicolons inside symbols are not 
+             treated as comments 
+
+`semi25.com`: tests scanner/parser success for code where multi-line symbols are passed in as 
+              function arguments 
+
+`simple.com`: tests scanning/parsing of a simple val definition 
+
+`underscore.com`: tests that code attempting to use the underscore character (reserved for wildcard 
+                  pattern matching) does *not* parse
+
+`unicode.com`: tests scanning/parsing of code containing a variable name composed of Japanese characters 
+
+`unit.com`: tests scanning/parsing of code invoking the unit literal 
+
+`weirdspace.com` through `weirdspace4.com`: tests successful scanning/parsing of code containing an assortment of 
+                                            whitespace characters (e.g. carriage returns, spaces, newlines, and 
+                                            tabs) within and outside symbol literals
+
+PREPROCESSOR TESTS (found in tests/past/):
+
+`badval.com`: tests preprocessing of nonsensical val definitions. This *should* successfully pass the preprocessing 
+              stage, as the error will be caught by our semantic checker.
+
+`begin.com`: tests preprocessing of begin statement 
+
+`define.com`: tests preprocessing of simple function definition 
+
+`definetwo.com`: tests preprocessing of two different function definitions 
+
+`definetwob.com`: tests that code containing a duplicate function definition does *not* pass the preprocessor stage 
+
+`depth.com`: tests that code attempting to include its own source file does *not* pass the preprocessor stage 
+
+`double.com`: tests code that includes multiple other source files
+
+`globdef.com`: tests preprocessing of global definition 
+
+`globlet.com`: tests preprocessing of global definition used in let statements
+
+`nest.com`: tests preprocessing of code that includes one other source file which itself includes a different source file 
+
+`test.com`: tests preprocessing of two different function definitions. A source file that is included in some 
+            other preprocessing tests.
+
+`use.com`: tests preprocessing of code that uses one other source file
+
+`val.com`: tests preprocessing of a single `val` definition that is not used anywhere else in the code
+
+`valdef1.com`: tests preprocessing of val definitions (treating them as macros)
+
+DISAMBIGUATOR TESTS (found in tests/uast/):
+
+`hello-world.com`: tests disambiguation of a simple Hello World program (treating the function name as 
+                   a global variable)
+
+TYPE CHECKER TESTS (found in tests/tast/):
+
+`applyLiteralError.com`: tests that a semantic error is thrown when attempting to apply a literal 
+                         as a function
+
+`applyNonFuncError.com`: tests that a semantic error is thrown when attempting to apply a name that 
+                         is not a function
+
+`datatypes.com`: tests that a custom datatypes stress test passes the type checking phase *without* errors
+
+`dupUnboundError.com`: tests that a semantic error is thrown when attempting to call `dup` on an unbound 
+                       name 
+
+`duplicateVConError.com`: tests that a semantic error is thrown when defining two variant constructors 
+                          (of different datatypes) with the same name 
+
+`emptyCaseError.com`: tests that a semantic error is thrown when there exists a `case` expression with 
+                      no branches
+
+`funArgNumMismatchTypeError.com`: tests that a semantic error is thrown when a function call passes an 
+                                  incorrect number of arguments 
+
+`funtysMismatchTypeError.com`: tests that a semantic error is thrown when a function call passes in an 
+                               argument of the wrong type
+
+`hello-world.com`: tests that a simple "Hello World" program passes the type checking phase *without* errors
+
+`ifbranchMismatchTypeError.com`: tests that a semantic error is thrown when there exists an `if` expression 
+                                 where the true and false branch expressions do not have the same type
+
+`ifcondMismatchTypeError.com`: tests that a semantic error is thrown when the conditional in an `if` expression 
+                               is not a boolean
+
+`matchOnNonCustomError.com`: tests that a semantic error is thrown when the expression in a `case` statement being 
+                             matched on is not a custom datatype, but a pattern being matched on that expression is 
+                             a custom datatype.
+
+`mismatchAnnotatedArgnumError.com`: tests that a semantic error is thrown when the number of arguments in the type 
+                                    annotation of a function does not match the number of arguments in the function 
+                                    definition 
+
+`mismatchAnnotationError.com`: tests that a semantic error is thrown when the type annotation of a function does not 
+                               match the function type according to its definition 
+
+`mismatchBranchError.com`: tests that a semantic error is thrown when different patterns in a case expression have 
+                           different types
+
+`mismatchBranchRHSError.com`: tests that a semantic error is thrown when expressions on the right hand side of case 
+                              branches within a case expression have different types 
+
+`mismatchTwoAnnotationsError.com`: tests that a semantic error is thrown when two type annotations are given for the 
+                                   same function, but specify different function types 
+
+`redefinePrimitiveError.com`: tests that a semantic error is thrown when the user attempts to redefine a built-in 
+                              primitive function such as `print-sym`
+
+`unannotatedFuncError.com`: tests that a semantic error is thrown when a function is defined without a type annotation 
+
+`unboundApplyNotFoundError.com`: tests that a semantic error is thrown when attempting to apply an unbound name as 
+                                 a function
+
+`unboundNameNotFoundError.com`: tests that a semantic error is thrown when attempting to consume a name that is not bound 
+
+`unboundVConInCaseError.com`: tests that a semantic error is thrown when attempting to pattern match an instance of a 
+                              custom datatype on an unbound variant constructor
+
+MEMORY MANAGE TESTS (found in tests/mast/):
+
+`case.com`: test for proper memory management in a simple case expression pattern matching on a custom intlist instance
+
+`hello-world.com`: tests that a simple "Hello World" program passes the memory management stage 
+
+`list.com`: test for proper memory management of duplication of a custom intlist 
+
+LLVM TESTS (found in tests/llvm/):
+
+`hello-world.com`: simple program that prints "Hello, World!"
+
+`inf.com`: tests infinite mutual recursion of function calls 
+
+`recurse.com`: tests infinite recursion of a function call 
+
+RUN TESTS (found in tests/run/):
 
 `arith.com`: Tests primitive arithmetic operators including addition, 
              multiplication, and mod.
+
+`data.com`: Tests for proper creation and printing of a custom intlist datatype 
 
 `emoji.com`: Tests the use of an emoji as a name and the ability to 
              print a symbol containing an emoji. 
@@ -98,6 +312,12 @@ TODO: Update the following descriptions
           read in one character from stdin and print out the integer representation 
           of that character (according to the ASCII table).
 
+`list.com`: Tests the ability to create and duplicate a custom intlist (*without* 
+            printing it out)
+
+`minidatatypes.com`: Tests for proper creation and printing of the elements of a 
+                     custom intlist datatype
+
 `print.com`: Tests all four built-in print functions (print-int, print-bool, print-sym,
              and print-unit).
 
@@ -107,12 +327,25 @@ TODO: Update the following descriptions
             without our tailcall optimization.
 
 ----------------------------------------------------------------------------------
+Features not included in MicroC:
+
+`hello-world.com` uses a symbol literal, which is not a feature in MicroC
+
+`list.com` uses a custom list datatype, which cannot be done in MicroC
+
+`hello-ho.com`: passes in a function as an argument to another function 
+
+`emoji.com`: uses an emoji as a variable name, which cannot be done in MicroC
+
+----------------------------------------------------------------------------------
 How test validates compilation or reports issues.
 
-The tests compile the Compost program with our compiler, runs the 
-executable, and diffs the output against the `.out` file found in the 
-subdirectory containing that test with the same name. The script reports that the test 
+The tests compile the Compost program with our compiler, runs the executable 
+(piping in input from the `.in` file via stdin if a `.in` file is present), 
+and diffs the output against the `.out` file found in the subdirectory 
+containing that test with the same name. The script reports that the test 
 passed iff the output of the executable matches the output of the `.out` file,
-and reports a test failure if there is a difference in the output or if the 
-program could not be compiled. 
+and reports a test failure if there is a difference in the output. This 
+is true of cases of successful compilation *and* cases where an error message 
+is thrown (where the expected error message is in the `.out` file). 
 
