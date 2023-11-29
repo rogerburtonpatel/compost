@@ -126,7 +126,6 @@ let rec check_last bound consumed expr =
         (* Explicity free the top level struct of the scrutinee *)
         ((F.Pattern (n, binds), F.Free (e_ty, scrutinee_name, body')), branch_c)
       | _ ->
-        (* No need to free the scrutinee immediately in a wildcard branch *)
         let (body', branch_c) = check_last bound c body in
         ((F.WildcardPattern, F.Free (e_ty, scrutinee_name, body')), branch_c)
     in
