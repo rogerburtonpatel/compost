@@ -306,9 +306,9 @@ let typecheckDef (defs, gamma, delta) = function
 | U.Datatype (n, variants) -> 
   let check_variant delta' (vname, ts)  =
     if not (StringMap.mem vname delta')
-    then (StringMap.add vname (ts, A.CustomTy n) delta') 
+    then    StringMap.add vname (ts, A.CustomTy n) delta'
     else 
-      let (_, existing_type) = StringMap.find vname delta in 
+      let (_, existing_type) = StringMap.find vname delta' in
       raise (TypeError ("duplicate type constructor \"" 
                         ^ vname ^ "\" in user-defined datatype \""
                         ^ n ^ "\": constructor already exists for type \"" 

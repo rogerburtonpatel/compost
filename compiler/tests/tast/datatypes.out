@@ -1,3 +1,5 @@
+Entering directory '/Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler'
+Leaving directory '/Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler'
 (datatype intlist ([cons-int (int intlist)] [nil-intlist ()]))
 (datatype direction ([left ()] [right ()] [up ()] [down ()]))
 (datatype bst ([buildbst (int bst bst)] [nil-bst ()]))

@@ -1,1 +1,3 @@
+Entering directory '/Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler'
+Leaving directory '/Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler'
 Fatal error: exception Dune__exe__Typecheck.TypeError("mismatched types in if branches")
