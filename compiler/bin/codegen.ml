@@ -272,7 +272,7 @@ let codegen program variant_idx_map =
         let bogus_val = match L.classify_type branch_ty with
           | L.TypeKind.Pointer ->
             let bogus_int = L.const_int i64_t 0 in
-            L.build_inttoptr bogus_int branch_ty "" builder'
+            L.build_inttoptr bogus_int branch_ty "tmp" builder'
           | L.TypeKind.Integer ->
             let bitwidth = L.integer_bitwidth branch_ty in
             L.const_int (L.integer_type context bitwidth) 0
@@ -316,8 +316,8 @@ let codegen program variant_idx_map =
             (fun (b, i) arg ->
               let (arg_val, b') = non_tail locals b arg in
               let convert_to_i64 v = match L.classify_type (L.type_of v) with
-                | L.TypeKind.Pointer -> L.build_ptrtoint v i64_t "" b'
-                | _ -> L.build_zext v i64_t "" b'
+                | L.TypeKind.Pointer -> L.build_ptrtoint v i64_t "tmp" b'
+                | _ -> L.build_zext v i64_t "tmp" b'
               in
               let converted_val = convert_to_i64 arg_val in
               let elem_ptr = L.build_struct_gep struct_val i "elem_ptr" b' in
@@ -342,8 +342,8 @@ let codegen program variant_idx_map =
               let convert_i64 ty v = match ty with
                 | M.Int n ->
                   let in_ty = L.integer_type context n in
-                  L.build_trunc v in_ty "" branch_builder
-                | _ -> L.build_inttoptr v (lltype_of_ty ty) "" branch_builder
+                  L.build_trunc v in_ty "tmp" branch_builder
+                | _ -> L.build_inttoptr v (lltype_of_ty ty) "tmp" branch_builder
               in
               let (locals', _) = List.fold_left
                                   (fun (locals, i) (n, ty) ->
@@ -364,9 +364,6 @@ let codegen program variant_idx_map =
               let _ = branch_instr body_builder in
               (body_val, L.insertion_block body_builder)
         in
-        (* WARNING: HACK ZONE *)
-        let default_builder = L.builder_at_end context default_bb in
-        let _ = L.build_unreachable default_builder in
 
         let merge_builder = L.builder_at_end context merge_bb in
         (L.build_phi (List.map build_branch branches) "case_result" merge_builder, merge_builder)
