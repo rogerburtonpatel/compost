@@ -82,7 +82,7 @@ let extendGammaWithPat gamma delta pat =
       gamma' 
 
       (* val transformCase : A.ty -> (A.pattern * U.expr) list -> T.expr *)
-(* let transformCase (ty, e) (possibleVariants : Ast.name list) (branches : (T.pattern * T.expr) list) = 
+let transformCase (ty, e) (possibleVariants : Ast.name list) (branches : (T.pattern * T.expr) list) = 
   let checkBranch (newbranches, foundvariants, warn) branch = 
     match branch with 
     | T.WildcardPattern -> 
@@ -99,7 +99,7 @@ let extendGammaWithPat gamma delta pat =
   let (newbranches, warn) = List.fold_left checkBranch ([], [], "") branches in 
   let _ = if not (warn = "") then Printf.eprintf ("Warning: %s") warn else () in
   (* todo add wildcard *)
-  T.Case (ty, e, newbranches) *)
+  T.Case (ty, e, newbranches)
 
 
 let curry f x y = f (x, y)
@@ -230,9 +230,9 @@ let rec typeof gamma delta expr =
 U.Literal l -> T.literal *)
 
 let addWildcard = function
-    |[] -> raise (Impossible "empty pat list")
+    | [] -> raise (Impossible "empty pat list")
     | pats -> 
-      if List.exists (function | (T.WildcardPattern, _) -> true | _ -> false) pats 
+      if not List.exists (function | (T.WildcardPattern, _) -> true | _ -> false) pats 
       then List.append pats [(T.WildcardPattern, (T.Err "pattern match failed"))]
     else pats  
 
