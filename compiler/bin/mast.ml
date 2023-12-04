@@ -29,6 +29,7 @@ and expr =
   (* Allocates a struct with a given tag and fields *)
   (* populated by the values bound to the names in the list *)
   | Alloc of ty * int * expr list
+  | Err of string
 
 type def = Define of name * ty * name list * expr
   (* Datatype definitions can be erased *)
@@ -75,7 +76,9 @@ let rec string_of_expr = function
      "(free %" ^ name ^ " " ^ string_of_expr expr ^ ")"
  | Alloc(ty, tag, exprlist) -> 
      "(alloc (type " ^ string_of_ty ty ^ ") " ^ string_of_int tag ^ " [ " ^ String.concat "; " (List.map string_of_expr exprlist) ^ " ] " 
-
+ | Err(name) -> 
+    "(err " ^ name ^ ")"
+  
 and string_of_bind = function 
    (name, expr) -> "[" ^ name ^ " " ^ string_of_expr expr ^ "]"
   

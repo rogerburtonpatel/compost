@@ -16,6 +16,7 @@ and expr =
   | Let of name * expr * expr
   | Apply of expr * (expr list) 
   | Dup of name 
+  | Err of string
 
 type def =
     Define of name * (name list) * expr 
@@ -49,6 +50,8 @@ let rec string_of_expr = function
      "(case " ^ string_of_expr expr ^ " (" ^ String.concat " " (List.map string_of_casebranch casebranchlist) ^ "))"
  | Dup(name) ->
      "(dup " ^ name ^ ")"
+ | Err(name) -> 
+    "(err " ^ name ^ ")"
 
 and string_of_bind = function 
    (name, expr) -> "[" ^ name ^ " " ^ string_of_expr expr ^ "]"

@@ -229,6 +229,13 @@ let rec typeof gamma delta expr =
 (* let rec exp rho = function 
 U.Literal l -> T.literal *)
 
+let addWildcard = function
+    |[] -> raise (Impossible "empty pat list")
+    | pats -> 
+      if List.exists (function | (T.WildcardPattern, _) -> true | _ -> false) pats 
+      then List.append pats [(T.WildcardPattern, (T.Err "pattern match failed"))]
+    else pats  
+
 let rec exp gamma delta expr = 
   let typeof' = typeof gamma delta in
   let rec exp' e = 
@@ -256,7 +263,7 @@ let rec exp gamma delta expr =
         (* let branches'     = List.map (fun (pat, (e, t)) -> 
                                            T.CaseBranch (pat, (e, t))) 
                             branches_full in  *)
-        T.Case (ty_ex, exp' ex, branches')
+        T.Case (ty_ex, exp' ex, addWildcard branches')
     | U.If (e1, e2, e3) -> 
         let _ = typeof' e in
           T.If (exp' e1, exp' e2, exp' e3)
