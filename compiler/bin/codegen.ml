@@ -15,6 +15,7 @@ let codegen program variant_idx_map =
   and i32_t = L.i32_type context
   and i8_t = L.i8_type context
   and i1_t = L.i1_type context
+  and void_t = L.void_type context
   and the_module = L.create_module context "Compost" in
 
   let rec lltype_of_ty = function
@@ -50,6 +51,9 @@ let codegen program variant_idx_map =
     in
     StringSet.fold build_symbol sym_lits StringMap.empty
   in
+
+  let abort_t = L.function_type void_t [| |] in
+  let abort_func = L.declare_function "abort" abort_t the_module in
 
   (* Association list of primitive functions names and how to build them *)
   let primitives =
@@ -325,6 +329,11 @@ let codegen program variant_idx_map =
               (b', i + 1)
             ) (builder, 1) args in
         (struct_val, builder')
+      | M.Err msg ->
+        let msg_str = L.build_global_stringptr msg "err_msg" builder in
+        let _ = List.assoc "print-sym" primitives builder [| msg_str |]in
+        (L.build_call abort_func [| |] "tmp" builder, builder)
+
       | M.Case (scrutinee, branches) ->
         let (scrutinee_val, builder') = non_tail locals builder scrutinee in
         let tag_ptr = L.build_struct_gep scrutinee_val 0 "tag_ptr" builder' in (* error here *)
@@ -364,7 +373,6 @@ let codegen program variant_idx_map =
               let _ = branch_instr body_builder in
               (body_val, L.insertion_block body_builder)
         in
-
         let merge_builder = L.builder_at_end context merge_bb in
         (L.build_phi (List.map build_branch branches) "case_result" merge_builder, merge_builder)
     in
