@@ -215,13 +215,14 @@ let codegen program variant_idx_map =
   in
   let build_function_body (M.Define (n, _, params, body)) =
     let the_function = StringMap.find n functions in
-    let bogus_val ty builder = match L.classify_type ty with
+    let make_bogus_val ty builder = match L.classify_type ty with
       | L.TypeKind.Pointer ->
-        let bogus_int = L.const_int i64_t 0 in
-        L.build_inttoptr bogus_int ty "tmp" builder
+        let bogus_int = L.const_int i64_t (-1) in
+        L.build_inttoptr bogus_int ty "bogus" builder
       | L.TypeKind.Integer ->
         let bitwidth = L.integer_bitwidth ty in
-        L.const_int (L.integer_type context bitwidth) 0
+        let bogus_int = L.const_int (L.integer_type context bitwidth) (-1) in
+        bogus_int
       | _ -> raise (Impossible "Non-pointer, non-integer return type")
     in
 
@@ -282,8 +283,9 @@ let codegen program variant_idx_map =
         let _ = L.build_cond_br cond_val then_bb else_bb builder' in
 
         let branch_ty = L.type_of else_val in
+        let bogus_val = make_bogus_val branch_ty builder' in
         (* Throw up something for the enclosing call to use - we will never return this *)
-        (bogus_val branch_ty builder', builder')
+        (bogus_val, builder')
 
       | M.If (cond, b1, b2) ->
         let (cond_val, builder') = non_tail locals builder cond in
@@ -332,7 +334,8 @@ let codegen program variant_idx_map =
         let msg_str = L.build_global_stringptr msg "err_msg" builder in
         let _ = List.assoc "print-sym" primitives builder [| msg_str |]in
         let _ = L.build_call abort_func [| |] "" builder in
-        (bogus_val (lltype_of_ty ty) builder, builder)
+        let bogus_val = make_bogus_val (lltype_of_ty ty) builder in
+        (bogus_val, builder)
 
       | M.Case (scrutinee, branches) ->
         let (scrutinee_val, builder') = non_tail locals builder scrutinee in

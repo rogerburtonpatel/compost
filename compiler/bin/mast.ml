@@ -76,8 +76,8 @@ let rec string_of_expr = function
      "(free %" ^ name ^ " " ^ string_of_expr expr ^ ")"
  | Alloc(ty, tag, exprlist) -> 
      "(alloc (type " ^ string_of_ty ty ^ ") " ^ string_of_int tag ^ " [ " ^ String.concat "; " (List.map string_of_expr exprlist) ^ " ] " 
- | Err(_, name) ->
-    "(err " ^ name ^ ")"
+ | Err(ty, name) ->
+    "(err (" ^ string_of_ty ty ^ ") "  ^ name ^ ")"
   
 and string_of_bind = function 
    (name, expr) -> "[" ^ name ^ " " ^ string_of_expr expr ^ "]"

@@ -145,9 +145,9 @@ let mast_of_fast fast =
                         in 
                         (variant_idx + 1, (pattern, expr))
                     in 
-                    let (_, casebranches) = List.fold_left_map gen_casebranch 0 variants 
-                    in 
-                    M.Case(Local("instance"), casebranches)
+                    let (_, casebranches) = List.fold_left_map gen_casebranch 0 variants in
+                    let casebranches' = List.append casebranches [(M.WildcardPattern, M.Err (data_ty_ptr, "IMPOSSIBLE: inexhaustive match in dup"))] in
+                    M.Case(Local("instance"), casebranches')
                 in 
                 M.Define("dup_" ^ name, func_type, param_names, body)
             in 
@@ -179,9 +179,9 @@ let mast_of_fast fast =
                         in 
                         (pattern, expr)
                     in 
-                    let casebranches = List.map gen_casebranch variants 
-                    in 
-                    M.Case(Local("instance"), casebranches)
+                    let casebranches = List.map gen_casebranch variants  in
+                    let casebranches' = List.append casebranches [(M.WildcardPattern, M.Err (M.Int 1, "IMPOSSIBLE: inexhaustive match in dup"))] in
+                    M.Case(Local("instance"), casebranches')
                 in 
                 M.Define("free_" ^ name, func_type, param_names, body) 
             in
