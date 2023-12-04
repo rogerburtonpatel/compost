@@ -26,7 +26,7 @@ and expr =
   (* Memory-Related *)
   | Free of ty * name * expr (* Corresponds to a call to `free()` *)
   | FreeRec of ty * name * expr (* Corresponds to a call to "_free_" ^ (name_of ty) *)
-  | Err of string
+  | Err of ty * string
 
 type def =
     Define of name * ty * name list * expr

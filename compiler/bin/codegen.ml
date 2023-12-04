@@ -215,6 +215,15 @@ let codegen program variant_idx_map =
   in
   let build_function_body (M.Define (n, _, params, body)) =
     let the_function = StringMap.find n functions in
+    let bogus_val ty builder = match L.classify_type ty with
+      | L.TypeKind.Pointer ->
+        let bogus_int = L.const_int i64_t 0 in
+        L.build_inttoptr bogus_int ty "tmp" builder
+      | L.TypeKind.Integer ->
+        let bitwidth = L.integer_bitwidth ty in
+        L.const_int (L.integer_type context bitwidth) 0
+      | _ -> raise (Impossible "Non-pointer, non-integer return type")
+    in
 
     (* Recursively build the return value of the function *)
     let rec expr is_tail locals builder =
@@ -273,18 +282,8 @@ let codegen program variant_idx_map =
         let _ = L.build_cond_br cond_val then_bb else_bb builder' in
 
         let branch_ty = L.type_of else_val in
-        let bogus_val = match L.classify_type branch_ty with
-          | L.TypeKind.Pointer ->
-            let bogus_int = L.const_int i64_t 0 in
-            L.build_inttoptr bogus_int branch_ty "tmp" builder'
-          | L.TypeKind.Integer ->
-            let bitwidth = L.integer_bitwidth branch_ty in
-            L.const_int (L.integer_type context bitwidth) 0
-          | _ -> raise (Impossible "Non-pointer, non-integer return type")
-        in
-
         (* Throw up something for the enclosing call to use - we will never return this *)
-        (bogus_val, builder')
+        (bogus_val branch_ty builder', builder')
 
       | M.If (cond, b1, b2) ->
         let (cond_val, builder') = non_tail locals builder cond in
@@ -329,10 +328,11 @@ let codegen program variant_idx_map =
               (b', i + 1)
             ) (builder, 1) args in
         (struct_val, builder')
-      | M.Err msg ->
+      | M.Err (ty, msg) ->
         let msg_str = L.build_global_stringptr msg "err_msg" builder in
         let _ = List.assoc "print-sym" primitives builder [| msg_str |]in
-        (L.build_call abort_func [| |] "tmp" builder, builder)
+        let _ = L.build_call abort_func [| |] "" builder in
+        (bogus_val (lltype_of_ty ty) builder, builder)
 
       | M.Case (scrutinee, branches) ->
         let (scrutinee_val, builder') = non_tail locals builder scrutinee in

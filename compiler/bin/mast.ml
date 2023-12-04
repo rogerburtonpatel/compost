@@ -29,7 +29,7 @@ and expr =
   (* Allocates a struct with a given tag and fields *)
   (* populated by the values bound to the names in the list *)
   | Alloc of ty * int * expr list
-  | Err of string
+  | Err of ty * string
 
 type def = Define of name * ty * name list * expr
   (* Datatype definitions can be erased *)
@@ -51,7 +51,7 @@ let string_of_lit lit = Ast.string_of_lit lit
 
 let is_int = String.for_all (function '0' .. '1' -> true | _ -> false)
 
-let string_of_nameorwildcard (name, ty) =
+let string_of_nameorwildcard (name, _) =
   if is_int name then "_"
   else name
 
@@ -76,7 +76,7 @@ let rec string_of_expr = function
      "(free %" ^ name ^ " " ^ string_of_expr expr ^ ")"
  | Alloc(ty, tag, exprlist) -> 
      "(alloc (type " ^ string_of_ty ty ^ ") " ^ string_of_int tag ^ " [ " ^ String.concat "; " (List.map string_of_expr exprlist) ^ " ] " 
- | Err(name) -> 
+ | Err(_, name) ->
     "(err " ^ name ^ ")"
   
 and string_of_bind = function 

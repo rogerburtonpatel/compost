@@ -22,7 +22,7 @@ and expr =
   | Let of name * ty * expr * expr
   | Apply of expr * expr list
   | Dup of ty * name
-  | Err of string
+  | Err of ty * string
 
 type def =
     Define of name * ty * name list * expr

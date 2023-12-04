@@ -16,7 +16,7 @@ let has_dataty n env = match List.assoc n env with
 
 let rec check bound consumed expr =
   match expr with
-  | T.Err msg -> (F.Err msg, S.empty)
+  | T.Err (ty, msg) -> (F.Err (ty, msg), S.empty)
   | T.Local n when S.mem n consumed && has_dataty n bound -> raise (NameAlreadyConsumed n)
   | T.Local n -> (F.Local n, S.singleton n)
   | T.Global n -> (F.Global n, S.empty)
@@ -78,7 +78,7 @@ let freeable bound consumed = List.filter (fun (n, _) -> not (S.mem n consumed))
 let rec check_last bound consumed expr =
   match expr with
   (* === Base Cases (names may be freed here) === *)
-  | T.Err msg -> (dealloc_in (freeable bound consumed) (F.Err msg), S.empty)
+  | T.Err (ty, msg) -> (dealloc_in (freeable bound consumed) (F.Err (ty, msg)), S.empty)
   (* Fail when the programmer attempts to reference dead names *)
   | T.Local n when S.mem n consumed && has_dataty n bound -> raise (NameAlreadyConsumed n)
   (* If n is still live, consume n and free any unused bound variables *)

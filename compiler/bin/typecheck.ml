@@ -230,11 +230,11 @@ let rec typeof gamma delta expr =
 (* let rec exp rho = function 
 U.Literal l -> T.literal *)
 
-let addWildcard = function
+let addWildcard ty = function
     | [] -> raise (Impossible "empty pat list")
     | pats -> 
       if not (List.exists (function | (T.WildcardPattern, _) -> true | _ -> false) pats) 
-      then List.append pats [(T.WildcardPattern, (T.Err "pattern match failed"))]
+      then List.append pats [(T.WildcardPattern, (T.Err (ty, "pattern match failed")))]
     else pats  
 
 let rec exp gamma delta expr = 
@@ -245,7 +245,7 @@ let rec exp gamma delta expr =
     | U.Local n   -> let _ = typeof' e in T.Local  n 
     | U.Global n  -> let _ = typeof' e in T.Global n 
     | U.Case (ex, branches) -> 
-        let _     = typeof' e in 
+        let ty_branch     = typeof' e in
         let ty_ex = typeof' ex in 
         let (pats, rhss)  = List.split branches in
         let patconvert    = function 
@@ -264,7 +264,7 @@ let rec exp gamma delta expr =
         (* let branches'     = List.map (fun (pat, (e, t)) -> 
                                            T.CaseBranch (pat, (e, t))) 
                             branches_full in  *)
-        T.Case (ty_ex, exp' ex, addWildcard branches')
+        T.Case (ty_ex, exp' ex, addWildcard ty_branch branches')
     | U.If (e1, e2, e3) -> 
         let _ = typeof' e in
           T.If (exp' e1, exp' e2, exp' e3)
