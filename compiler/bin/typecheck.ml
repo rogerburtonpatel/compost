@@ -82,24 +82,25 @@ let extendGammaWithPat gamma delta pat =
       gamma' 
 
       (* val transformCase : A.ty -> (A.pattern * U.expr) list -> T.expr *)
-let transformCase (ty, e) (possibleVariants : Ast.name list) (branches : (T.pattern * T.expr) list) = 
+(* let transformCase (ty, e) (possibleVariants : Ast.name list) (branches : (T.pattern * T.expr) list) = 
   let checkBranch (newbranches, foundvariants, warn) branch = 
     match branch with 
-    | T.WildcardPattern -> 
+    | (T.WildcardPattern, _) -> 
          (List.append newbranches [branch], possibleVariants, warn)
-      | T.Pattern (vcon, ns) -> 
-        let warn' = if List.exists (fun vc -> vc = vcon) foundvariants then 
+      | (T.Pattern (vcon, ns), _) -> 
+        let (warn', pats') = if List.exists (fun vc -> vc = vcon) foundvariants then 
           let (names, tys) = List.split ns in 
-          "unreachable pattern \"" ^ vcon
-        else ""
+          ("unreachable pattern \"" ^ vcon , newbranches)
+        else ("", List.append newbranches [branch])
+      in (pats', possibleVariants, warn')
         
     (* if List.exists (fun s -> s = branch)
     raise Todo  *)
   in 
-  let (newbranches, warn) = List.fold_left checkBranch ([], [], "") branches in 
+  let (newbranches, fvs, warn) = List.fold_left checkBranch ([], [], "") branches in 
   let _ = if not (warn = "") then Printf.eprintf ("Warning: %s") warn else () in
   (* todo add wildcard *)
-  T.Case (ty, e, newbranches)
+  T.Case (ty, e, newbranches) *)
 
 
 let curry f x y = f (x, y)
@@ -232,7 +233,7 @@ U.Literal l -> T.literal *)
 let addWildcard = function
     | [] -> raise (Impossible "empty pat list")
     | pats -> 
-      if not List.exists (function | (T.WildcardPattern, _) -> true | _ -> false) pats 
+      if not (List.exists (function | (T.WildcardPattern, _) -> true | _ -> false) pats) 
       then List.append pats [(T.WildcardPattern, (T.Err "pattern match failed"))]
     else pats  
 
