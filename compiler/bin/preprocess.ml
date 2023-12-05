@@ -6,19 +6,19 @@ module S = Set.Make(String)
 module SM = Map.Make(String)
 
 exception RecursiveUse
-exception DuplicateTop
+exception DuplicateGlobal
 
 (* adl = Ast def list, pe = Past expr *)
 
 let rec apes_to_ppes lb rb = function
-    [] -> []
+  | [] -> []
   | ((A.Pattern(n, ns), e) :: pes) ->
     let rb = List.fold_right S.add ns rb in
     (A.Pattern(n, ns), ae_to_pe lb rb e) :: (apes_to_ppes lb rb pes)
   | ((A.WildcardPattern, e) :: pes) ->
     (A.WildcardPattern, ae_to_pe lb rb e) :: (apes_to_ppes lb rb pes)
 and ae_to_pe lb rb = function
-    A.Begin([]) -> P.Literal(A.UnitLit)
+  | A.Begin([]) -> P.Literal(A.UnitLit)
   | A.Begin([e]) -> ae_to_pe lb rb e
   | A.Begin(e :: es) -> P.Let(Freshnames.fresh_name (), ae_to_pe lb rb e, ae_to_pe lb rb (A.Begin(es)))
   | A.Let([], e) -> ae_to_pe lb rb e
@@ -36,7 +36,7 @@ and ae_to_pe lb rb = function
   | A.Dup(n) -> P.Dup(n)
 
 let rec ad_to_pdl use_recur use_all let_bind top_bind = function
-    A.Use(filename) ->
+  | A.Use(filename) ->
     if S.mem filename use_recur then raise RecursiveUse else
     if S.mem filename use_all then (D.empty, use_all, let_bind, top_bind) else
     let channel = open_in filename in
@@ -46,18 +46,23 @@ let rec ad_to_pdl use_recur use_all let_bind top_bind = function
     let use_recur = S.add filename use_recur in
     adl_to_pdl ast use_recur use_all let_bind top_bind
   | A.Val(n, e) -> 
-    if S.mem n top_bind then raise DuplicateTop else
+    if S.mem n top_bind then raise DuplicateGlobal else
     let pe = ae_to_pe let_bind S.empty e in
     let let_bind = SM.add n pe let_bind in
     let top_bind = S.add n top_bind in
     (D.empty, use_all, let_bind, top_bind)
   | A.Define(n, ns, e) -> 
-    if S.mem n top_bind then raise DuplicateTop else
+    if S.mem n top_bind then raise DuplicateGlobal else
     let top_bind = S.add n top_bind in
     let rb = List.fold_right S.add ns S.empty in
     let pe = ae_to_pe let_bind rb e in
     (D.singleton (P.Define(n, ns, pe)), use_all, let_bind, top_bind)
-  | A.Datatype(n, ntss) -> (D.singleton (P.Datatype(n, ntss)), use_all, let_bind, top_bind)
+  | A.Datatype(n, ntss) -> 
+    let top_bind = List.fold_left (fun top_bind (n2, _) ->
+      if S.mem n2 top_bind then raise DuplicateGlobal else
+      S.add n2 top_bind
+    ) top_bind ntss in
+    (D.singleton (P.Datatype(n, ntss)), use_all, let_bind, top_bind)
   | A.TyAnnotation(n, t) -> (D.singleton (P.TyAnnotation(n, t)), use_all, let_bind, top_bind)
 
 and fold_adl_to_pdl use_recur pdl ad = match pdl with
