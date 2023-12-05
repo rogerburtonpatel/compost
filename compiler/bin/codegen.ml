@@ -9,7 +9,7 @@ let ctx = L.create_context
 
 exception Impossible of string
 
-let codegen program variant_idx_map =
+let codegen program =
   let context = L.global_context () in
   let i64_t = L.i64_type context
   and i32_t = L.i32_type context
@@ -348,7 +348,7 @@ let codegen program variant_idx_map =
         let branch_instr = L.build_br merge_bb in
 
         let build_branch (pat, body) = match pat with
-            | M.Pattern(variant_name, names) ->
+            | M.Pattern(tag, names) ->
               let branch_bb = L.append_block context "case_branch" the_function in
               let branch_builder = L.builder_at_end context branch_bb in
               let convert_i64 ty v = match ty with
@@ -367,7 +367,7 @@ let codegen program variant_idx_map =
                   ) (locals, 1) names
               in
               let (body_val, body_builder (* ha ha *)) = non_tail locals' branch_builder body in
-              let idx_val = L.const_int i32_t (StringMap.find variant_name variant_idx_map) in
+              let idx_val = L.const_int i32_t tag in
               let _ = L.add_case switch idx_val branch_bb in
               let _ = branch_instr body_builder in
               (body_val, L.insertion_block body_builder)

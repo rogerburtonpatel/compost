@@ -11,7 +11,7 @@ type ty = Fun of ty * ty list | Int of int | Ptr of ty | Struct of ty list
 type literal = Ast.literal
 
 type pattern =
-    Pattern of name * (name * ty) list
+    Pattern of int * (name * ty) list
   | WildcardPattern (* hmmm perhaps names are not consumed if matched by wildcard? *)
 
 and bind = name * expr
@@ -56,8 +56,8 @@ let string_of_nameorwildcard (name, _) =
   else name
 
 let string_of_pattern = function
-   Pattern(name, nameorwildcardlist) -> 
-     "(" ^ name ^ " " ^ String.concat " " (List.map string_of_nameorwildcard nameorwildcardlist) ^ ")"
+   Pattern(tag, nameorwildcardlist) -> 
+     "(" ^ string_of_int tag ^ " " ^ String.concat " " (List.map string_of_nameorwildcard nameorwildcardlist) ^ ")"
  | WildcardPattern -> "_"
 
 let rec string_of_expr = function 

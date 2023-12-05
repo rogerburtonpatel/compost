@@ -49,6 +49,18 @@ let mast_of_fast fast =
             | _ -> map
         in
         List.fold_left add_datatype StringMap.empty fast 
+    in 
+    (* Get all variant constructor definitions and generate indices *)
+    let variant_tags = 
+        let add_variant (map, tag) (name, _) = (StringMap.add name tag map, tag + 1) in 
+        let add_datatype_variant map def = 
+            match def with 
+            | F.Datatype(_, variants) -> 
+                let (map', _) = List.fold_left add_variant (map, 0) variants in 
+                map'
+            | _ -> map 
+        in
+        List.fold_left add_datatype_variant StringMap.empty fast 
     in
     (* Convert fast ty to mast ty *)
     let rec convert_ty ty = 
@@ -74,7 +86,7 @@ let mast_of_fast fast =
             in
             M.Fun(convert_ty ty, List.map convert_param_ty tylist)
         | _ -> convert_builtin_ty ty 
-    in
+    in 
     (* Convert fast expr to mast expr *)
     let rec convert_expr fast_expr =
         match fast_expr with
@@ -87,7 +99,8 @@ let mast_of_fast fast =
             let convert_casebranch (pattern, pexpr) = 
                 let convert_pattern pattern = 
                     match pattern with 
-                    | F.Pattern(name, names) -> M.Pattern(name, List.map (fun (name, ty) -> (name, convert_ty ty)) names)
+                    | F.Pattern(name, names) ->
+                        M.Pattern(StringMap.find name variant_tags, List.map (fun (name, ty) -> (name, convert_ty ty)) names)
                     | F.WildcardPattern -> M.WildcardPattern 
                 in
                 (convert_pattern pattern, convert_expr pexpr) 
@@ -109,16 +122,14 @@ let mast_of_fast fast =
         | F.Err (ty, msg) -> M.Err (convert_ty ty, msg)
     in
     (* Converts a fast definition to a _list_ of mast definitions *)
-    let convert_defs variant_idx_map fast_def =
+    let convert_defs fast_def =
         match fast_def with
         | F.Define("main", fun_ty, params, body) ->
-            (variant_idx_map, [ M.Define("main", convert_ty fun_ty, params, convert_expr body) ])
+            [ M.Define("main", convert_ty fun_ty, params, convert_expr body) ]
         | F.Define(name, fun_ty, params, body) ->
             (* Prefix each function name with "_" to guarantee it does not conflict with generated functions *)
-            (variant_idx_map, [ M.Define("_" ^ name, convert_ty fun_ty, params, convert_expr body) ])
+            [ M.Define("_" ^ name, convert_ty fun_ty, params, convert_expr body) ]
         | F.Datatype(name, variants) ->
-            let tag_indices = List.mapi (fun i (tag, _) -> (tag, i)) variants in
-            let variant_idx_map' = List.fold_right (fun (tag, i) map -> StringMap.add tag i map) tag_indices variant_idx_map in
             let data_ty = match convert_ty (Ast.CustomTy(name)) with
               | M.Ptr ty -> ty
               | _ -> raise (Impossible "custom type is not pointer to struct")
@@ -128,11 +139,11 @@ let mast_of_fast fast =
                 let func_type = M.Fun(data_ty_ptr, [data_ty_ptr]) in
                 let param_names = ["instance"] in 
                 let body = 
-                    let gen_casebranch variant_idx (variant_name, variant_tys) = 
+                    let gen_casebranch variant_idx (_, variant_tys) = 
                         (* Let variant_varnames just be a sequence of integers starting from 0, prepended by "var" *)
                         let varname_of_int int = "var" ^ string_of_int int in 
                         let variant_varnames = List.init (List.length variant_tys) varname_of_int in 
-                        let pattern = M.Pattern(variant_name, List.combine variant_varnames (List.map convert_ty variant_tys)) in
+                        let pattern = M.Pattern(variant_idx, List.combine variant_varnames (List.map convert_ty variant_tys)) in
                         let expr = 
                             let alloc_ty index ty = 
                             match ty with 
@@ -155,11 +166,11 @@ let mast_of_fast fast =
                 let func_type = M.Fun(convert_ty Ast.Unit, [data_ty_ptr]) in
                 let param_names = ["instance"] in 
                 let body = 
-                    let gen_casebranch (variant_name, variant_tys) = 
+                    let gen_casebranch variant_idx (_, variant_tys) = 
                         (* Let variant_varnames just be a sequence of integers starting from 0, prepended by "var" *)
                         let varname_of_int int = "var" ^ string_of_int int in 
                         let variant_varnames = List.init (List.length variant_tys) varname_of_int in 
-                        let pattern = M.Pattern(variant_name, List.combine variant_varnames (List.map convert_ty variant_tys)) in
+                        let pattern = M.Pattern(variant_idx, List.combine variant_varnames (List.map convert_ty variant_tys)) in
                         let expr = 
                             let unitlit = M.Literal(Ast.UnitLit) in 
                             let gen_free_call varname ty = 
@@ -177,9 +188,9 @@ let mast_of_fast fast =
                             in 
                             M.Free("instance", free_expr_of_calls free_calls)
                         in 
-                        (pattern, expr)
+                        (variant_idx + 1, (pattern, expr))
                     in 
-                    let casebranches = List.map gen_casebranch variants  in
+                    let (_, casebranches) = List.fold_left_map gen_casebranch 0 variants  in
                     let casebranches' = List.append casebranches [(M.WildcardPattern, M.Err (M.Int 1, "IMPOSSIBLE: inexhaustive match in dup"))] in
                     M.Case(Local("instance"), casebranches')
                 in 
@@ -193,13 +204,13 @@ let mast_of_fast fast =
                     let func_argnames = List.init (List.length variant_tys) varname_of_int in 
                     let alloc_ty index _ = (index + 1, M.Local(varname_of_int index)) in 
                     let (_, alloc_expr) = List.fold_left_map alloc_ty 0 variant_tys in 
-                    let alloc_call = M.Alloc(data_ty, StringMap.find variant_name variant_idx_map', alloc_expr) in 
+                    let alloc_call = M.Alloc(data_ty, StringMap.find variant_name variant_tags, alloc_expr) in 
                     M.Define("_" ^ variant_name, func_type, func_argnames, alloc_call)
                 in
                 let variants = StringMap.find name datatypes in 
                 List.map alloc_variant_func variants 
             in
-            (variant_idx_map', alloc_func :: free_func :: alloc_variant_funcs )
+            alloc_func :: free_func :: alloc_variant_funcs
     in 
-    let (variant_idx_map, defs) = List.fold_left_map convert_defs StringMap.empty fast in 
-    (List.flatten defs, variant_idx_map)
+    let defs = List.map convert_defs fast in 
+    List.flatten defs

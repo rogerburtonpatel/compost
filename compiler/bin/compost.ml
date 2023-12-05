@@ -42,10 +42,10 @@ let () =
     if !action = TAst then (Uast.string_of_program uast) else
 
     let consumption_checked = C.consumption_check type_checked in
-    let (memory_managed, idx_map) = M.mast_of_fast consumption_checked in
+    let memory_managed = M.mast_of_fast consumption_checked in
     if !action = MAst then (Mast.string_of_program memory_managed) else
 
-    let m = G.codegen memory_managed idx_map in
+    let m = G.codegen memory_managed in
     (* Llvm_analysis.assert_valid_module m; *)
     Llvm.string_of_llmodule m
   in print_string output
