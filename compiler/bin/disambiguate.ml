@@ -10,6 +10,14 @@ module StringMap = Map.Make(String)
   | U.Global n' | U.Local n' -> n = n'
   | U.Case *)
 
+let rec aty_to_uty = function
+  | A.FunTy(tys, ty) -> U.FunTy(List.map aty_to_uty tys, aty_to_uty ty)
+  | A.SingleTy(n) when n = "int" -> U.Int
+  | A.SingleTy(n) when n = "bool" -> U.Bool
+  | A.SingleTy(n) when n = "unit" -> U.Unit
+  | A.SingleTy(n) when n = "sym" -> U.Sym
+  | A.SingleTy(n) -> U.CustomTy(n)
+
 let rec expr locals renamings = function
   | P.Literal l -> U.Literal l
   | P.NameExpr n when S.mem n locals ->
@@ -58,9 +66,13 @@ let rec expr locals renamings = function
     U.Apply (e', es')
   | P.Dup n -> U.Dup n
 
+let rec vs_to_utyvs = function
+  | [] -> []
+  | (n, tys) :: vs -> (n, List.map aty_to_uty tys) :: vs_to_utyvs vs
+
 let def = function
   | P.Define (n, args, body) -> U.Define (n, args, expr (S.of_list args) StringMap.empty body)
-  | P.Datatype (n, variants) -> U.Datatype (n, variants)
-  | P.TyAnnotation (n, ty) -> U.TyAnnotation (n, ty)
+  | P.Datatype (n, variants) -> U.Datatype (n, vs_to_utyvs variants)
+  | P.TyAnnotation (n, ty) -> U.TyAnnotation (n, aty_to_uty ty)
 
 let disambiguate = List.map def

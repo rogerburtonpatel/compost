@@ -2,7 +2,7 @@
 
 type name = string 
 
-type ty = FunTy of (ty list) * ty | Int | Bool | Unit | Sym | CustomTy of name 
+type ty = FunTy of (ty list) * ty | SingleTy of name 
 
 type symlit = string
 
@@ -47,11 +47,7 @@ let rec string_of_namelist = function
 let rec string_of_ty = function 
    FunTy(tylist, ty) ->
       "(-> (" ^ String.concat " " (List.map string_of_ty tylist) ^ ") " ^ string_of_ty ty ^ ")"
- | Int -> "int"
- | Bool -> "bool"
- | Unit -> "unit"
- | Sym -> "sym" 
- | CustomTy(name) -> name 
+ | SingleTy(name) -> name 
 
 let string_of_symlit lit = 
    let escape_backslashes = String.concat "\\\\" (String.split_on_char '\\' lit) 

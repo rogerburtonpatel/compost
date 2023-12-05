@@ -28,17 +28,17 @@ exception Impossible of string
 (* Convert Compost type `ty` to the appropriate LLVM type *)
 let rec convert_builtin_ty ty = 
     match ty with 
-    | Ast.FunTy(tylist, ty) ->
+    | Uast.FunTy(tylist, ty) ->
         let convert_param_ty = function
-            | Ast.FunTy _  as fun_ty -> M.Ptr(convert_builtin_ty fun_ty)
+            | Uast.FunTy _  as fun_ty -> M.Ptr(convert_builtin_ty fun_ty)
             | other_ty -> convert_builtin_ty other_ty
         in
         M.Fun(convert_builtin_ty ty, List.map convert_param_ty tylist)
-    | Ast.Unit -> M.Int(1)
-    | Ast.Int -> M.Int(32) (* 32-bit integer *)
-    | Ast.Bool -> M.Int(1) (* 1-bit integer *)
-    | Ast.Sym -> M.Ptr(Int(8)) (* pointer to a 8-bit integer *)
-    | Ast.CustomTy(_) -> raise (Impossible "Erroneously called convert_builtin_ty on a custom datatype")
+    | Uast.Unit -> M.Int(1)
+    | Uast.Int -> M.Int(32) (* 32-bit integer *)
+    | Uast.Bool -> M.Int(1) (* 1-bit integer *)
+    | Uast.Sym -> M.Ptr(Int(8)) (* pointer to a 8-bit integer *)
+    | Uast.CustomTy(_) -> raise (Impossible "Erroneously called convert_builtin_ty on a custom datatype")
 
 (* Convert an integer to a generated variable name corresponding to that integer, e.g. 1 -> "var1" *)
 let varname_of_int int = "var" ^ string_of_int int 
@@ -73,7 +73,7 @@ let mast_of_fast fast =
          * $n$ equals the maximum number of arguments for a variant constructor 
          * of this type
          *)
-        | Ast.CustomTy(tyname) -> 
+        | Uast.CustomTy(tyname) -> 
             let variants = StringMap.find tyname datatypes in
             (* Get maxnum_variantargs, which is the maximum possible number of arguments to 
              * a variant constructor of this type 
@@ -84,9 +84,9 @@ let mast_of_fast fast =
             in
             let maxnum_variantargs = List.fold_left update_maxnum_variantargs 0 variants in 
             M.Ptr(M.Struct(M.Int(32) :: List.init maxnum_variantargs (fun _ -> M.Int(64))))
-        | Ast.FunTy(tylist, ty) ->
+        | Uast.FunTy(tylist, ty) ->
             let convert_param_ty = function
-                | Ast.FunTy _  as fun_ty -> M.Ptr(convert_ty fun_ty)
+                | Uast.FunTy _  as fun_ty -> M.Ptr(convert_ty fun_ty)
                 | other_ty -> convert_ty other_ty
             in
             M.Fun(convert_ty ty, List.map convert_param_ty tylist)
@@ -136,7 +136,7 @@ let mast_of_fast fast =
             [ M.Define("_" ^ name, convert_ty fun_ty, params, convert_expr body) ]
         | F.Datatype(name, variants) ->
             (* Generate all relevant functions for this datatype *)
-            let data_ty = match convert_ty (Ast.CustomTy(name)) with
+            let data_ty = match convert_ty (Uast.CustomTy(name)) with
               | M.Ptr ty -> ty
               | _ -> raise (Impossible "custom type is not pointer to struct")
             in
@@ -152,7 +152,7 @@ let mast_of_fast fast =
                         let expr = 
                             let alloc_ty index ty = 
                             match ty with 
-                             | Ast.CustomTy(name) -> (index + 1, M.Apply(Global("dup_" ^ name), [Local(varname_of_int index)]))
+                             | Uast.CustomTy(name) -> (index + 1, M.Apply(Global("dup_" ^ name), [Local(varname_of_int index)]))
                              | _ -> (index + 1, Local(varname_of_int index)) 
                             in 
                             let (_, alloc_expr) = List.fold_left_map alloc_ty 0 variant_tys 
@@ -168,7 +168,7 @@ let mast_of_fast fast =
                 M.Define("dup_" ^ name, func_type, param_names, body)
             in 
             let free_func = 
-                let func_type = M.Fun(convert_ty Ast.Unit, [data_ty_ptr]) in
+                let func_type = M.Fun(convert_ty Uast.Unit, [data_ty_ptr]) in
                 let param_names = ["instance"] in 
                 let body = 
                     let gen_casebranch variant_idx (_, variant_tys) = 
@@ -179,7 +179,7 @@ let mast_of_fast fast =
                             let unitlit = M.Literal(Ast.UnitLit) in 
                             let gen_free_call varname ty = 
                                 match ty with 
-                                 | Ast.CustomTy(name) -> M.Apply(Global("free_" ^ name), [Local(varname)]) 
+                                 | Uast.CustomTy(name) -> M.Apply(Global("free_" ^ name), [Local(varname)]) 
                                  | _ -> unitlit 
                             in 
                             (* Get all calls to free functions *)
