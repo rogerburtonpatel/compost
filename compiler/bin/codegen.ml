@@ -357,13 +357,14 @@ let codegen program variant_idx_map =
                   L.build_trunc v in_ty "tmp" branch_builder
                 | _ -> L.build_inttoptr v (lltype_of_ty ty) "tmp" branch_builder
               in
-              let (locals', _) = List.fold_left
-                                  (fun (locals, i) (n, ty) ->
-                                    let arg_ptr = L.build_struct_gep scrutinee_val i "arg_ptr" branch_builder in
-                                    let arg_val = L.build_load arg_ptr "arg_val" branch_builder in
-                                    let converted_val = convert_i64 ty arg_val in
-                                    (StringMap.add n converted_val locals, i + 1)
-                                  ) (locals, 1) names
+              let (locals', _) =
+                List.fold_left
+                  (fun (locals, i) (n, ty) ->
+                    let arg_ptr = L.build_struct_gep scrutinee_val i "arg_ptr" branch_builder in
+                    let arg_val = L.build_load arg_ptr "arg_val" branch_builder in
+                    let converted_val = convert_i64 ty arg_val in
+                    (StringMap.add n converted_val locals, i + 1)
+                  ) (locals, 1) names
               in
               let (body_val, body_builder (* ha ha *)) = non_tail locals' branch_builder body in
               let idx_val = L.const_int i32_t (StringMap.find variant_name variant_idx_map) in
