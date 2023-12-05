@@ -255,7 +255,15 @@ let rec exp gamma delta expr =
         (* let branches'     = List.map (fun (pat, (e, t)) -> 
                                            T.CaseBranch (pat, (e, t))) 
                             branches_full in  *)
-        T.Case (ty_ex, exp' ex, addWildcard ty_branch branches')
+        (match ty_ex with (A.CustomTy n) -> 
+        (* extract all value constructors from gamma *)
+        let possibleVariants = StringMap.fold 
+        (fun vconname ty variants -> 
+          match ty with A.CustomTy n' when n = n' -> vconname::variants
+          | _ -> variants) gamma [] in 
+          let prunedbranches = transformCase possibleVariants branches' in 
+          T.Case (ty_ex, exp' ex, addWildcard ty_branch prunedbranches)
+          | _ -> raise (Impossible "failed to extract custom name from type"))
     | U.If (e1, e2, e3) -> 
         let _ = typeof' e in
           T.If (exp' e1, exp' e2, exp' e3)
