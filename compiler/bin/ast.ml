@@ -72,7 +72,9 @@ let string_of_nameorwildcard = function
  | name -> name
 
 let string_of_pattern = function
-   Pattern(name, nameorwildcardlist) -> 
+  | Pattern (name, []) -> 
+  "(" ^ name ^ ")"
+  | Pattern (name, nameorwildcardlist) -> 
      "(" ^ name ^ " " ^ String.concat " " (List.map string_of_nameorwildcard nameorwildcardlist) ^ ")"
  | WildcardPattern -> "_"
 

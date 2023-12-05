@@ -72,23 +72,39 @@ let aPatofTPat = function
   | T.Pattern (n, ns_tys) ->  let (names, _) = List.split ns_tys in 
                               A.Pattern (n, names)
 
+let print_warning warn =
+  let _ = Printf.eprintf ("\n") in 
+  let _ = Printf.eprintf ("\027[1;38;5;90m") in 
+  let _ = Printf.eprintf ("Warning:") in 
+  let _ = Printf.eprintf ("\027[0m") in 
+  let _ = Printf.eprintf (" %s\n") warn in 
+  flush stderr;
+  ()
+
 let transformCase (possibleVariants : Ast.name list) 
                           (branches : (T.pattern * T.expr) list) = 
-  let checkBranch (newbranches, foundvariants, warn) branch = 
+  let checkBranch (newbranches, foundVariants, warn) branch = 
     match branch with 
     | (T.WildcardPattern, _) -> 
         (* wildcard says "all possible variants have been found" *)
          (List.append newbranches [branch], possibleVariants, warn)
       | (T.Pattern (vcon, _) as pat, _) -> 
         (* only add if not yet found *)
-        let (warn', pats') = if List.exists (fun vc -> vc = vcon) foundvariants 
+        let (warn', pats') = if List.exists (fun vc -> vc = vcon) foundVariants 
           then ("unreachable pattern \"" 
-                ^ A.string_of_pattern (aPatofTPat pat), newbranches)
+                ^ A.string_of_pattern (aPatofTPat pat) ^ "\"", newbranches)
         else ("", List.append newbranches [branch])
-      in (pats', possibleVariants, warn')
+      in (pats', vcon::foundVariants, warn')
   in 
-  let (branches', _, warn) = List.fold_left checkBranch ([], [], "") branches in
-  let _ = if not (warn = "") then Printf.eprintf ("Warning: %s") warn else () in
+  let (branches', foundVariants, warn) = 
+    List.fold_left checkBranch ([], [], "") branches in
+  let () = 
+    if not (warn = "") then print_warning warn else 
+    let (ps, fs) = (List.sort String.compare possibleVariants, 
+                        List.sort String.compare foundVariants) in  
+    if not (List.equal String.equal ps fs) 
+    then print_warning "pattern matching is non-exhaustive"
+  in 
   branches'
 
 
@@ -209,16 +225,6 @@ let rec typeof gamma delta expr =
                         ^ tyString typ_scrutinee)))
     in typ expr
 
-(* true type inference cookery in the works *)
-                    (* and checkApplyAndExtendBindings fun_name (arg_typs, param_names_and_typs) ret_typ gamma delta = 
-  let (param_names, param_typs) = List.split param_names_and_typs in 
-  match (arg_typs, param_names_and_typs) with 
-| ([], []) -> (ret_typ, gamma, delta)
-| (None::taus, tau'::taus') ->  *)
-
-(* let rec exp rho = function 
-U.Literal l -> T.literal *)
-
 let addWildcard ty = function
     | [] -> raise (Impossible "empty pat list")
     | pats -> 
@@ -258,9 +264,9 @@ let rec exp gamma delta expr =
         (match ty_ex with (A.CustomTy n) -> 
         (* extract all value constructors from gamma *)
         let possibleVariants = StringMap.fold 
-        (fun vconname ty variants -> 
+        (fun vconname (_, ty) variants -> 
           match ty with A.CustomTy n' when n = n' -> vconname::variants
-          | _ -> variants) gamma [] in 
+          | _ -> variants) delta [] in 
           let prunedbranches = transformCase possibleVariants branches' in 
           T.Case (ty_ex, exp' ex, addWildcard ty_branch prunedbranches)
           | _ -> raise (Impossible "failed to extract custom name from type"))
