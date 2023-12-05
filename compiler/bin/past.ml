@@ -16,7 +16,6 @@ and expr =
   | Let of name * expr * expr
   | Apply of expr * (expr list) 
   | Dup of name 
-  | Err of string
 
 type def =
     Define of name * (name list) * expr 
@@ -26,45 +25,26 @@ type def =
 type program = def list
 
 
-(* Pretty printing functions *)
 
-let string_of_namelist = Ast.string_of_namelist
-let string_of_ty = Ast.string_of_ty
-let string_of_symlit = Ast.string_of_symlit
-let string_of_lit = Ast.string_of_lit
-let is_int = Ast.is_int
-let string_of_nameorwildcard = Ast.string_of_nameorwildcard
-let string_of_pattern = Ast.string_of_pattern
-let string_of_variant = Ast.string_of_variant
 
-let rec string_of_expr = function 
-   Literal(lit) -> string_of_lit lit 
- | NameExpr(name) -> name 
- | If(expr1, expr2, expr3) -> 
-     "(if " ^ string_of_expr expr1 ^ " " ^ string_of_expr expr2 ^ " " ^ string_of_expr expr3 ^ ")"
- | Let(name, expr1, expr2) ->
-     "(let " ^ "([" ^ name ^ " " ^ string_of_expr expr1 ^ "]) " ^ string_of_expr expr2 ^ ")"
- | Apply(expr, exprlist) -> 
-     "(" ^ string_of_expr expr ^ " " ^ String.concat " " (List.map string_of_expr exprlist) ^ ")"
- | Case(expr, casebranchlist) ->
-     "(case " ^ string_of_expr expr ^ " (" ^ String.concat " " (List.map string_of_casebranch casebranchlist) ^ "))"
- | Dup(name) ->
-     "(dup " ^ name ^ ")"
- | Err(name) -> 
-    "(err " ^ name ^ ")"
+(* Backwards to Ast & Printing *)
 
-and string_of_bind = function 
-   (name, expr) -> "[" ^ name ^ " " ^ string_of_expr expr ^ "]"
-  
-and string_of_casebranch = function 
-   (pattern, expr) -> "[" ^ string_of_pattern pattern ^ " " ^ string_of_expr expr ^ "]"
+let rec pcb_to_acb = function (p, expr) -> (p, pexpr_to_aexpr expr)
 
-let string_of_def = function 
-   Define(name, namelist, expr) -> 
-     "(define " ^ name ^ " (" ^ String.concat " " namelist ^ ") " ^ string_of_expr expr ^ ")"
- | Datatype(name, variantlist) ->
-     "(datatype " ^ name ^ " (" ^ String.concat " " (List.map string_of_variant variantlist) ^ "))"
- | TyAnnotation(name, ty) -> 
-     "(: " ^ name ^ " " ^ string_of_ty ty ^ ")"
+and pexpr_to_aexpr = function
+    Literal(lit) -> Ast.Literal(lit)
+  | NameExpr(name) -> Ast.NameExpr(name)
+  | If(expr1, expr2, expr3) -> Ast.If(pexpr_to_aexpr expr1, pexpr_to_aexpr expr2, pexpr_to_aexpr expr3)
+  | Let(name, expr1, expr2) -> Ast.Let([(name, pexpr_to_aexpr expr1)], pexpr_to_aexpr expr2)
+  | Apply(expr, exprlist) -> Ast.Apply(pexpr_to_aexpr expr, (List.map pexpr_to_aexpr exprlist))
+  | Case(expr, casebranchlist) -> Ast.Case(pexpr_to_aexpr expr, (List.map pcb_to_acb casebranchlist))
+  | Dup(name) -> Ast.Dup(name)
 
-let string_of_program deflist = String.concat "\n" (List.map string_of_def deflist)
+let pdef_to_adef = function
+    Define(name, namelist, expr) -> Ast.Define(name, namelist, pexpr_to_aexpr expr)
+  | Datatype(name, variantlist) -> Ast.Datatype(name, variantlist)
+  | TyAnnotation(name, ty) -> Ast.TyAnnotation(name, ty)
+
+let ast_of_program deflist = List.map pdef_to_adef deflist
+
+let string_of_program deflist = Ast.string_of_program (ast_of_program deflist)
