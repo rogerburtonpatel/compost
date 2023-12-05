@@ -1,4 +1,2 @@
-Entering directory '/Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler'
-Leaving directory '/Users/rogerburtonpatel/home/tufts/comp/107/compost/compiler'
-(: main (-> () unit))
-(define main () (@print-sym 'Hello, World!'))
+(: @main (-> () unit))
+(define @main () (@print-sym 'Hello, World!'))

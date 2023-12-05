@@ -88,6 +88,8 @@ run_tests () {
         echo "Running test ${numtests}: ${suite} (${comFile}, ${outFile}, ${inFile})"
         [ "$inFile" != "/dev/null" ] && inFile="${TESTDIR}/${suite}/${inFile}"
         runEval=$("${testFn}" "${TESTDIR}/${suite}/${comFile}" "${inFile}" "${testFnArgs[@]}" 2>&1)
+        # THIS WILL WRITE THE OUTPUT FILE
+        # echo "${runEval}" > "${outFile}"
         outExp=$(cat "${outFile}")
         out=$(diff -wy <(echo "$runEval") <(echo "$outExp") 2>&1)
         update_failure "$?" $comFile "${runEval%x}" "${outExp%x}" "${out%x}"
