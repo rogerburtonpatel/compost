@@ -24,61 +24,30 @@ type def =
 
 type program = def list
 
-(* Pretty printing functions *)
 
-let rec string_of_namelist = function
-   [] -> ""
- | name :: names -> name ^ " " ^ string_of_namelist names
+(* Backwards to PAst & Printing *)
 
-let string_of_ty = Ast.string_of_ty
+let up_to_pp = function
+    Ast.Pattern(cn, ns) -> Ast.Pattern(cn, List.map ((^) "%") ns)
+  | Ast.WildcardPattern -> Ast.WildcardPattern
 
-let string_of_symlit lit =
-   let escape_backslashes = String.concat "\\\\" (String.split_on_char '\\' lit)
-   in
-   let escape_quotes = String.concat "\\\'" (String.split_on_char '\'' escape_backslashes)
-   in
-   "'" ^ escape_quotes ^ "'"
+let rec ucb_to_pcb = function (p, expr) -> (up_to_pp p, uexpr_to_pexpr expr)
 
-let string_of_lit = Ast.string_of_lit
+and uexpr_to_pexpr = function
+    Literal(lit) -> Past.Literal(lit)
+  | Local(name) -> Past.NameExpr("%" ^ name)
+  | Global(name) -> Past.NameExpr("@" ^ name)
+  | If(expr1, expr2, expr3) -> Past.If(uexpr_to_pexpr expr1, uexpr_to_pexpr expr2, uexpr_to_pexpr expr3)
+  | Let(name, expr1, expr2) -> Past.Let("%" ^ name, uexpr_to_pexpr expr1, uexpr_to_pexpr expr2)
+  | Apply(expr, exprlist) -> Past.Apply(uexpr_to_pexpr expr, (List.map uexpr_to_pexpr exprlist))
+  | Case(expr, casebranchlist) -> Past.Case(uexpr_to_pexpr expr, (List.map ucb_to_pcb casebranchlist))
+  | Dup(name) -> Past.Dup(name)
 
-let is_int = String.for_all (function '0' .. '1' -> true | _ -> false)
+let udef_to_pdef = function
+    Define(name, namelist, expr) -> Past.Define("@" ^ name, namelist, uexpr_to_pexpr expr)
+  | Datatype(name, variantlist) -> Past.Datatype(name, variantlist)
+  | TyAnnotation(name, ty) -> Past.TyAnnotation("@" ^ name, ty)
 
-let string_of_nameorwildcard = function
-   name when is_int name -> "_"
- | name -> name
+let past_of_program deflist = List.map udef_to_pdef deflist
 
-let string_of_pattern = Ast.string_of_pattern
-
-let string_of_variant = function
-   (name, tylist) -> "[" ^ name ^ " (" ^ String.concat " " (List.map string_of_ty tylist) ^ ")]"
-
-let rec string_of_expr = function
-   Literal(lit) -> string_of_lit lit
- | Local(name) -> "%" ^ name
- | Global(name) -> "@" ^ name
- | If(expr1, expr2, expr3) ->
-     "(if " ^ string_of_expr expr1 ^ " " ^ string_of_expr expr2 ^ " " ^ string_of_expr expr3 ^ ")"
- | Let(name, expr1, expr2) ->
-     "(let " ^ "([%" ^ name ^ " " ^ string_of_expr expr1 ^ "]) " ^ string_of_expr expr2 ^ ")"
- | Apply(expr, exprlist) ->
-     "(" ^ string_of_expr expr ^ " " ^ String.concat " " (List.map string_of_expr exprlist) ^ ")"
- | Case(expr, casebranchlist) ->
-     "(case " ^ string_of_expr expr ^ " (" ^ String.concat " " (List.map string_of_casebranch casebranchlist) ^ "))"
- | Dup(name) ->
-     "(dup " ^ name ^ ")"
-
-and string_of_bind = function
-   (name, expr) -> "[" ^ name ^ " " ^ string_of_expr expr ^ "]"
-
-and string_of_casebranch = function
-   (pattern, expr) -> "[" ^ string_of_pattern pattern ^ " " ^ string_of_expr expr ^ "]"
-
-let string_of_def = function
-   Define(name, namelist, expr) ->
-     "(define " ^ name ^ " (" ^ String.concat " " namelist ^ ") " ^ string_of_expr expr ^ ")"
- | Datatype(name, variantlist) ->
-     "(datatype " ^ name ^ " (" ^ String.concat " " (List.map string_of_variant variantlist) ^ "))"
- | TyAnnotation(name, ty) ->
-     "(: " ^ name ^ " " ^ string_of_ty ty ^ ")"
-
-let string_of_program deflist = String.concat "\n" (List.map string_of_def deflist)
+let string_of_program deflist = Past.string_of_program (past_of_program deflist)

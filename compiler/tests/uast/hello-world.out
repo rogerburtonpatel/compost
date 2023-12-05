@@ -1,2 +1,2 @@
-(: main (-> () unit))
-(define main () (@print-sym 'Hello, World!'))
+(: @main (-> () unit))
+(define @main () (@print-sym 'Hello, World!'))
