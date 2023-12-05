@@ -3,15 +3,6 @@ module U = Uast
 module T = Tast
 
 module StringMap = Map.Make(String)
-module StringSet = Set.Make(String)
-(* type def =
-    Define of name * (name list) * expr
-  | Datatype of name * (variant list)
-  | TyAnnotation of name * ty *)
-
-(* type def =
-  Define of name * (name typed) list * expr typed
-| Datatype of name * (variant list) *)
 exception Impossible of string
 exception Todo
 exception NotFound of string
@@ -27,11 +18,6 @@ let rec eqType t1 t2 = match (t1, t2) with
 | (A.CustomTy n, A.CustomTy n') -> n = n'
 | _ -> false
 and eqTypes ts ts' = List.equal eqType ts ts'
-
-let isSome = function 
-Some _ -> true 
-| None -> false 
-let isNone x = not (isSome x)
 
 let rec tyString = function 
 | A.Int -> "int"
@@ -53,6 +39,15 @@ let rec tyString = function
                   ^ tyString t2 ^ metainfo)) *)
 
 
+let customTyOrErr ty err = match ty with 
+  | A.FunTy (ts, A.CustomTy n) -> (ts, n)
+  | _ -> 
+    raise (TypeError err)
+
+
+    (* ("failed to find an appropriate binding for "
+                      ^ "value constructor \"" 
+                      ^ expectedname ^ "\"; perhaps it was rebound?") *)
 let checkFunTypes n param_ts arg_ts ret_t = 
   let rec go t_s t_s' = 
   match (t_s, t_s') with 
@@ -71,25 +66,27 @@ let checkFunTypes n param_ts arg_ts ret_t =
 | (_, _) -> raise (Impossible "mismatch in number of types in checkFunArgTypes")
     in go param_ts arg_ts 
 
-let extendGammaWithPat gamma delta pat = 
+
+(* extends the environment with bindings introduced by a patterns *)
+let extendGammaWithPat gamma pat = 
   match pat with 
   | A.WildcardPattern -> gamma
   | A.Pattern (pn, ns) -> 
-    let (typ_args, _) = StringMap.find pn delta in 
+    let (typ_args, _) = customTyOrErr    (StringMap.find pn gamma) 
+                                         ("rebound value constructor " ^ pn) in 
     let gamma' = 
       List.fold_left2 (fun g n t -> StringMap.add n t g) 
                         gamma ns typ_args in 
       gamma' 
 
 let aPatofTPat = function 
-  | T.WildcardPattern -> A.WildcardPattern
-  | T.Pattern (n, ns_tys) -> 
-    let (names, _) = List.split ns_tys in 
-    A.Pattern (n, names)
+  | T.WildcardPattern     ->  A.WildcardPattern
+  | T.Pattern (n, ns_tys) ->  let (names, _) = List.split ns_tys in 
+                              A.Pattern (n, names)
 
-
-      (* val transformCase : A.ty -> (A.pattern * U.expr) list -> T.expr *)
-let transformCase (ty, e) (possibleVariants : Ast.name list) (branches : (T.pattern * T.expr) list) = 
+(* prunes a case expression of redundant cases and emits a warning *)
+let transformCase (possibleVariants : Ast.name list) 
+                  (branches : (T.pattern * T.expr) list) = 
   let checkBranch (newbranches, foundvariants, warn) branch = 
     match branch with 
     | (T.WildcardPattern, _) -> 
@@ -105,15 +102,14 @@ let transformCase (ty, e) (possibleVariants : Ast.name list) (branches : (T.patt
   in 
   let (branches', _, warn) = List.fold_left checkBranch ([], [], "") branches in
   let _ = if not (warn = "") then Printf.eprintf ("Warning: %s") warn else () in
-  T.Case (ty, e, branches')
+  branches'
 
 
 let curry f x y = f (x, y)
 
 (* gamma: name -> ty *)
-(* delta: value constructor name -> (types-of-its-arguments, type-it-constructs) *)
-
-let rec typeof gamma delta expr = 
+(* delta: customty name -> variant list *)
+let rec typeof gamma (delta : (A.name * A.ty list) list StringMap.t) expr = 
   let rec typ = function  
   | U.Literal l -> 
     (match l with A.IntLit _ -> A.Int
@@ -181,13 +177,16 @@ let rec typeof gamma delta expr =
           | A.WildcardPattern -> ()
           | A.Pattern (pname, _) -> 
             (* ensure pattern maps to a type *)
-            if not (StringMap.mem pname delta)
+            if not (StringMap.mem pname gamma) 
             then raise (TypeError ("unknown type constructor \"" ^ pname 
                                    ^ "\" in case branch"))
             else 
             (* ensure the type it matches to is correct *)
-            let (_, typ_of_pat) = StringMap.find pname delta in 
-              if not (eqType typ_scrutinee typ_of_pat)
+            let (_, typ_of_pat) = 
+            customTyOrErr (StringMap.find pname gamma)
+                          ("nonexistent or rebound pattern name " ^ pname)
+            in 
+              if not (eqType typ_scrutinee (A.CustomTy typ_of_pat))
               then raise (TypeError ("scrutinee in case has type \"" ^ sname 
                                       ^ "\" but a branch is a pattern of type " 
                                       ^ pname ^ " \""))
@@ -199,7 +198,7 @@ let rec typeof gamma delta expr =
         3. ensure all types are equal *)
         let typeCheckRHS pattern rhs = 
           (* extends gamma with bindings introduced by pat *)
-              let extended_gamma = extendGammaWithPat gamma delta pattern in 
+              let extended_gamma = extendGammaWithPat gamma pattern in 
               (* print_endline "Typechecking rhs with gamma: \n";
               StringMap.iter (fun s t -> print_endline (s ^ " -> " ^ tyString t)) 
               extended_gamma ; *)
@@ -238,9 +237,11 @@ U.Literal l -> T.literal *)
 let addWildcard ty = function
     | [] -> raise (Impossible "empty pat list")
     | pats -> 
-      if not (List.exists (function | (T.WildcardPattern, _) -> true | _ -> false) pats) 
-      then List.append pats [(T.WildcardPattern, (T.Err (ty, "pattern match failed")))]
-    else pats  
+      if not (List.exists (function | (T.WildcardPattern, _) -> true 
+                                    | _ -> false) pats) 
+      then List.append pats [(T.WildcardPattern, 
+                             (T.Err (ty, "pattern match failed")))]
+    else pats
 
 let rec exp gamma delta expr = 
   let typeof' = typeof gamma delta in
@@ -256,13 +257,15 @@ let rec exp gamma delta expr =
         let patconvert    = function 
           | A.WildcardPattern -> T.WildcardPattern
           | A.Pattern (n, ns) -> 
-              let (vartys, _) = StringMap.find n delta in 
+              match StringMap.find n gamma with 
+              A.FunTy (vartys, A.CustomTy _) ->
               let names_tys = List.combine ns vartys in 
               T.Pattern (n, names_tys)
+          | _ -> raise (TypeError ("rebound type constructor " ^ n))
           in 
         let rhs_es = 
           List.map2 (fun pat rhs -> 
-                      let extended_gamma = extendGammaWithPat gamma delta pat 
+                      let extended_gamma = extendGammaWithPat gamma pat 
                       in exp extended_gamma delta rhs) pats rhss in 
         let pats'         = List.map patconvert pats in 
         let branches'     = List.combine pats' rhs_es in 
@@ -284,7 +287,7 @@ let rec exp gamma delta expr =
    | U.Dup n -> let ty = typeof' e in T.Dup (ty, n)
   in exp' expr
 
-let typecheckDef (defs, gamma, delta) = function
+let typecheckDef (defs, gamma, (delta : (Ast.name * Ast.ty list) list StringMap.t)) = function
 | U.Define (n, args, body) -> 
   if not (StringMap.mem n gamma)
   then raise (TypeError 
@@ -317,20 +320,20 @@ let typecheckDef (defs, gamma, delta) = function
         (List.append defs [def'], gamma, delta)
     | _ -> raise (Impossible "found non-func name in top-level environment"))
 | U.Datatype (n, variants) -> 
-  let check_variant delta' (vname, ts)  =
-    if not (StringMap.mem vname delta')
-    then    StringMap.add vname (ts, A.CustomTy n) delta'
-    else 
-      let (_, existing_type) = StringMap.find vname delta' in
-      raise (TypeError ("duplicate type constructor \"" 
-                        ^ vname ^ "\" in user-defined datatype \""
-                        ^ n ^ "\": constructor already exists for type \"" 
-                        ^ tyString existing_type ^ "\"")) 
-    in let extended_delta = List.fold_left check_variant delta variants in
-    let add_variant gamma' (vname, ts) = 
-      StringMap.add vname (Ast.FunTy (ts, A.CustomTy n)) gamma' 
-    in 
-    let extended_gamma = List.fold_left add_variant gamma variants in 
+  let check_variant gamma' (vname, ts)  =
+    if not (StringMap.mem vname gamma')
+    then    StringMap.add vname (A.FunTy (ts, A.CustomTy n)) gamma'
+    else let err = match StringMap.find vname gamma' with 
+    | (A.FunTy (_, A.CustomTy n')) -> ("duplicate type constructor \"" 
+                           ^ vname ^ "\" in user-defined datatype \""
+                           ^ n ^ "\": constructor already exists for type \"" 
+                           ^ n' ^ "\"") 
+    | (A.FunTy _) -> ("attempted to bind type constructor \"" 
+    ^ vname ^ "\" to the name of an existing function")
+    | _ -> raise (Impossible "toplevel binding to non-function type")
+      in raise (TypeError err)
+    in let extended_gamma = List.fold_left check_variant gamma variants in
+    let extended_delta = StringMap.add n variants delta in 
     let datatype' = T.Datatype (n, variants) in
       List.append defs [datatype'], extended_gamma, extended_delta
 
@@ -345,8 +348,7 @@ let typecheckDef (defs, gamma, delta) = function
     ^ tyString found_typ
     ^ "\" but a second annotation was given that has type \""
     ^ tyString ty ^ "\""))
-
-else (defs, gamma, delta)
+    else (defs, gamma, delta)
 (* walks the program, building environments and typechecking against them. *)
 let typecheck prog =
   let gamma =
