@@ -3,15 +3,6 @@ module U = Uast
 module T = Tast
 
 module StringMap = Map.Make(String)
-module StringSet = Set.Make(String)
-(* type def =
-    Define of name * (name list) * expr
-  | Datatype of name * (variant list)
-  | TyAnnotation of name * ty *)
-
-(* type def =
-  Define of name * (name typed) list * expr typed
-| Datatype of name * (variant list) *)
 exception Impossible of string
 exception Todo
 exception NotFound of string
@@ -27,11 +18,6 @@ let rec eqType t1 t2 = match (t1, t2) with
 | (A.CustomTy n, A.CustomTy n') -> n = n'
 | _ -> false
 and eqTypes ts ts' = List.equal eqType ts ts'
-
-let isSome = function 
-Some _ -> true 
-| None -> false 
-let isNone x = not (isSome x)
 
 let rec tyString = function 
 | A.Int -> "int"
@@ -82,14 +68,12 @@ let extendGammaWithPat gamma delta pat =
       gamma' 
 
 let aPatofTPat = function 
-  | T.WildcardPattern -> A.WildcardPattern
-  | T.Pattern (n, ns_tys) -> 
-    let (names, _) = List.split ns_tys in 
-    A.Pattern (n, names)
+  | T.WildcardPattern     ->  A.WildcardPattern
+  | T.Pattern (n, ns_tys) ->  let (names, _) = List.split ns_tys in 
+                              A.Pattern (n, names)
 
-
-      (* val transformCase : A.ty -> (A.pattern * U.expr) list -> T.expr *)
-let transformCase (ty, e) (possibleVariants : Ast.name list) (branches : (T.pattern * T.expr) list) = 
+let transformCase (possibleVariants : Ast.name list) 
+                          (branches : (T.pattern * T.expr) list) = 
   let checkBranch (newbranches, foundvariants, warn) branch = 
     match branch with 
     | (T.WildcardPattern, _) -> 
@@ -105,7 +89,7 @@ let transformCase (ty, e) (possibleVariants : Ast.name list) (branches : (T.patt
   in 
   let (branches', _, warn) = List.fold_left checkBranch ([], [], "") branches in
   let _ = if not (warn = "") then Printf.eprintf ("Warning: %s") warn else () in
-  T.Case (ty, e, branches')
+  branches'
 
 
 let curry f x y = f (x, y)
@@ -238,9 +222,11 @@ U.Literal l -> T.literal *)
 let addWildcard ty = function
     | [] -> raise (Impossible "empty pat list")
     | pats -> 
-      if not (List.exists (function | (T.WildcardPattern, _) -> true | _ -> false) pats) 
-      then List.append pats [(T.WildcardPattern, (T.Err (ty, "pattern match failed")))]
-    else pats  
+      if not (List.exists (function | (T.WildcardPattern, _) -> true 
+                                    | _ -> false) pats) 
+      then List.append pats [(T.WildcardPattern, 
+                             (T.Err (ty, "pattern match failed")))]
+    else pats
 
 let rec exp gamma delta expr = 
   let typeof' = typeof gamma delta in
@@ -320,12 +306,11 @@ let typecheckDef (defs, gamma, delta) = function
   let check_variant delta' (vname, ts)  =
     if not (StringMap.mem vname delta')
     then    StringMap.add vname (ts, A.CustomTy n) delta'
-    else 
-      let (_, existing_type) = StringMap.find vname delta' in
-      raise (TypeError ("duplicate type constructor \"" 
-                        ^ vname ^ "\" in user-defined datatype \""
-                        ^ n ^ "\": constructor already exists for type \"" 
-                        ^ tyString existing_type ^ "\"")) 
+    else let (_, existing_type) = StringMap.find vname delta' in
+         raise (TypeError ("duplicate type constructor \"" 
+                           ^ vname ^ "\" in user-defined datatype \""
+                           ^ n ^ "\": constructor already exists for type \"" 
+                           ^ tyString existing_type ^ "\"")) 
     in let extended_delta = List.fold_left check_variant delta variants in
     let add_variant gamma' (vname, ts) = 
       StringMap.add vname (Ast.FunTy (ts, A.CustomTy n)) gamma' 
