@@ -65,11 +65,11 @@ let rec string_of_expr = function
  | Local(name) -> "%" ^ name 
  | Global(name) -> "@" ^ name 
  | Case(expr, casebranchlist) ->
-     "(case " ^ string_of_expr expr ^ " (" ^ String.concat " " (List.map string_of_casebranch casebranchlist) ^ "))"
+     "(case " ^ string_of_expr expr ^ " (" ^ String.concat "\n" (List.map string_of_casebranch casebranchlist) ^ "))"
  | If(expr1, expr2, expr3) -> 
      "(if " ^ string_of_expr expr1 ^ " " ^ string_of_expr expr2 ^ " " ^ string_of_expr expr3 ^ ")"
  | Let(name, expr1, expr2) ->
-     "(let " ^ "([%" ^ name ^ " " ^ string_of_expr expr1 ^ "]) " ^ string_of_expr expr2 ^ ")"
+     "(let " ^ "([%" ^ name ^ " " ^ string_of_expr expr1 ^ "]) \n" ^ string_of_expr expr2 ^ ")"
  | Apply(expr, exprlist) -> 
      "(" ^ string_of_expr expr ^ " " ^ String.concat " " (List.map string_of_expr exprlist) ^ ")"
  | Free(name, expr) -> 
@@ -80,13 +80,13 @@ let rec string_of_expr = function
     "(err (" ^ string_of_ty ty ^ ") "  ^ name ^ ")"
   
 and string_of_bind = function 
-   (name, expr) -> "[" ^ name ^ " " ^ string_of_expr expr ^ "]"
+   (name, expr) -> "[" ^ name ^ " " ^ string_of_expr expr ^ "]\n"
   
 and string_of_casebranch = function 
    (pattern, expr) -> "[" ^ string_of_pattern pattern ^ " " ^ string_of_expr expr ^ "]"
   
 let string_of_def = function 
  | Define(name, ty, namelist, expr) -> 
-     "(define " ^ name ^ " (type " ^ string_of_ty ty ^ ") (" ^ String.concat " " namelist ^ ") " ^ string_of_expr expr ^ ")"
+     "(define " ^ name ^ " (type " ^ string_of_ty ty ^ ") (" ^ String.concat " " namelist ^ ") \n" ^ string_of_expr expr ^ ")\n"
 
 let string_of_program deflist = String.concat "\n" (List.map string_of_def deflist)
