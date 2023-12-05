@@ -13,6 +13,6 @@
             
 (: gcd (-> (int int) int))
 (define gcd (a b)
-    (if (i= a 0)
+    (if (=i a 0)
         b
         (gcd (% b a) a)))

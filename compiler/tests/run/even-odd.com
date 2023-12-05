@@ -2,7 +2,7 @@
 (define is-even (x)
   (if (=i x 0)
       true
-      (not (is-odd (- x 1)))
+      (not (is-odd x))
   )
 )
 

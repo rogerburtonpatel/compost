@@ -1,6 +1,6 @@
 (: slow-mul-tail (-> (int int int) int))
 (define slow-mul-tail (n i acc)
-    (if (i= i 0)
+    (if (=i i 0)
         acc
         (slow-mul-tail n (- i 1) (+ acc n))))
 

@@ -10,10 +10,10 @@ let primitives =
     ("in", Ast.FunTy ([], Ast.Int));
 
     (* Equality *)
-    ("i=", Ast.FunTy ([Ast.Int; Ast.Int], Ast.Bool));
-    ("s=", Ast.FunTy ([Ast.Sym; Ast.Sym], Ast.Bool));
-    ("b=", Ast.FunTy ([Ast.Bool; Ast.Bool], Ast.Bool));
-    ("u=", Ast.FunTy ([Ast.Unit; Ast.Unit], Ast.Bool));
+    ("=i", Ast.FunTy ([Ast.Int; Ast.Int], Ast.Bool));
+    ("=s", Ast.FunTy ([Ast.Sym; Ast.Sym], Ast.Bool));
+    ("=b", Ast.FunTy ([Ast.Bool; Ast.Bool], Ast.Bool));
+    ("=u", Ast.FunTy ([Ast.Unit; Ast.Unit], Ast.Bool));
 
     (* Arithmetic *)
     ("+", Ast.FunTy ([Ast.Int; Ast.Int], Ast.Int));
@@ -28,4 +28,10 @@ let primitives =
     ("<", Ast.FunTy ([Ast.Int; Ast.Int], Ast.Bool));
     (">=", Ast.FunTy ([Ast.Int; Ast.Int], Ast.Bool));
     ("<=", Ast.FunTy ([Ast.Int; Ast.Int], Ast.Bool));
+
+    (* Boolean *)
+    ("not", Ast.FunTy ([Ast.Bool], Ast.Bool));
+    ("and", Ast.FunTy ([Ast.Bool; Ast.Bool], Ast.Bool));
+    ("or", Ast.FunTy ([Ast.Bool; Ast.Bool], Ast.Bool));
+    ("xor", Ast.FunTy ([Ast.Bool; Ast.Bool], Ast.Bool));
   ]

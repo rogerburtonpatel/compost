@@ -114,22 +114,22 @@ let codegen program =
       );
 
       (* Equality *)
-      ("i=", fun builder ->
+      ("=i", fun builder ->
           function
           | [| a; b |] -> L.build_icmp L.Icmp.Eq a b "tmp" builder
           | _ -> raise (Impossible "i= has 2 parameters")
       );
-      ("s=", fun builder ->
+      ("=s", fun builder ->
           function
           | [| a; b |] -> L.build_icmp L.Icmp.Eq a b "tmp" builder
           | _ -> raise (Impossible "s= has 2 parameters")
       );
-      ("b=", fun builder ->
+      ("=b", fun builder ->
           function
           | [| a; b |] -> L.build_icmp L.Icmp.Eq a b "tmp" builder
           | _ -> raise (Impossible "b= has 2 parameters")
       );
-      ("u=", fun _ ->
+      ("=u", fun _ ->
           function
           | [| _; _ |] -> L.const_int i1_t 1
           | _ -> raise (Impossible "u= has 2 parameters")
@@ -187,6 +187,28 @@ let codegen program =
           function
           | [| a; b |] -> L.build_icmp L.Icmp.Sle a b "tmp" builder
           | _ -> raise (Impossible "<= has 2 parameters")
+      );
+
+      (* Boolean *)
+      ("not", fun builder ->
+          function 
+          | [| a |] -> L.build_not a "tmp" builder 
+          | _ -> raise (Impossible "not has 1 parameter")
+      );
+      ("and", fun builder ->
+        function 
+        | [| a; b |] -> L.build_and a b "tmp" builder 
+        | _ -> raise (Impossible "and has 2 parameters")
+      );
+      ("or", fun builder ->
+        function 
+        | [| a; b |] -> L.build_or a b "tmp" builder 
+        | _ -> raise (Impossible "and has 2 parameters")
+      );
+      ("xor", fun builder ->
+        function 
+        | [| a; b |] -> L.build_and a b "tmp" builder 
+        | _ -> raise (Impossible "xor has 2 parameters")
       );
     ]
   in

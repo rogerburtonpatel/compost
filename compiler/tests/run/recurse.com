@@ -1,6 +1,6 @@
 (: count-down (-> (int) unit))
 (define count-down (x)
-    (if (i= x 0)
+    (if (=i x 0)
         unit 
         (begin
             (print-int x)
