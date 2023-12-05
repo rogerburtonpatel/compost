@@ -2,7 +2,8 @@ Starting intlist test
 012
 Finished intlist test
 Starting direction test
-LeftRight
+Left
+Right
 Finished direction test
 Starting bst test
 012345
@@ -14,7 +15,7 @@ true
 false
 1
 2
-Finished intlist test
+Finished multilist test
 Starting twointlist test
 List 1:
 012

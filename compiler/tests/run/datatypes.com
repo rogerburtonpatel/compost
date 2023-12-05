@@ -75,8 +75,7 @@
              [leftdir2 (dup leftdir)])
             (begin 
                 (print-dir leftdir2)
-                (print-dir rightdir)
-                (print-endline)))
+                (print-dir rightdir)))
         (print-sym 'Finished direction test')
         (print-endline)))
 
@@ -91,7 +90,7 @@
         (print-endline)))
 
 
-;; Tests functionality of the bst datatype 
+;; Tests functionality of the bst datatfype 
 
 (: test-bst (-> () unit))
 (define test-bst ()
@@ -140,7 +139,7 @@
              [multilistinst2 (dup multilistinst)])
             (begin (print-multilist multilistinst)
                 (print-multilist-ints multilistinst2)))
-        (print-sym 'Finished intlist test')
+        (print-sym 'Finished multilist test')
         (print-endline)))
 
 (: init-multilist (-> () multilist))
