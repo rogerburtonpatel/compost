@@ -5,6 +5,11 @@ module A = Ast
 module S = Set.Make(String)
 module StringMap = Map.Make(String)
 
+(* let rec freeIn n = function 
+  | U.Literal _ -> false 
+  | U.Global n' | U.Local n' -> n = n'
+  | U.Case *)
+
 let rec expr locals renamings = function
   | P.Literal l -> U.Literal l
   | P.NameExpr n when S.mem n locals ->
@@ -25,8 +30,10 @@ let rec expr locals renamings = function
         in
         let (renamings', bindings') = List.fold_left_map rename_binding renamings bindings in
         let locals' = S.union (S.of_list bindings) locals in
-        (A.Pattern (n, bindings'), expr locals' renamings' body)
-      | A.WildcardPattern -> (p, expr locals renamings body)
+        (U.Pattern (n, bindings'), expr locals' renamings' body)
+        (* THESE NEED TO BE FIXED *)
+      | A.WildcardPattern -> (U.Name ("WILDCARD", false), expr locals renamings body)
+      | A.Name n -> (U.Name (n, true), expr locals renamings body)
     in
     let branches' = List.map branch branches in
     U.Case (e', branches')

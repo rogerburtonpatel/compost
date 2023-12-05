@@ -5,7 +5,10 @@ type ty = Ast.ty
 
 type literal = Ast.literal
 
-type pattern = Ast.pattern
+type pattern =
+    Pattern of name * name list
+  | Name of name * bool
+                    (* if false, wildcard. *)
 
 and expr =
     Literal of literal
@@ -28,8 +31,9 @@ type program = def list
 (* Backwards to PAst & Printing *)
 
 let up_to_pp = function
-    Ast.Pattern(cn, ns) -> Ast.Pattern(cn, List.map ((^) "%") ns)
-  | Ast.WildcardPattern -> Ast.WildcardPattern
+    Pattern(cn, ns) -> Ast.Pattern(cn, List.map ((^) "%") ns)
+  | Name (_, false) -> Ast.WildcardPattern
+  | Name (n, true)  -> Ast.Name ("%" ^ n)
 
 let rec ucb_to_pcb = function (p, expr) -> (up_to_pp p, uexpr_to_pexpr expr)
 

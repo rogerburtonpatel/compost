@@ -11,7 +11,7 @@ type literal = Ast.literal
 
 type pattern =
     Pattern of name * (name * ty) list
-  | WildcardPattern
+  | Name of name * bool
 
 and expr =
     Literal of literal

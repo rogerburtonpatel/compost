@@ -16,6 +16,7 @@ type literal =
 
 type pattern =
     Pattern of name * name list
+  | Name of name
   | WildcardPattern
 
 and expr =
@@ -77,6 +78,7 @@ let string_of_pattern = function
   | Pattern (name, nameorwildcardlist) -> 
      "(" ^ name ^ " " ^ String.concat " " (List.map string_of_nameorwildcard nameorwildcardlist) ^ ")"
  | WildcardPattern -> "_"
+ | Name n -> n
 
 let string_of_variant = function 
    (name, tylist) -> "[" ^ name ^ " (" ^ String.concat " " (List.map string_of_ty tylist) ^ ")]"

@@ -132,6 +132,8 @@ pattern:
    LPAREN patterninternal RPAREN { $2 }
  | LBRACKET patterninternal RBRACKET { $2 }
  | WILDCARD { WildcardPattern }
+ | NAME { Name $1 }
+//  TODO TEST THIS ^ 
 
 patterninternal: NAME nameorwildcardlist { Pattern($1, $2) }
 

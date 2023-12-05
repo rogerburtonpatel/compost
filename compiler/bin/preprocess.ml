@@ -11,12 +11,15 @@ exception DuplicateGlobal
 (* adl = Ast def list, pe = Past expr *)
 
 let rec apes_to_ppes lb rb = function
-  | [] -> []
-  | ((A.Pattern(n, ns), e) :: pes) ->
+    [] -> []
+  | ((A.Pattern (n, ns), e) :: pes) ->
     let rb = List.fold_right S.add ns rb in
     (A.Pattern(n, ns), ae_to_pe lb rb e) :: (apes_to_ppes lb rb pes)
   | ((A.WildcardPattern, e) :: pes) ->
     (A.WildcardPattern, ae_to_pe lb rb e) :: (apes_to_ppes lb rb pes)
+  | ((A.Name n, e) :: pes) ->
+    let rb = S.add n rb in 
+    (A.Name n, ae_to_pe lb rb e) :: (apes_to_ppes lb rb pes)
 and ae_to_pe lb rb = function
   | A.Begin([]) -> P.Literal(A.UnitLit)
   | A.Begin([e]) -> ae_to_pe lb rb e

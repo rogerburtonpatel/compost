@@ -57,10 +57,11 @@ let checkFunTypes n param_ts arg_ts ret_t =
 | (_, _) -> raise (Impossible "mismatch in number of types in checkFunArgTypes")
     in go param_ts arg_ts 
 
-let extendGammaWithPat gamma delta pat = 
+let extendGammaWithPat topty gamma delta pat = 
   match pat with 
-  | A.WildcardPattern -> gamma
-  | A.Pattern (pn, ns) -> 
+  | U.Name (_, false) -> gamma
+  | U.Name (n, true) -> StringMap.add n topty gamma
+  | U.Pattern (pn, ns) -> 
     let (typ_args, _) = StringMap.find pn delta in 
     let gamma' = 
       List.fold_left2 (fun g n t -> StringMap.add n t g) 
@@ -68,7 +69,8 @@ let extendGammaWithPat gamma delta pat =
       gamma' 
 
 let aPatofTPat = function 
-  | T.WildcardPattern     ->  A.WildcardPattern
+  | T.Name (_, false)     ->  A.WildcardPattern
+  | T.Name (n, true)      ->  A.Name n
   | T.Pattern (n, ns_tys) ->  let (names, _) = List.split ns_tys in 
                               A.Pattern (n, names)
 
@@ -85,10 +87,10 @@ let transformCase (possibleVariants : Ast.name list)
                           (branches : (T.pattern * T.expr) list) = 
   let checkBranch (newbranches, foundVariants, warn) branch = 
     match branch with 
-    | (T.WildcardPattern, _) -> 
-        (* wildcard says "all possible variants have been found" *)
+    | (T.Name _, _) -> 
+        (* wildcard or name says "all possible variants have been found" *)
          (List.append newbranches [branch], possibleVariants, warn)
-      | (T.Pattern (vcon, _) as pat, _) -> 
+    | (T.Pattern (vcon, _) as pat, _) -> 
         (* only add if not yet found *)
         let (warn', pats') = if List.exists (fun vc -> vc = vcon) foundVariants 
           then ("unreachable pattern \"" 
@@ -178,8 +180,8 @@ let rec typeof gamma delta expr =
         let (patterns, rhss) = List.split branches in 
         (* check all patterns to be well-formed with regards to the scrutinee *)
         let typeCheckPattern = function
-          | A.WildcardPattern -> ()
-          | A.Pattern (pname, _) -> 
+          | U.Name _ -> ()
+          | U.Pattern (pname, _) -> 
             (* ensure pattern maps to a type *)
             if not (StringMap.mem pname delta)
             then raise (TypeError ("unknown type constructor \"" ^ pname 
@@ -199,7 +201,8 @@ let rec typeof gamma delta expr =
         3. ensure all types are equal *)
         let typeCheckRHS pattern rhs = 
           (* extends gamma with bindings introduced by pat *)
-              let extended_gamma = extendGammaWithPat gamma delta pattern in 
+              let extended_gamma = 
+                extendGammaWithPat typ_scrutinee gamma delta pattern in 
               (* print_endline "Typechecking rhs with gamma: \n";
               StringMap.iter (fun s t -> print_endline (s ^ " -> " ^ tyString t)) 
               extended_gamma ; *)
@@ -228,9 +231,9 @@ let rec typeof gamma delta expr =
 let addWildcard ty = function
     | [] -> raise (Impossible "empty pat list")
     | pats -> 
-      if not (List.exists (function | (T.WildcardPattern, _) -> true 
+      if not (List.exists (function | (T.Name (_, false), _) -> true 
                                     | _ -> false) pats) 
-      then List.append pats [(T.WildcardPattern, 
+      then List.append pats [(T.Name ("__MATCH_FAILCASE__", false),
                              (T.Err (ty, "pattern match failed")))]
     else pats
 
@@ -246,16 +249,17 @@ let rec exp gamma delta expr =
         let ty_ex = typeof' ex in 
         let (pats, rhss)  = List.split branches in
         let patconvert    = function 
-          | A.WildcardPattern -> T.WildcardPattern
-          | A.Pattern (n, ns) -> 
+          | U.Name (n, isWildcard) -> T.Name (n, isWildcard)
+          | U.Pattern (n, ns) -> 
               let (vartys, _) = StringMap.find n delta in 
               let names_tys = List.combine ns vartys in 
               T.Pattern (n, names_tys)
           in 
         let rhs_es = 
           List.map2 (fun pat rhs -> 
-                      let extended_gamma = extendGammaWithPat gamma delta pat 
-                      in exp extended_gamma delta rhs) pats rhss in 
+                      let extended_gamma = 
+                          extendGammaWithPat ty_ex gamma delta pat in 
+                          exp extended_gamma delta rhs) pats rhss in 
         let pats'         = List.map patconvert pats in 
         let branches'     = List.combine pats' rhs_es in 
         (* let branches'     = List.map (fun (pat, (e, t)) -> 
