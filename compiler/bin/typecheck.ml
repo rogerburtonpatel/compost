@@ -83,8 +83,8 @@ let print_warning warn =
   flush stderr;
   ()
 
-let transformCase (possibleVariants : Ast.name list) 
-                          (branches : (T.pattern * T.expr) list) = 
+let pruneBranchesWith (branches : (T.pattern * T.expr) list)
+                      (possibleVariants : Ast.name list) = 
   let checkBranch (newbranches, foundVariants, warn) branch = 
     match branch with 
     | (T.Name _, _) -> 
@@ -271,7 +271,7 @@ let rec exp gamma delta expr =
         (fun vconname (_, ty) variants -> 
           match ty with A.CustomTy n' when n = n' -> vconname::variants
           | _ -> variants) delta [] in 
-          let prunedbranches = transformCase possibleVariants branches' in 
+          let prunedbranches = pruneBranchesWith branches' possibleVariants in
           T.Case (ty_ex, exp' ex, addWildcard ty_branch prunedbranches)
           | _ -> raise (Impossible "failed to extract custom name from type"))
     | U.If (e1, e2, e3) -> 
