@@ -2,6 +2,8 @@ module P = Past
 module A = Ast
 module D = Difflist
 
+module Prim = Primitives
+
 module S = Set.Make(String)
 module SM = Map.Make(String)
 
@@ -76,5 +78,9 @@ and fold_adl_to_pdl use_recur pdl ad = match pdl with
 and adl_to_pdl adl use_recur use_all let_bind top_bind = 
   List.fold_left (fold_adl_to_pdl use_recur) (D.empty, use_all, let_bind, top_bind) adl
 
-let preprocess adeflist = match (adl_to_pdl adeflist S.empty S.empty SM.empty S.empty) with
+let fold_prim top_bind (n, _) = S.add n top_bind
+
+let default_top = List.fold_left fold_prim S.empty Prim.primitives
+
+let preprocess adeflist = match (adl_to_pdl adeflist S.empty S.empty SM.empty default_top) with
   | (pdl, _, _, _) -> D.tolist pdl
