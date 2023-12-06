@@ -28,6 +28,16 @@
 program:
   defs EOF { $1 }
 
+varname:
+   NAME { $1 }
+ | INT { "int" }
+ | BOOL { "bool" }
+ | SYM { "sym" }
+ | ARROW { "->" }
+
+tyname:
+   NAME { $1 }
+
 defs:
    /* nothing */ { [] }
  | def defs { $1 :: $2 }
@@ -37,19 +47,19 @@ def:
  | LBRACKET definternal RBRACKET { $2 }
 
 definternal:
-   VAL NAME expr { Val($2, $3) }
- | DEFINE NAME parennamelist expr { Define($2, $3, $4) }
- | DATATYPE NAME parenvariantlist { Datatype($2, $3) }
- | COLON NAME ty { TyAnnotation($2, $3) }
+   VAL varname expr { Val($2, $3) }
+ | DEFINE varname parenvarnamelist expr { Define($2, $3, $4) }
+ | DATATYPE tyname parenvariantlist { Datatype($2, $3) }
+ | COLON varname ty { TyAnnotation($2, $3) }
  | USE filename { Use($2) }
 
-parennamelist:
-   LPAREN namelist RPAREN { $2 }
- | LBRACKET namelist RBRACKET { $2 }
+parenvarnamelist:
+   LPAREN varnamelist RPAREN { $2 }
+ | LBRACKET varnamelist RBRACKET { $2 }
 
-namelist:
+varnamelist:
    /* nothing */  { [] }
- | NAME namelist { $1 :: $2 }
+ | varname varnamelist { $1 :: $2 }
 
 parenvariantlist:
    LPAREN variantlist RPAREN { $2 }
@@ -63,7 +73,7 @@ variant:
    LPAREN variantinternal RPAREN { $2 }
  | LBRACKET variantinternal RBRACKET { $2 }
 
-variantinternal: NAME parentylist { ($1, $2) }
+variantinternal: varname parentylist { ($1, $2) }
 
 parentylist:
    LPAREN tylist RPAREN { $2 }
@@ -80,7 +90,7 @@ ty:
  | BOOL { Bool }
  | SYM { Sym }
  | UNIT { Unit }
- | NAME { CustomTy($1) }
+ | tyname { CustomTy($1) }
 
 funtyinternal:
    ARROW parentylist ty { FunTy($2, $3) }
@@ -89,7 +99,7 @@ filename: SYMLIT { $1 }
 
 expr:
    literal { Literal($1) }
- | NAME { NameExpr($1) } 
+ | varname { NameExpr($1) } 
  | LPAREN exprinternal RPAREN { $2 }
  | LBRACKET exprinternal RBRACKET { $2 }
 
@@ -99,7 +109,7 @@ exprinternal:
  | expr exprlist { Apply($1, $2) }
  | LET parenbindlist expr { Let($2, $3) }
  | CASE expr parencasebranchlist { Case($2, $3) }
- | DUP NAME { Dup($2) }
+ | DUP varname { Dup($2) }
 
 exprlist:
    /* nothing */ { [] }
@@ -114,7 +124,7 @@ bindlist:
  | LPAREN bind RPAREN bindlist { $2 :: $4 }
  | LBRACKET bind RBRACKET bindlist { $2 :: $4 }
 
-bind: NAME expr { ($1, $2) }
+bind: varname expr { ($1, $2) }
 
 casebranch: 
    LPAREN pattern expr RPAREN { ($2, $3) }
@@ -132,17 +142,17 @@ pattern:
    LPAREN patterninternal RPAREN { $2 }
  | LBRACKET patterninternal RBRACKET { $2 }
  | WILDCARD { WildcardPattern }
- | NAME { Name $1 }
+ | varname { Name $1 }
 //  TODO TEST THIS ^ 
 
-patterninternal: NAME nameorwildcardlist { Pattern($1, $2) }
+patterninternal: varname nameorwildcardlist { Pattern($1, $2) }
 
 nameorwildcardlist:
    /* nothing */ { [] }
  | nameorwildcard nameorwildcardlist { $1 :: $2 }
 
 nameorwildcard:
-   NAME { $1 }
+   varname { $1 }
  | WILDCARD { fresh_name () }
 
 literal:
