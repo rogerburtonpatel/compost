@@ -6,8 +6,8 @@
 
 (: main (-> () unit))
 (define main ()
-    (begin 
-        (print-int ((add-or-sub true) 2 3))
-        (print-newline)
-        (print-int ((add-or-sub false) 2 3))
-        (print-newline)))
+    ; (begin 
+        (print-int ((add-or-sub true) 2 3)))
+        ; (print-newline)
+        ; (print-int ((add-or-sub false) 2 3))
+        ; (print-newline)))

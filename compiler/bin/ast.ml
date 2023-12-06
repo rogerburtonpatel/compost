@@ -92,6 +92,8 @@ let rec string_of_expr = function
      "(begin " ^ String.concat " " (List.map string_of_expr exprlist) ^ ")"
  | Let(bindlist, expr) ->
      "(let " ^ "(" ^ String.concat " " (List.map string_of_bind bindlist) ^ ") " ^ string_of_expr expr ^ ")"
+ | Apply(expr, []) -> 
+     "(" ^ string_of_expr expr ^ ")"
  | Apply(expr, exprlist) -> 
      "(" ^ string_of_expr expr ^ " " ^ String.concat " " (List.map string_of_expr exprlist) ^ ")"
  | Case(expr, casebranchlist) ->
@@ -116,4 +118,4 @@ let string_of_def = function
  | Use(filename) ->
      "(use " ^ filename ^ ")"
 
-let string_of_program deflist = String.concat "\n" (List.map string_of_def deflist)
+let string_of_program deflist = String.concat "\n" (List.map string_of_def deflist) ^ "\n"
