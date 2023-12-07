@@ -52,7 +52,7 @@ let checkFunTypes n param_ts arg_ts ret_t =
                               ^ tyString (U.FunTy (ts, ret_t))
                               ^ " but got "
                               ^ tyString (U.FunTy (ts', ret_t)) 
-                              ^ " in function application of \"" ^ n ^ "\""
+                              ^ " in application of function " ^ n
         in raise (TypeError (funtysMismatchError n param_ts arg_ts ret_t))
 | (_, _) -> raise (Impossible "mismatch in number of types in checkFunArgTypes")
     in go param_ts arg_ts 
@@ -83,8 +83,14 @@ let print_warning warn =
   flush stderr;
   ()
 
-let transformCase (possibleVariants : A.name list) 
-                          (branches : (T.pattern * T.expr) list) = 
+let typerror err = 
+  let _ = Printf.eprintf ("\027[1;31m") in 
+  let _ = Printf.eprintf ("Error:") in 
+  let _ = Printf.eprintf ("\027[0m") in 
+  let _ = Printf.eprintf (" %s\n") err in 
+  exit 1 
+let pruneBranchesWith (branches : (T.pattern * T.expr) list)
+                      (possibleVariants : A.name list) = 
   let checkBranch (newbranches, foundVariants, warn) branch = 
     match branch with 
     | (T.Name _, _) -> 
@@ -143,17 +149,16 @@ let rec typeof gamma delta expr =
                         let extended_gamma = (StringMap.add n rhs_t gamma) in 
                         typeof extended_gamma delta e'
   | U.Apply (f, es) -> 
-    (match f with U.Global n | U.Local n -> 
-      if not (StringMap.mem n gamma)
-        then raise (NotFound ("attempted to apply unbound name \"" ^ n ^ "\""))
-        else let t = StringMap.find n gamma in 
-                (match t with U.FunTy (arg_ts, ret_t) -> 
-                  let n_expected = List.length arg_ts in 
-                  let n_given    = List.length es     in 
+    let funty = typeof gamma delta f in 
+    (match funty with 
+    | U.FunTy (arg_ts, ret_t) -> 
+      let n = (match f with U.Global n' | U.Local n' -> "\"" ^ n' ^ "\""  
+                                        | _ -> "") in 
+        let n_expected = List.length arg_ts in 
+                  let n_given    = List.length es in 
                   if n_expected != n_given 
                   then raise (TypeError ("mismatch in number of arguments in " 
-                                        ^ "application of function \"" ^ n 
-                                        ^ "\": expected "
+                                        ^ "application of " ^ n ^ ": expected "
                                         ^ Int.to_string n_expected 
                                         ^ " but " 
                                         ^ Int.to_string n_given 
@@ -162,12 +167,8 @@ let rec typeof gamma delta expr =
                   else 
                     let () = checkFunTypes n (List.map typ es) arg_ts ret_t in 
                   ret_t (* type is return type *)
-                | _ -> raise 
-                          (TypeError 
-                            ("attempted to apply non-function \"" ^ n ^ "\"")))
-                            
-                | _ -> raise (TypeError "attempted to apply non-function"))
-                          
+        | _ ->  raise (TypeError ("attempted to apply non-function of type " ^ tyString funty)))
+
   | U.Dup n -> if not (StringMap.mem n gamma)
     then raise (NotFound ("attempted to dup unbound name \"" ^ n ^ "\""))
     else StringMap.find n gamma
@@ -271,7 +272,7 @@ let rec exp gamma delta expr =
         (fun vconname (_, ty) variants -> 
           match ty with U.CustomTy n' when n = n' -> vconname::variants
           | _ -> variants) delta [] in 
-          let prunedbranches = transformCase possibleVariants branches' in 
+          let prunedbranches = pruneBranchesWith branches' possibleVariants in
           T.Case (ty_ex, exp' ex, addWildcard ty_branch prunedbranches)
           | _ -> raise (Impossible "failed to extract custom name from type"))
     | U.If (e1, e2, e3) -> 
