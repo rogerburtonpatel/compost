@@ -2,6 +2,8 @@ module P = Past
 module U = Uast
 module A = Ast
 
+module Prim = Primitives
+
 module S = Set.Make(String)
 module StringMap = Map.Make(String)
 
@@ -10,13 +12,15 @@ module StringMap = Map.Make(String)
   | U.Global n' | U.Local n' -> n = n'
   | U.Case *)
 
+let primty = List.fold_right (fun (n, ty) pts ->
+    StringMap.add n ty pts
+) Prim.primitive_tys StringMap.empty
+
 let rec aty_to_uty = function
   | A.FunTy(tys, ty) -> U.FunTy(List.map aty_to_uty tys, aty_to_uty ty)
-  | A.SingleTy(n) when n = "int" -> U.Int
-  | A.SingleTy(n) when n = "bool" -> U.Bool
-  | A.SingleTy(n) when n = "unit" -> U.Unit
-  | A.SingleTy(n) when n = "sym" -> U.Sym
-  | A.SingleTy(n) -> U.CustomTy(n)
+  | A.SingleTy(n) ->
+    if StringMap.mem n primty then StringMap.find n primty else
+    U.CustomTy(n)
 
 let rec expr locals renamings = function
   | P.Literal l -> U.Literal l
