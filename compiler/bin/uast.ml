@@ -1,7 +1,13 @@
 (* Unambiguous Abstract Syntax Tree *)
 type name = string
 
-type ty = FunTy of (ty list) * ty | Int | Bool | Unit | Sym | CustomTy of name 
+type ty = 
+    FunTy of (ty list) * ty
+  | Int
+  | Bool
+  | Unit
+  | Sym
+  | CustomTy of name 
 
 type literal = Ast.literal
 

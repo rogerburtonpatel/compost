@@ -35,3 +35,11 @@ let primitives =
     ("or", Uast.FunTy ([Uast.Bool; Uast.Bool], Uast.Bool));
     ("xor", Uast.FunTy ([Uast.Bool; Uast.Bool], Uast.Bool));
   ]
+
+let primitive_tys =
+  [
+    ("int", Uast.Int);
+    ("bool", Uast.Bool);
+    ("unit", Uast.Unit);
+    ("sym", Uast.Sym);
+  ]
