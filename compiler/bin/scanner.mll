@@ -40,9 +40,6 @@ rule token = parse
 | "begin"  { BEGIN }
 | "let"    { LET }
 | "dup"    { DUP }
-| "int"    { INT }
-| "bool"   { BOOL }
-| "sym"    { SYM }
 | "unit"   { UNIT }
 | digits as lxm { INTLIT(int_of_string lxm) }
 | boolean as lxm { BOOLLIT(bool_of_string lxm) }

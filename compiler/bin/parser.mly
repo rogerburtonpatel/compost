@@ -8,7 +8,7 @@
 %token LPAREN RPAREN LBRACKET RBRACKET 
 %token VAL DEFINE DATATYPE USE COLON 
 %token CASE IF BEGIN LET 
-%token INT BOOL SYM UNIT 
+%token UNIT 
 %token WILDCARD ARROW DUP 
 %token EOF 
 
@@ -76,11 +76,8 @@ tylist:
 ty: 
    LPAREN funtyinternal RPAREN { $2 }
  | LBRACKET funtyinternal RBRACKET { $2 }
- | INT { Int }
- | BOOL { Bool }
- | SYM { Sym }
- | UNIT { Unit }
- | NAME { CustomTy($1) }
+ | UNIT { SingleTy("unit") }
+ | NAME { SingleTy($1) }
 
 funtyinternal:
    ARROW parentylist ty { FunTy($2, $3) }

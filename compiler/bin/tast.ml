@@ -5,7 +5,7 @@ type name = Ast.name
 
 type filename = Ast.filename
 
-type ty = Ast.ty
+type ty = Uast.ty
 
 type literal = Ast.literal
 

@@ -1,0 +1,2 @@
+(: car (-> (intlist) int))
+(define car (xxs) (case xxs ([(cons x xs) x] [(nil) (error 'error message here')])))

@@ -9,78 +9,120 @@ module SM = Map.Make(String)
 
 exception RecursiveUse
 exception DuplicateGlobal
+exception TypeNameUsage
 
-(* adl = Ast def list, pe = Past expr *)
+let fold_prim l (n, _) = S.add n l
+let vb  = ref (SM.empty)                                            (* val binding *)
+let gbs = ref (List.fold_left fold_prim S.empty Prim.primitives)    (* global binding set *)
+let lbs = ref (S.empty)                                             (* local binding set *)
+let dts = ref (List.fold_left fold_prim S.empty Prim.primitive_tys) (* datatype set *)
+let use = ref (S.empty)                                             (* use set *)
 
-let rec apes_to_ppes lb rb = function
+(* lbr: local bindings (recursive) - locals bound in this context *)
+(* pattern: Ast - pattern * expr list *)
+(* return: Past - pattern * expr list *)
+let rec apes_to_ppes lbr = function
     [] -> []
   | ((A.Pattern (n, ns), e) :: pes) ->
-    let rb = List.fold_right S.add ns rb in
-    (A.Pattern(n, ns), ae_to_pe lb rb e) :: (apes_to_ppes lb rb pes)
+    lbs := List.fold_right (fun n2 lbs ->
+      if S.mem n2 !dts then raise TypeNameUsage else 
+      S.add n2 lbs
+    ) ns !lbs ;
+    let lbr2 = List.fold_right S.add ns lbr in
+    (A.Pattern(n, ns), ae_to_pe lbr2 e) :: (apes_to_ppes lbr pes)
   | ((A.WildcardPattern, e) :: pes) ->
-    (A.WildcardPattern, ae_to_pe lb rb e) :: (apes_to_ppes lb rb pes)
+    (A.WildcardPattern, ae_to_pe lbr e) :: (apes_to_ppes lbr pes)
   | ((A.Name n, e) :: pes) ->
-    let rb = S.add n rb in 
-    (A.Name n, ae_to_pe lb rb e) :: (apes_to_ppes lb rb pes)
-and ae_to_pe lb rb = function
+    if S.mem n !dts then raise TypeNameUsage else
+    lbs := S.add n !lbs ;
+    let lbr = S.add n lbr in 
+    (A.Name n, ae_to_pe lbr e) :: (apes_to_ppes lbr pes)
+
+(* lbr: local bindings (recursive) - locals bound in this context *)
+(* pattern: Ast - expr *)
+(* return: Past - expr *)
+and ae_to_pe lbr = function
   | A.Begin([]) -> P.Literal(A.UnitLit)
-  | A.Begin([e]) -> ae_to_pe lb rb e
-  | A.Begin(e :: es) -> P.Let(Freshnames.fresh_name (), ae_to_pe lb rb e, ae_to_pe lb rb (A.Begin(es)))
-  | A.Let([], e) -> ae_to_pe lb rb e
+  | A.Begin([e]) -> ae_to_pe lbr e
+  | A.Begin(e :: es) -> P.Let(Freshnames.fresh_name (), ae_to_pe lbr e, ae_to_pe lbr (A.Begin(es)))
+  | A.Let([], e) -> ae_to_pe lbr e
   | A.Let(((abn, abe) :: abs), e) ->
-    let rb = S.add abn rb in
-    P.Let(abn, ae_to_pe lb rb abe, ae_to_pe lb rb (A.Let(abs, e)))
+    if S.mem abn !dts then raise TypeNameUsage else
+    lbs := S.add abn !lbs ;
+    let lbr2 = S.add abn lbr in
+    P.Let(abn, ae_to_pe lbr abe, ae_to_pe lbr2 (A.Let(abs, e)))
   | A.Literal(l) -> P.Literal(l)
   | A.NameExpr(n) ->
-    if (not (S.mem n rb)) && (SM.mem n lb)
-    then SM.find n lb
+    (* if S.mem n !dts then raise TypeNameUsage else (* not really necessary *) *)
+    lbs := S.add n !lbs ;
+    if (not (S.mem n lbr)) && (SM.mem n !vb)
+    then SM.find n !vb
     else P.NameExpr(n)
-  | A.Case(e, pes) -> P.Case(ae_to_pe lb rb e, apes_to_ppes lb rb pes)
-  | A.If(e1, e2, e3) -> P.If(ae_to_pe lb rb e1, ae_to_pe lb rb e2, ae_to_pe lb rb e3)
-  | A.Apply(e, es) -> P.Apply(ae_to_pe lb rb e, List.map (ae_to_pe lb rb) es)
-  | A.Dup(n) -> P.Dup(n)
+  | A.Case(e, pes) -> P.Case(ae_to_pe lbr e, apes_to_ppes lbr pes)
+  | A.If(e1, e2, e3) -> P.If(ae_to_pe lbr e1, ae_to_pe lbr e2, ae_to_pe lbr e3)
+  | A.Apply(e, es) -> P.Apply(ae_to_pe lbr e, List.map (ae_to_pe lbr) es)
+  | A.Dup(n) -> 
+    (* if S.mem n !dts then raise TypeNameUsage else (* not really necessary *) *)
+    P.Dup(n)
 
-let rec ad_to_pdl use_recur use_all let_bind top_bind = function
+(* use_r: use statements (recursive) - checking for recursive use *)
+(* pattern: Ast - def *)
+(* return: Past - def difflist *)
+let rec ad_to_pdl use_r = function
   | A.Use(filename) ->
-    if S.mem filename use_recur then raise RecursiveUse else
-    if S.mem filename use_all then (D.empty, use_all, let_bind, top_bind) else
+    if S.mem filename use_r then raise RecursiveUse else
+    if S.mem filename !use then D.empty else
     let channel = open_in filename in
     let lexbuf = Lexing.from_channel channel in
     let ast = Parser.program Scanner.token lexbuf in
-    let use_all = S.add filename use_all in
-    let use_recur = S.add filename use_recur in
-    adl_to_pdl ast use_recur use_all let_bind top_bind
+    use := S.add filename !use ;
+    let use_r = S.add filename use_r in
+    adl_to_pdl ast use_r
   | A.Val(n, e) -> 
-    if S.mem n top_bind then raise DuplicateGlobal else
-    let pe = ae_to_pe let_bind S.empty e in
-    let let_bind = SM.add n pe let_bind in
-    let top_bind = S.add n top_bind in
-    (D.empty, use_all, let_bind, top_bind)
+    if SM.mem n !vb  then raise DuplicateGlobal else
+    if S.mem n !gbs then raise DuplicateGlobal else
+    if S.mem n !dts then raise DuplicateGlobal else
+    let pe = ae_to_pe S.empty e in
+    vb := SM.add n pe !vb ;
+    D.empty
   | A.Define(n, ns, e) -> 
-    if S.mem n top_bind then raise DuplicateGlobal else
-    let top_bind = S.add n top_bind in
-    let rb = List.fold_right S.add ns S.empty in
-    let pe = ae_to_pe let_bind rb e in
-    (D.singleton (P.Define(n, ns, pe)), use_all, let_bind, top_bind)
+    if SM.mem n !vb  then raise DuplicateGlobal else
+    if S.mem n !gbs then raise DuplicateGlobal else
+    if S.mem n !dts then raise DuplicateGlobal else
+    gbs := S.add n !gbs ;
+    lbs := List.fold_right (fun n2 lbs ->
+      if S.mem n2 !dts then raise TypeNameUsage else 
+      S.add n2 lbs
+    ) ns !lbs ;
+    let lbr = List.fold_right S.add ns S.empty in
+    let pe = ae_to_pe lbr e in
+    D.singleton (P.Define(n, ns, pe))
   | A.Datatype(n, ntss) -> 
-    let top_bind = List.fold_left (fun top_bind (n2, _) ->
-      if S.mem n2 top_bind then raise DuplicateGlobal else
-      S.add n2 top_bind
-    ) top_bind ntss in
-    (D.singleton (P.Datatype(n, ntss)), use_all, let_bind, top_bind)
-  | A.TyAnnotation(n, t) -> (D.singleton (P.TyAnnotation(n, t)), use_all, let_bind, top_bind)
+    if SM.mem n !vb  then raise DuplicateGlobal else
+    if S.mem n !gbs then raise DuplicateGlobal else
+    if S.mem n !dts then raise DuplicateGlobal else
+    dts := S.add n !dts ;
+    gbs := List.fold_right (fun (n2, _) gbs ->
+        if SM.mem n2 !vb  then raise DuplicateGlobal else
+        if S.mem n2 gbs then raise DuplicateGlobal else
+        if S.mem n2 !dts then raise DuplicateGlobal else
+        S.add n2 gbs
+    ) ntss !gbs ;
+    D.singleton (P.Datatype(n, ntss))
+  | A.TyAnnotation(n, t) -> D.singleton (P.TyAnnotation(n, t)) (* TODO? *)
 
-and fold_adl_to_pdl use_recur pdl ad = match pdl with
-    (pdl, use_all, let_bind, top_bind) -> (match (ad_to_pdl use_recur use_all let_bind top_bind ad) with
-        | (pdl2, use_all2, let_bind2, top_bind2) -> (D.cons pdl pdl2, use_all2, let_bind2, top_bind2)
-    )
+(* use_r: use statements (recursive) - checking for recursive use *)
+(* pdl: Past - def difflist (FOLD ACCUM) *)
+(* ad: Ast - def (FOLD LIST ELEM) *)
+(* return: Past - def difflist (FOLD ACCUM) *)
+and fold_adl_to_pdl use_r pdl ad = D.cons pdl (ad_to_pdl use_r ad)
 
-and adl_to_pdl adl use_recur use_all let_bind top_bind = 
-  List.fold_left (fold_adl_to_pdl use_recur) (D.empty, use_all, let_bind, top_bind) adl
+(* adl: Ast - def list *)
+(* use_r: use statements (recursive) - checking for recursive use *)
+(* return: Past - def difflist *)
+and adl_to_pdl adl use_r = 
+  List.fold_left (fold_adl_to_pdl use_r) D.empty adl
 
-let fold_prim top_bind (n, _) = S.add n top_bind
-
-let default_top = List.fold_left fold_prim S.empty Prim.primitives
-
-let preprocess adeflist = match (adl_to_pdl adeflist S.empty S.empty SM.empty default_top) with
-  | (pdl, _, _, _) -> D.tolist pdl
+(* ENTRY POINT FROM COMPOST.ML *)
+(* adeflist: Ast - def list *)
+let preprocess adeflist = D.tolist (adl_to_pdl adeflist S.empty)

@@ -11,7 +11,7 @@ exception NameAlreadyDead of string
 exception Impossible of string
 
 let has_dataty n env = match List.assoc n env with
-    | Ast.CustomTy _ -> true
+    | Uast.CustomTy _ -> true
     | _ -> false
 
 let rec check live dead expr =
@@ -68,7 +68,7 @@ let rec dealloc_in to_free expr =
   | [] -> expr
   | ((n, n_ty) :: xs) -> match n_ty with
     (* Only emit calls to _free_ functions for variant values *)
-    | (Ast.CustomTy (_)) -> F.FreeRec (n_ty, n, dealloc_in xs expr)
+    | (Uast.CustomTy (_)) -> F.FreeRec (n_ty, n, dealloc_in xs expr)
     | _ -> dealloc_in xs expr
 
 (* Note: we assume here that all names live by nested lets are distinct *)
@@ -134,8 +134,8 @@ let rec check_last live dead expr =
     (F.Let (scrutinee_name, e', F.Case (F.Local scrutinee_name, branches')), unions (c :: branch_cs))
 
 let check_def = function
-  | T.Define (fun_name, Ast.FunTy (param_tys, return_ty), params, body) ->
-    let fun_ty = Ast.FunTy (param_tys, return_ty) in
+  | T.Define (fun_name, Uast.FunTy (param_tys, return_ty), params, body) ->
+    let fun_ty = Uast.FunTy (param_tys, return_ty) in
     let init_live = List.combine params param_tys in
     let (body', _) = check_last init_live S.empty body in
     F.Define (fun_name, fun_ty, params, body')

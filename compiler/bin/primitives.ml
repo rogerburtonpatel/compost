@@ -2,36 +2,44 @@
 let primitives =
   [
     (* I/O *)
-    ("print-newline", Ast.FunTy ([], Ast.Unit));
-    ("print-sym", Ast.FunTy ([Ast.Sym], Ast.Unit));
-    ("print-int", Ast.FunTy ([Ast.Int], Ast.Unit));
-    ("print-bool", Ast.FunTy ([Ast.Bool], Ast.Unit));
-    ("print-unit", Ast.FunTy ([Ast.Unit], Ast.Unit));
-    ("in", Ast.FunTy ([], Ast.Int));
+    ("print-newline", Uast.FunTy ([], Uast.Unit));
+    ("print-sym", Uast.FunTy ([Uast.Sym], Uast.Unit));
+    ("print-int", Uast.FunTy ([Uast.Int], Uast.Unit));
+    ("print-bool", Uast.FunTy ([Uast.Bool], Uast.Unit));
+    ("print-unit", Uast.FunTy ([Uast.Unit], Uast.Unit));
+    ("in", Uast.FunTy ([], Uast.Int));
 
     (* Equality *)
-    ("=i", Ast.FunTy ([Ast.Int; Ast.Int], Ast.Bool));
-    ("=s", Ast.FunTy ([Ast.Sym; Ast.Sym], Ast.Bool));
-    ("=b", Ast.FunTy ([Ast.Bool; Ast.Bool], Ast.Bool));
-    ("=u", Ast.FunTy ([Ast.Unit; Ast.Unit], Ast.Bool));
+    ("=i", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Bool));
+    ("=s", Uast.FunTy ([Uast.Sym; Uast.Sym], Uast.Bool));
+    ("=b", Uast.FunTy ([Uast.Bool; Uast.Bool], Uast.Bool));
+    ("=u", Uast.FunTy ([Uast.Unit; Uast.Unit], Uast.Bool));
 
     (* Arithmetic *)
-    ("+", Ast.FunTy ([Ast.Int; Ast.Int], Ast.Int));
-    ("-", Ast.FunTy ([Ast.Int; Ast.Int], Ast.Int));
-    ("*", Ast.FunTy ([Ast.Int; Ast.Int], Ast.Int));
-    ("/", Ast.FunTy ([Ast.Int; Ast.Int], Ast.Int));
-    ("%", Ast.FunTy ([Ast.Int; Ast.Int], Ast.Int));
-    ("neg", Ast.FunTy ([Ast.Int], Ast.Int));
+    ("+", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Int));
+    ("-", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Int));
+    ("*", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Int));
+    ("/", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Int));
+    ("%", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Int));
+    ("neg", Uast.FunTy ([Uast.Int], Uast.Int));
 
     (* Comparison *)
-    (">", Ast.FunTy ([Ast.Int; Ast.Int], Ast.Bool));
-    ("<", Ast.FunTy ([Ast.Int; Ast.Int], Ast.Bool));
-    (">=", Ast.FunTy ([Ast.Int; Ast.Int], Ast.Bool));
-    ("<=", Ast.FunTy ([Ast.Int; Ast.Int], Ast.Bool));
+    (">", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Bool));
+    ("<", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Bool));
+    (">=", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Bool));
+    ("<=", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Bool));
 
     (* Boolean *)
-    ("not", Ast.FunTy ([Ast.Bool], Ast.Bool));
-    ("and", Ast.FunTy ([Ast.Bool; Ast.Bool], Ast.Bool));
-    ("or", Ast.FunTy ([Ast.Bool; Ast.Bool], Ast.Bool));
-    ("xor", Ast.FunTy ([Ast.Bool; Ast.Bool], Ast.Bool));
+    ("not", Uast.FunTy ([Uast.Bool], Uast.Bool));
+    ("and", Uast.FunTy ([Uast.Bool; Uast.Bool], Uast.Bool));
+    ("or", Uast.FunTy ([Uast.Bool; Uast.Bool], Uast.Bool));
+    ("xor", Uast.FunTy ([Uast.Bool; Uast.Bool], Uast.Bool));
+  ]
+
+let primitive_tys =
+  [
+    ("int", Uast.Int);
+    ("bool", Uast.Bool);
+    ("unit", Uast.Unit);
+    ("sym", Uast.Sym);
   ]

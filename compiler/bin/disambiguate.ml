@@ -2,6 +2,8 @@ module P = Past
 module U = Uast
 module A = Ast
 
+module Prim = Primitives
+
 module S = Set.Make(String)
 module StringMap = Map.Make(String)
 
@@ -9,6 +11,16 @@ module StringMap = Map.Make(String)
   | U.Literal _ -> false 
   | U.Global n' | U.Local n' -> n = n'
   | U.Case *)
+
+let primty = List.fold_right (fun (n, ty) pts ->
+    StringMap.add n ty pts
+) Prim.primitive_tys StringMap.empty
+
+let rec aty_to_uty = function
+  | A.FunTy(tys, ty) -> U.FunTy(List.map aty_to_uty tys, aty_to_uty ty)
+  | A.SingleTy(n) ->
+    if StringMap.mem n primty then StringMap.find n primty else
+    U.CustomTy(n)
 
 let rec expr locals renamings = function
   | P.Literal l -> U.Literal l
@@ -58,9 +70,13 @@ let rec expr locals renamings = function
     U.Apply (e', es')
   | P.Dup n -> U.Dup n
 
+let rec vs_to_utyvs = function
+  | [] -> []
+  | (n, tys) :: vs -> (n, List.map aty_to_uty tys) :: vs_to_utyvs vs
+
 let def = function
   | P.Define (n, args, body) -> U.Define (n, args, expr (S.of_list args) StringMap.empty body)
-  | P.Datatype (n, variants) -> U.Datatype (n, variants)
-  | P.TyAnnotation (n, ty) -> U.TyAnnotation (n, ty)
+  | P.Datatype (n, variants) -> U.Datatype (n, vs_to_utyvs variants)
+  | P.TyAnnotation (n, ty) -> U.TyAnnotation (n, aty_to_uty ty)
 
 let disambiguate = List.map def

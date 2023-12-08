@@ -1,7 +1,13 @@
 (* Unambiguous Abstract Syntax Tree *)
 type name = string
 
-type ty = Ast.ty
+type ty = 
+    FunTy of (ty list) * ty
+  | Int
+  | Bool
+  | Unit
+  | Sym
+  | CustomTy of name 
 
 type literal = Ast.literal
 
@@ -31,14 +37,14 @@ type program = def list
 (* Backwards to PAst & Printing *)
 
 let up_to_pp = function
-    Pattern(cn, ns) -> Ast.Pattern(cn, List.map ((^) "%") ns)
+  | Pattern(cn, ns) -> Ast.Pattern(cn, List.map ((^) "%") ns)
   | Name (_, false) -> Ast.WildcardPattern
   | Name (n, true)  -> Ast.Name ("%" ^ n)
 
 let rec ucb_to_pcb = function (p, expr) -> (up_to_pp p, uexpr_to_pexpr expr)
 
 and uexpr_to_pexpr = function
-    Literal(lit) -> Past.Literal(lit)
+  | Literal(lit) -> Past.Literal(lit)
   | Local(name) -> Past.NameExpr("%" ^ name)
   | Global(name) -> Past.NameExpr("@" ^ name)
   | If(expr1, expr2, expr3) -> Past.If(uexpr_to_pexpr expr1, uexpr_to_pexpr expr2, uexpr_to_pexpr expr3)
@@ -47,10 +53,22 @@ and uexpr_to_pexpr = function
   | Case(expr, casebranchlist) -> Past.Case(uexpr_to_pexpr expr, (List.map ucb_to_pcb casebranchlist))
   | Dup(name) -> Past.Dup(name)
 
+let rec uty_to_pty = function
+  | FunTy(tys, ty) -> Ast.FunTy(List.map uty_to_pty tys, uty_to_pty ty)
+  | Int -> Ast.SingleTy("int")
+  | Bool -> Ast.SingleTy("bool")
+  | Unit -> Ast.SingleTy("unit")
+  | Sym -> Ast.SingleTy("sym")
+  | CustomTy(n) -> Ast.SingleTy(n)
+
+let rec uvs_to_pvs = function
+  | [] -> []
+  | (n, tys) :: vs -> (n, List.map uty_to_pty tys) :: uvs_to_pvs vs
+
 let udef_to_pdef = function
-    Define(name, namelist, expr) -> Past.Define("@" ^ name, namelist, uexpr_to_pexpr expr)
-  | Datatype(name, variantlist) -> Past.Datatype(name, variantlist)
-  | TyAnnotation(name, ty) -> Past.TyAnnotation("@" ^ name, ty)
+  | Define(name, namelist, expr) -> Past.Define("@" ^ name, namelist, uexpr_to_pexpr expr)
+  | Datatype(name, variantlist) -> Past.Datatype(name, uvs_to_pvs variantlist)
+  | TyAnnotation(name, ty) -> Past.TyAnnotation("@" ^ name, uty_to_pty ty)
 
 let past_of_program deflist = List.map udef_to_pdef deflist
 
