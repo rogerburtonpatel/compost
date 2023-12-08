@@ -8,8 +8,6 @@ exception Todo
 exception NotFound of string
 exception TypeError of string
 
-(* TODO: test double-bound vcon names (ie. bind cons with let) *)
-
 
 let rec eqType t1 t2 = match (t1, t2) with 
 | (U.Int, U.Int) | (U.Bool, U.Bool) | (U.Sym, U.Sym) | (U.Unit, U.Unit) -> true 
