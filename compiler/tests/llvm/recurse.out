@@ -8,9 +8,35 @@ source_filename = "Compost"
 @newline = private unnamed_addr constant [2 x i8] c"\0A\00", align 1
 @fmt_int.1 = private unnamed_addr constant [3 x i8] c"%d\00", align 1
 
+declare void @abort()
+
 declare i32 @printf(i8*, ...)
 
 declare i32 @getchar()
+
+define i1 @xor(i1 %0, i1 %1) {
+entry:
+  %tmp = and i1 %0, %1
+  ret i1 %tmp
+}
+
+define i1 @or(i1 %0, i1 %1) {
+entry:
+  %tmp = or i1 %0, %1
+  ret i1 %tmp
+}
+
+define i1 @and(i1 %0, i1 %1) {
+entry:
+  %tmp = and i1 %0, %1
+  ret i1 %tmp
+}
+
+define i1 @not(i1 %0) {
+entry:
+  %tmp = xor i1 %0, true
+  ret i1 %tmp
+}
 
 define i1 @"<="(i32 %0, i32 %1) {
 entry:
@@ -72,24 +98,24 @@ entry:
   ret i32 %tmp
 }
 
-define i1 @"u="(i1 %0, i1 %1) {
+define i1 @"=u"(i1 %0, i1 %1) {
 entry:
   ret i1 true
 }
 
-define i1 @"b="(i1 %0, i1 %1) {
+define i1 @"=b"(i1 %0, i1 %1) {
 entry:
   %tmp = icmp eq i1 %0, %1
   ret i1 %tmp
 }
 
-define i1 @"s="(i8* %0, i8* %1) {
+define i1 @"=s"(i8* %0, i8* %1) {
 entry:
   %tmp = icmp eq i8* %0, %1
   ret i1 %tmp
 }
 
-define i1 @"i="(i32 %0, i32 %1) {
+define i1 @"=i"(i32 %0, i32 %1) {
 entry:
   %tmp = icmp eq i32 %0, %1
   ret i1 %tmp

@@ -8,5 +8,5 @@
        [y (dup x)])
     (case x
       ([(big a b c d) unit]
-      [(small x) unit]))))
+      [(small) unit]))))
     
