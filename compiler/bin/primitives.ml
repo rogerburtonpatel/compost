@@ -5,6 +5,7 @@ let primitives =
     ("print-newline", Uast.FunTy ([], Uast.Unit));
     ("print-sym", Uast.FunTy ([Uast.Sym], Uast.Unit));
     ("print-int", Uast.FunTy ([Uast.Int], Uast.Unit));
+    ("print-ascii", Uast.FunTy ([Uast.Int], Uast.Unit));
     ("print-bool", Uast.FunTy ([Uast.Bool], Uast.Unit));
     ("print-unit", Uast.FunTy ([Uast.Unit], Uast.Unit));
     ("in", Uast.FunTy ([], Uast.Int));

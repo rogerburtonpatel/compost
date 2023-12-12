@@ -89,6 +89,14 @@ let codegen program =
             unit_value
          | _ -> raise (Impossible "print-int has 1 parameter")
       );
+      ("print-ascii", fun builder ->
+         function
+         | [| i |] ->
+            let fmt_int = L.build_global_stringptr "%c" "fmt_char" builder in
+            let _ = L.build_call printf_func [| fmt_int; i |] "tmp" builder in
+            unit_value
+         | _ -> raise (Impossible "print-int has 1 parameter")
+      );
       ("print-bool", fun builder ->
           function
           | [| b |] ->
