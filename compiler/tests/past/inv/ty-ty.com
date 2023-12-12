@@ -1,0 +1,2 @@
+(datatype x ())
+(datatype x ())

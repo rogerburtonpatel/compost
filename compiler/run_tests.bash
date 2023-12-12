@@ -78,7 +78,7 @@ run_tests () {
 
     pushd "${TESTDIR}/${suite}" > /dev/null
 
-    for comFile in $(find . -type f -iname "$comFiles"); do
+    for comFile in $(find . -maxdepth 1 -type f -iname "$comFiles"); do
         numtests=$((numtests + 1))
         comFile=$(basename $comFile)
         outFile="${comFile%.*}.out"
@@ -108,7 +108,8 @@ main () {
 
     case $1 in
       -a) run_tests ast "$comFiles" compost -a ;;
-      -p) run_tests past "$comFiles" compost -p ;;
+      -p) run_tests past "$comFiles" compost -p ;
+          run_tests past/inv "$comFiles" compost -p ;;
       -u) run_tests uast "$comFiles" compost -u ;;
       -tf) run_tests tast/tast-fail "$comFiles" compost -t ;;
       -ts)   run_tests tast/tast-succ "$comFiles" compost -t ;;

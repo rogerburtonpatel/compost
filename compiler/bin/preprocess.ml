@@ -7,9 +7,13 @@ module Prim = Primitives
 module S = Set.Make(String)
 module SM = Map.Make(String)
 
+(* to make pretty printing errors nicer later *)
 exception RecursiveUse
 exception DuplicateGlobal
 exception TypeNameUsage
+let except_ru c = if c then raise RecursiveUse else ()
+let except_dg c = if c then raise DuplicateGlobal else ()
+let except_tnu c = if c then raise TypeNameUsage else ()
 
 let fold_prim l (n, _) = S.add n l
 let vb  = ref (SM.empty)                                            (* val binding *)
@@ -25,7 +29,7 @@ let rec apes_to_ppes lbr = function
     [] -> []
   | ((A.Pattern (n, ns), e) :: pes) ->
     lbs := List.fold_right (fun n2 lbs ->
-      if S.mem n2 !dts then raise TypeNameUsage else 
+      let () = except_tnu (S.mem n2 !dts) in
       S.add n2 lbs
     ) ns !lbs ;
     let lbr2 = List.fold_right S.add ns lbr in
@@ -33,7 +37,7 @@ let rec apes_to_ppes lbr = function
   | ((A.WildcardPattern, e) :: pes) ->
     (A.WildcardPattern, ae_to_pe lbr e) :: (apes_to_ppes lbr pes)
   | ((A.Name n, e) :: pes) ->
-    if S.mem n !dts then raise TypeNameUsage else
+    let () = except_tnu (S.mem n !dts) in
     lbs := S.add n !lbs ;
     let lbr = S.add n lbr in 
     (A.Name n, ae_to_pe lbr e) :: (apes_to_ppes lbr pes)
@@ -47,7 +51,7 @@ and ae_to_pe lbr = function
   | A.Begin(e :: es) -> P.Let(Freshnames.fresh_name (), ae_to_pe lbr e, ae_to_pe lbr (A.Begin(es)))
   | A.Let([], e) -> ae_to_pe lbr e
   | A.Let(((abn, abe) :: abs), e) ->
-    if S.mem abn !dts then raise TypeNameUsage else
+    let () = except_tnu (S.mem abn !dts) in
     lbs := S.add abn !lbs ;
     let lbr2 = S.add abn lbr in
     P.Let(abn, ae_to_pe lbr abe, ae_to_pe lbr2 (A.Let(abs, e)))
@@ -70,7 +74,7 @@ and ae_to_pe lbr = function
 (* return: Past - def difflist *)
 let rec ad_to_pdl use_r = function
   | A.Use(filename) ->
-    if S.mem filename use_r then raise RecursiveUse else
+    let () = except_ru (S.mem filename use_r) in
     if S.mem filename !use then D.empty else
     let channel = open_in filename in
     let lexbuf = Lexing.from_channel channel in
@@ -79,33 +83,34 @@ let rec ad_to_pdl use_r = function
     let use_r = S.add filename use_r in
     adl_to_pdl ast use_r
   | A.Val(n, e) -> 
-    if SM.mem n !vb  then raise DuplicateGlobal else
-    if S.mem n !gbs then raise DuplicateGlobal else
-    if S.mem n !dts then raise DuplicateGlobal else
+    let () = except_dg (SM.mem n !vb ) in
+    let () = except_dg (S.mem n !gbs) in
+    let () = except_dg (S.mem n !dts) in
     let pe = ae_to_pe S.empty e in
     vb := SM.add n pe !vb ;
     D.empty
   | A.Define(n, ns, e) -> 
-    if SM.mem n !vb  then raise DuplicateGlobal else
-    if S.mem n !gbs then raise DuplicateGlobal else
-    if S.mem n !dts then raise DuplicateGlobal else
+    let () = except_dg (SM.mem n !vb ) in
+    let () = except_dg (S.mem n !gbs) in
+    let () = except_dg (S.mem n !dts) in
     gbs := S.add n !gbs ;
     lbs := List.fold_right (fun n2 lbs ->
-      if S.mem n2 !dts then raise TypeNameUsage else 
+      let () = except_tnu (S.mem n2 !dts) in
       S.add n2 lbs
     ) ns !lbs ;
     let lbr = List.fold_right S.add ns S.empty in
     let pe = ae_to_pe lbr e in
     D.singleton (P.Define(n, ns, pe))
   | A.Datatype(n, ntss) -> 
-    if SM.mem n !vb  then raise DuplicateGlobal else
-    if S.mem n !gbs then raise DuplicateGlobal else
-    if S.mem n !dts then raise DuplicateGlobal else
+    let () = except_dg (SM.mem n !vb ) in
+    let () = except_dg (S.mem n !gbs) in
+    let () = except_dg (S.mem n !dts) in
+    let () = except_tnu (S.mem n !lbs) in
     dts := S.add n !dts ;
     gbs := List.fold_right (fun (n2, _) gbs ->
-        if SM.mem n2 !vb  then raise DuplicateGlobal else
-        if S.mem n2 gbs then raise DuplicateGlobal else
-        if S.mem n2 !dts then raise DuplicateGlobal else
+        let () = except_dg (SM.mem n2 !vb ) in
+        let () = except_dg (S.mem n2 gbs) in
+        let () = except_dg (S.mem n2 !dts) in
         S.add n2 gbs
     ) ntss !gbs ;
     D.singleton (P.Datatype(n, ntss))

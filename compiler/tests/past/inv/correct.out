@@ -1,0 +1,2 @@
+(datatype b ([c (d b)] [e ()]))
+(define g (f) (let ([2 (let ([a 100]) (let ([c 200]) (let ([e 300]) (let ([f 400]) (a)))))]) (let ([1 (10)]) (f))))
