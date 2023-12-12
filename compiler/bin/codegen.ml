@@ -263,6 +263,14 @@ let codegen program =
     let rec expr is_tail locals builder =
       let non_tail = expr false in
       let tail = expr is_tail in
+      let terminate ret_val builder =
+        if is_tail
+          then
+            let _ = L.build_ret ret_val builder in
+            (ret_val, builder)
+          else
+            (ret_val, builder)
+      in
       function
       | M.Literal l ->
         let (lit_val, builder) =
@@ -276,28 +284,13 @@ let codegen program =
           else (L.const_int i1_t 0, builder)
         | Ast.UnitLit -> (L.const_int i1_t 0, builder)
         in
-        if is_tail
-        then
-          let _ = L.build_ret lit_val builder in
-          (lit_val, builder)
-        else
-          (lit_val, builder)
+        terminate lit_val builder
       | M.Local n ->
         let local_val = StringMap.find n locals in
-        if is_tail
-        then
-          let _ = L.build_ret local_val builder in
-          (local_val, builder)
-        else
-          (local_val, builder)
+        terminate local_val builder
       | M.Global n ->
         let global_val = StringMap.find n functions in
-        if is_tail
-        then
-          let _ = L.build_ret global_val builder in
-          (global_val, builder)
-        else
-          (global_val, builder)
+        terminate global_val builder
       | M.Let (n, e, body) ->
         let (e_val, builder') = non_tail locals builder e in
         let locals' = StringMap.add n e_val locals in
@@ -308,7 +301,8 @@ let codegen program =
                let (arg_val, b') = non_tail locals b arg in
                (arg_vals @ [arg_val], b')
             ) ([], builder) args in
-        (List.assoc n primitives builder' (Array.of_list arg_vals), builder')
+        let call_val = List.assoc n primitives builder' (Array.of_list arg_vals) in
+        terminate call_val builder'
       | M.Apply (f, args) ->
         let (f_val, builder') = non_tail locals builder f in
         let (arg_vals, builder'') = List.fold_left
@@ -317,13 +311,8 @@ let codegen program =
                (arg_vals @ [arg_val], b')
             ) ([], builder') args in
         let call_val = L.build_call f_val (Array.of_list arg_vals) "apply_result" builder'' in
-        if is_tail
-        then
-          let _ = L.set_tail_call true call_val in
-          let _ = L.build_ret call_val builder in
-          (call_val, builder)
-        else
-          (call_val, builder)
+        let _ = L.set_tail_call true call_val in
+        terminate call_val builder''
       | M.Free (n, e) ->
         let to_free = L.build_bitcast (StringMap.find n locals) (L.pointer_type i8_t) "to_free" builder in
         let _ = L.build_call free_func [| to_free |] "" builder in
@@ -390,25 +379,15 @@ let codegen program =
               let _ = L.build_store converted_val elem_ptr b' in
               (b', i + 1)
             ) (builder, 1) args in
-        if is_tail
-        then
-          let _ = L.build_ret struct_val builder' in
-          (struct_val, builder')
-        else
-          (struct_val, builder')
+        terminate struct_val builder'
       | M.Err (ty, msg) ->
         let msg_str = L.build_global_stringptr msg "err_msg" builder in
         let _ = List.assoc "print-sym" primitives builder [| msg_str |]in
         let abort_call = L.build_call abort_func [| |] "" builder in
         let _ = if is_tail then L.set_tail_call true abort_call in
         let bogus_val = make_bogus_val (lltype_of_ty ty) builder in
-        if is_tail
-        then
-          let _ = L.set_tail_call true abort_call in
-          let _ = L.build_ret bogus_val builder in
-          (bogus_val, builder)
-        else
-          (bogus_val, builder)
+        let _ = L.set_tail_call true abort_call in
+        terminate bogus_val builder
 
       | M.Case (scrutinee, branches) when is_tail ->
         let (scrutinee_val, builder') = non_tail locals builder scrutinee in
