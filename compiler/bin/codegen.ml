@@ -393,7 +393,7 @@ let codegen program =
               let _ = L.add_case switch idx_val branch_bb in
               let _ = branch_instr body_builder in
               (body_val, L.insertion_block body_builder)
-            | M.WildcardPattern ->
+            | M.Name _ ->
               let branch_builder = L.builder_at_end context default_bb in
               let (body_val, body_builder) = non_tail locals branch_builder body in
               let _ = branch_instr body_builder in

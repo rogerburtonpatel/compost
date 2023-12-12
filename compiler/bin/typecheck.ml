@@ -87,7 +87,7 @@ let typerror err =
   let _ = Printf.eprintf ("\027[0m") in 
   let _ = Printf.eprintf (" %s\n") err in 
   exit 1 
-let pruneBranchesWith (branches : (T.pattern * T.expr) list)
+let pruneBranchesWith (branches : (T.pattern * (T.expr T.typed)) list)
                       (possibleVariants : A.name list) = 
   let checkBranch (newbranches, foundVariants, warn) branch = 
     match branch with 
@@ -233,13 +233,14 @@ let addWildcard ty = function
       if not (List.exists (function | (T.Name (_, false), _) -> true 
                                     | _ -> false) pats) 
       then List.append pats [(T.Name ("__MATCH_FAILCASE__", false),
-                             (T.Err (ty, "pattern match failed")))]
+                             (T.Err "pattern match failed", ty))]
     else pats
 
 let rec exp gamma delta expr = 
   let typeof' = typeof gamma delta in
   let rec exp' e = 
-    match e with 
+    (begin
+    match e with
     | U.Literal l -> T.Literal l 
     | U.Local n   -> let _ = typeof' e in T.Local  n 
     | U.Global n  -> let _ = typeof' e in T.Global n 
@@ -271,7 +272,7 @@ let rec exp gamma delta expr =
           match ty with U.CustomTy n' when n = n' -> vconname::variants
           | _ -> variants) delta [] in 
           let prunedbranches = pruneBranchesWith branches' possibleVariants in
-          T.Case (ty_ex, exp' ex, addWildcard ty_branch prunedbranches)
+          T.Case (exp' ex, addWildcard ty_branch prunedbranches)
           | _ -> raise (Impossible "failed to extract custom name from type"))
     | U.If (e1, e2, e3) -> 
         let _ = typeof' e in
@@ -279,12 +280,14 @@ let rec exp gamma delta expr =
     | U.Let (n, e1, e') ->  let ty_e   = typeof' e1 in 
                             let gamma' = StringMap.add n ty_e gamma in 
                             let _      = typeof gamma' delta e' in
-                            T.Let (n, ty_e, exp gamma delta e1, 
+                            T.Let (n, exp gamma delta e1,
                                             exp gamma' delta e')
     | U.Apply (e, es) as app -> let _ = typeof' app in 
                                   let es' = List.map exp' es in 
                                   T.Apply (exp' e, es')
-   | U.Dup n -> let ty = typeof' e in T.Dup (ty, n)
+   | U.Dup n -> let _ = typeof' e in T.Dup n
+   end
+       , typeof' e)
   in exp' expr
 
 let typecheckDef (defs, gamma, delta) = function

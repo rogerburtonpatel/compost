@@ -7,25 +7,27 @@ type filename = Ast.filename
 
 type ty = Uast.ty
 
+type 'a typed = 'a * ty
+
 type literal = Ast.literal
 
 type pattern =
-    Pattern of name * (name * ty) list
+    Pattern of name * (name typed) list
   | Name of name * bool
 
 and expr =
     Literal of literal
   | Local of name
   | Global of name
-  | Case of ty * expr * (pattern * expr) list
-  | If of expr * expr * expr
-  | Let of name * ty * expr * expr
-  | Apply of expr * expr list
-  | Dup of ty * name
-  | Err of ty * string
+  | Case of (expr typed) * (pattern * (expr typed)) list
+  | If of (expr typed) * (expr typed) * (expr typed)
+  | Let of name * (expr typed) * (expr typed)
+  | Apply of (expr typed) * (expr typed) list
+  | Dup of name
+  | Err of string
 
 type def =
-    Define of name * ty * name list * expr
+    Define of name * ty * name list * (expr typed)
   | Datatype of name * (name * ty list) list
 
 type program = def list

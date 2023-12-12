@@ -12,7 +12,7 @@ type literal = Ast.literal
 
 type pattern =
     Pattern of int * (name * ty) list
-  | WildcardPattern (* hmmm perhaps names are not consumed if matched by wildcard? *)
+  | Name of name
 
 and bind = name * expr
 
@@ -58,7 +58,7 @@ let string_of_nameorwildcard (name, _) =
 let string_of_pattern = function
    Pattern(tag, nameorwildcardlist) -> 
      "(" ^ string_of_int tag ^ " " ^ String.concat " " (List.map string_of_nameorwildcard nameorwildcardlist) ^ ")"
- | WildcardPattern -> "_"
+ | Name n -> n
 
 let rec string_of_expr = function 
    Literal(lit) -> string_of_lit lit 
