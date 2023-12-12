@@ -1,0 +1,119 @@
+\documentclass[11pt]{article}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsthm}
+%\usepackage{fullpage}
+\usepackage{graphicx}
+%\usepackage{caption}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{changepage}
+\usepackage{syntax}
+
+\newcommand\op{\texttt{(}}
+\newcommand\cl{\texttt{)}}
+
+\renewcommand{\syntleft}{\normalfont\itshape}
+\renewcommand{\syntright}{}
+
+\setlength{\grammarparsep}{20pt plus 1pt minus 1pt} % increase separation between rules
+\setlength{\grammarindent}{12em} % increase separation between LHS/RHS
+
+\setlength{\parindent}{0cm}
+
+\title{Pure Garbage: The Compost Final Report}
+
+\author{}
+
+\date{December 15, 2023}
+
+\begin{document}
+
+\maketitle
+
+\begin{verbatim}
+val name_email_map : (string * string) list =
+[("Roger Burtonpatel", "roger.burtonpatel@tufts.edu");
+ ("Randy Dang", "randy.dang@tufts.edu");
+ ("Jasper Geer", "jasper.geer@tufts.edu");
+ ("Jackson Warhover", "jackson.warhover@tufts.edu")]  
+\end{verbatim}
+
+
+% INTRODUCTION
+
+\section{Introduction} {
+    Explain the purpose and motivation of your language, its use cases, and any necessary background that I'll need to 
+    understand the point of your language.
+}
+
+% LANGUAGE TUTORIAL
+
+\section{Language Tutorial} {
+    A short explanation telling a novice how to use your language (consider this an informal version of a Language 
+    Reference Manual). 
+    \\\\ 
+    Explains how to use the compiler in its simplest form and run a compiled program.
+    \\\\
+    Incrementally introduces how the language works through informal, well-documented code examples.
+}
+
+% LRM
+
+\section{Language Manual} {
+    Include your language reference manual. Make sure it's been updated if you've made \textit{any} changes since the first 
+    LRM deliverable was turned in. I \textbf{will} use this to try to write my own programs in your language!
+}
+
+% PROJECT PLAN
+
+\section{Project Plan} {
+    Identify process used for planning, specification, and development
+    \\\\
+    Show your project timeline
+    \\\\
+    Identify roles/responsibilities/contributions of each team member
+    \\\\
+    Describe the software development environment used (tools and languages)
+    \\\\
+    If possible, include a visualization of version control commits (but not a dump of a commit log)
+}
+
+% ARCHITECTURAL DESIGN
+
+\section{Architectural Design} {
+    Give block diagram showing the major components of your compiler and the interfaces between them
+    \\\\
+    Summarize how the language's "interesting" features were implemented
+    \\\\
+    State who implemented each component
+}
+
+% TEST PLAN
+
+\section{Test Plan} {
+    Explain how your group approached unit and integration testing, and what automation was used.
+    \\\\
+    Show two or three representative source language programs along with the target language program 
+    generated for each (if you can provide syntax highlighting and nice formatting that's REALLY useful)
+    \\\\
+    State who did what
+}
+
+% LESSONS LEARNED
+
+\section{Lessons Learned} {
+    Each team member should explain their most important takeaways from working on this project
+    \\\\
+    Include any advice the team has for future teams
+}
+
+% APPENDIX 
+
+\section{Appendix} {
+    Attach a complete code listing of your translator with each module signed by its author(s)
+    \\\\
+    Do not include any automatically generated files, only the sources.
+}
+
+\end{document}
