@@ -73,6 +73,9 @@ let rec insert_frees to_consume =
   | N.Apply (n, ns) ->
     let to_consume' = List.fold_right (fun n acc -> StringMap.remove n acc) (n :: ns) to_consume in
     consume_in to_consume' (F.Apply (F.Local n, List.map (fun n -> F.Local n) ns))
+  | N.Dup (_, n) when StringMap.mem n to_consume ->
+    let to_consume' = StringMap.remove n to_consume in
+    consume_in to_consume' (F.Local n)
   | N.Dup (ty, n) ->
     let to_consume' = StringMap.remove n to_consume in
     consume_in to_consume' (F.Dup (ty, n))

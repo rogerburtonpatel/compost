@@ -27,7 +27,7 @@ let rec normalize_expr (expr, ty) = match expr with
     (N.Let (n, typeof e1, e1',
            N.If (n, e2', e3')))
   | T.Let (n, e, body) ->
-    N.Let (n, ty, normalize_expr e, normalize_expr body)
+    N.Let (n, typeof e, normalize_expr e, normalize_expr body)
   | T.Apply (e1, es) ->
     let e1' = normalize_expr e1 in
     let fun_name = Freshnames.fresh_name () in
