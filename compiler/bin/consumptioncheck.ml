@@ -45,7 +45,7 @@ let rec check_affine live dead =
     let branch (pattern, body) = match pattern with
       | N.Pattern (_, binds) ->
         let live' = List.fold_right
-            (fun (n, ty) acc -> StringMap.add n ty acc) binds StringMap.empty
+            (fun (n, ty) acc -> StringMap.add n ty acc) binds live
         in
         check_affine live' dead' body
       | N.Name n ->
