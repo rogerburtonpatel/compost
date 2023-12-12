@@ -44,7 +44,7 @@ let rec expr locals renamings = function
         let locals' = S.union (S.of_list bindings) locals in
         (U.Pattern (n, bindings'), expr locals' renamings' body)
         (* THESE NEED TO BE FIXED *)
-      | A.WildcardPattern -> (U.Name ("WILDCARD", false), expr locals renamings body)
+      | A.WildcardPattern -> (U.Name (Freshnames.fresh_name (), false), expr locals renamings body)
       | A.Name n -> (U.Name (n, true), expr locals renamings body)
     in
     let branches' = List.map branch branches in
