@@ -8,8 +8,54 @@ module StringMap = Map.Make(String)
 
 let unions sets = List.fold_right S.union sets S.empty
 
-exception NameNotLive of string
+exception NameAlreadyConsumed of string
 exception Impossible of string
+
+(* Check affine-typeness *)
+
+let is_dataty = function
+  | Uast.CustomTy _ -> true
+  | _ -> false
+
+let rec check_affine live dead =
+  let has_dataty n = is_dataty (StringMap.find n live) in
+  let check_name n =
+    if S.mem n dead && has_dataty n
+    then raise (NameAlreadyConsumed n)
+    else () in
+  function
+  | N.Err _ -> dead
+  | N.Local n -> check_name n; S.add n dead
+  | N.Global _ -> dead
+  | N.Dup _ -> dead
+  | N.Literal _ -> dead
+  | N.If (n, e1, e2) ->
+    check_name n;
+    let dead' = S.add n dead in
+    let d1 = check_affine live dead' e1 in
+    let d2 = check_affine live dead' e2 in
+    S.union d1 d2
+  | N.Let (n, ty, e, body) ->
+    let dead' = check_affine live dead e in
+    let live' = StringMap.add n ty live in
+    check_affine live' dead' body
+  | N.Case (scrutinee_ty, scrutinee, branches) ->
+    check_name scrutinee;
+    let dead' = S.add scrutinee dead in
+    let branch (pattern, body) = match pattern with
+      | N.Pattern (_, binds) ->
+        let live' = List.fold_right
+            (fun (n, ty) acc -> StringMap.add n ty acc) binds StringMap.empty
+        in
+        check_affine live' dead' body
+      | N.Name n ->
+        let live' = StringMap.add n scrutinee_ty live in
+        check_affine live' dead' body
+    in
+    unions (List.map branch branches)
+  | N.Apply (n, ns) ->
+    List.iter check_name (n :: ns);
+    List.fold_right (fun n acc -> S.add n acc) (n :: ns) dead
 
 let rec not_free =
   function
@@ -23,9 +69,6 @@ let rec not_free =
   | N.Apply (n, ns) -> S.of_list (n :: ns)
   | N.Case (_, n, branches) -> S.add n (unions (List.map (function (_, branch) -> not_free branch) branches))
 
-let is_dataty = function
-  | Uast.CustomTy _ -> true
-  | _ -> false
 
 let merge = StringMap.union
     (fun n ty1 ty2 ->
@@ -38,6 +81,8 @@ let consume_in to_consume expr =
       if is_dataty ty
       then F.FreeRec (ty, n, acc)
       else acc) to_consume expr
+
+(* Automatically insert free directives into well-typed code *)
 
 let rec insert_frees to_consume =
   function
@@ -96,6 +141,7 @@ let insert_frees_def =
     let typed_params = List.combine params param_tys in
     let params_to_consume = List.fold_right
         (fun (n, ty) acc -> StringMap.add n ty acc) typed_params StringMap.empty in
+    let _ = check_affine params_to_consume S.empty body in
     let body' = insert_frees params_to_consume body in
     F.Define(fun_name, fun_ty, params, body')
   | N.Datatype (n, variants) -> F.Datatype (n, variants)
