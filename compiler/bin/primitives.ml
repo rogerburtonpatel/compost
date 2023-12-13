@@ -22,6 +22,8 @@ let primitives =
     ("*", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Int));
     ("/", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Int));
     ("%", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Int));
+    ("udiv", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Int));
+    ("umod", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Int));
     ("neg", Uast.FunTy ([Uast.Int], Uast.Int));
 
     (* Comparison *)
@@ -35,6 +37,14 @@ let primitives =
     ("and", Uast.FunTy ([Uast.Bool; Uast.Bool], Uast.Bool));
     ("or", Uast.FunTy ([Uast.Bool; Uast.Bool], Uast.Bool));
     ("xor", Uast.FunTy ([Uast.Bool; Uast.Bool], Uast.Bool));
+
+    (* Bitwise *)
+    ("&", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Int));
+    ("|", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Int));
+    ("^", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Int));
+    ("<<", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Int));
+    (">>", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Int));
+    ("~", Uast.FunTy ([Uast.Int], Uast.Int));
   ]
 
 let primitive_tys =

@@ -167,10 +167,20 @@ let codegen program =
           | [| a; b |] -> L.build_sdiv a b "tmp" builder
           | _ -> raise (Impossible "/ has 2 parameters")
       );
+      ("udiv", fun builder ->
+          function
+          | [| a; b |] -> L.build_udiv a b "tmp" builder
+          | _ -> raise (Impossible "udiv has 2 parameters")
+      );
       ("%", fun builder ->
           function
           | [| a; b |] -> L.build_srem a b "tmp" builder
           | _ -> raise (Impossible "% has 2 parameters")
+      );
+      ("umod", fun builder ->
+          function
+          | [| a; b |] -> L.build_urem a b "tmp" builder
+          | _ -> raise (Impossible "umod has 2 parameters")
       );
       ("neg", fun builder ->
           function
@@ -220,6 +230,38 @@ let codegen program =
         function 
         | [| a; b |] -> L.build_and a b "tmp" builder 
         | _ -> raise (Impossible "xor has 2 parameters")
+      );
+
+      (* Bitwise *)
+      ("&", fun builder ->
+          function
+          | [| a; b |] -> L.build_and a b "tmp" builder
+          | _ -> raise (Impossible "& has 2 parameters")
+      );
+      ("|", fun builder ->
+          function
+          | [| a; b |] -> L.build_or a b "tmp" builder
+          | _ -> raise (Impossible "| has 2 parameters")
+      );
+      ("^", fun builder ->
+          function
+          | [| a; b |] -> L.build_xor a b "tmp" builder
+          | _ -> raise (Impossible "^ has 2 parameters")
+      );
+      ("<<", fun builder ->
+          function
+          | [| a; b |] -> L.build_shl a b "tmp" builder
+          | _ -> raise (Impossible "^ has 2 parameters")
+      );
+      (">>", fun builder ->
+          function
+          | [| a; b |] -> L.build_lshr a b "tmp" builder
+          | _ -> raise (Impossible ">> has 2 parameters")
+      );
+      ("~", fun builder ->
+          function
+          | [| a |] -> L.build_not a "tmp" builder
+          | _ -> raise (Impossible "~ has 1 parameter")
       );
     ]
   in
