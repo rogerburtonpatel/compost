@@ -1,0 +1,45 @@
+@startuml architecture
+
+component [Compost Program]
+component [AST]
+component [PAST]
+component [UAST]
+component [TAST]
+component [NAST]
+component [FAST]
+component [MAST]
+component [LLVM]
+
+'Hidden arrows prevent diagram from just being a single line
+[Compost Program] --> [AST] : Scan & Parse
+[AST] --> [PAST] : Preprocess & Desugar
+[PAST] -[hidden]-> [Compost Program]
+[PAST] --> [UAST] : Disambiguate global/local names
+[UAST] -[hidden]-> [AST]
+[UAST] -[hidden]-> [Compost Program]
+[UAST] --> [TAST] : Type Check 
+[TAST] -[hidden]-> [Compost Program]
+[TAST] -[hidden]-> [AST]
+[TAST] -[hidden]-> [PAST]
+[TAST] --> [NAST] : Consumption Check & K Normalize
+[NAST] -[hidden]-> [Compost Program]
+[NAST] -[hidden]-> [AST]
+[NAST] -[hidden]-> [PAST]
+[NAST] -[hidden]-> [UAST]
+[NAST] --> [FAST] : Insert frees 
+[FAST] -[hidden]-> [Compost Program]
+[FAST] -[hidden]-> [AST]
+[FAST] -[hidden]-> [PAST]
+[FAST] -[hidden]-> [UAST]
+[FAST] -[hidden]-> [TAST]
+[FAST] --> [MAST] : Generate explicit memory management 
+[MAST] -[hidden]-> [Compost Program]
+[MAST] -[hidden]-> [AST]
+[MAST] -[hidden]-> [PAST]
+[MAST] -[hidden]-> [UAST]
+[MAST] -[hidden]-> [TAST]
+[MAST] -[hidden]-> [NAST]
+[MAST] --> [LLVM] : Codegen
+[LLVM] -[hidden]-> [Compost Program]
+
+@enduml
