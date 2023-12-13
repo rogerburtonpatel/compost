@@ -44,13 +44,21 @@
 (define run (inst_l inst_r data_l data_r)
     (case inst_r
         ([(nil-intlist)
-            unit]
+            (begin
+                (print-intlist inst_l)
+                (print-intlist (nil-intlist))
+                (print-intlist data_l)
+                (print-intlist data_r)
+                unit)]
          [(cons-int i inst_r)
 
             ;;;;;;;
             ;; > ;;
             ;;;;;;;
             (if (=i i 62) ; >
+                (begin
+                (print-sym '>')
+                (print-newline)
                 (case data_r
                     ([(nil-intlist)
                         (run
@@ -63,13 +71,15 @@
                             (cons-int i inst_l)
                             inst_r
                             (cons-int d data_l)
-                            data_r)]))
+                            data_r)])))
 
             ;;;;;;;
             ;; < ;;
             ;;;;;;;
-
             (if (=i i 60) ; <
+                (begin
+                (print-sym '<')
+                (print-newline)
                 (case data_l
                     ([(nil-intlist)
                         (run
@@ -82,13 +92,15 @@
                             (cons-int i inst_l)
                             inst_r
                             data_l
-                            (cons-int d data_r))]))
+                            (cons-int d data_r))])))
 
             ;;;;;;;
             ;; + ;;
             ;;;;;;;
-
             (if (=i i 43) ; +
+                (begin
+                (print-sym '+')
+                (print-newline)
                 (case data_r
                     ([(nil-intlist)
                         (run
@@ -101,13 +113,15 @@
                             (cons-int i inst_l)
                             inst_r
                             data_l
-                            (cons-int (+ d 1) data_r))]))
+                            (cons-int (+ d 1) data_r))])))
 
             ;;;;;;;
             ;; - ;;
             ;;;;;;;
-
             (if (=i i 45) ; -
+                (begin
+                (print-sym '-')
+                (print-newline)
                 (case data_r
                     ([(nil-intlist)
                         (run
@@ -120,13 +134,15 @@
                             (cons-int i inst_l)
                             inst_r
                             data_l
-                            (cons-int (- d 1) data_r))]))
+                            (cons-int (- d 1) data_r))])))
 
             ;;;;;;;
             ;; . ;;
             ;;;;;;;
-
             (if (=i i 46) ; .
+                (begin
+                (print-sym '.')
+                (print-newline)
                 (case data_r
                     ([(nil-intlist)
                         (begin
@@ -143,13 +159,15 @@
                                 (cons-int i inst_l)
                                 inst_r
                                 data_l
-                                (cons-int d data_r)))]))
+                                (cons-int d data_r)))])))
 
             ;;;;;;;
             ;; , ;;
             ;;;;;;;
-
             (if (=i i 44) ; ,
+                (begin
+                (print-sym ',')
+                (print-newline)
                 (case data_r
                     ([(nil-intlist)
                         (run
@@ -162,13 +180,15 @@
                             (cons-int i inst_l)
                             inst_r
                             data_l
-                            (cons-int (in) data_r))]))
+                            (cons-int (in) data_r))])))
 
             ;;;;;;;
             ;; [ ;;
             ;;;;;;;
-
             (if (=i i 91) ; [
+                (begin
+                (print-sym '[')
+                (print-newline)
                 (case data_r
                     ([(nil-intlist)
                         (bracket_l
@@ -189,21 +209,28 @@
                                 (cons-int i inst_l)
                                 inst_r
                                 data_l
-                                (cons-int d data_r)))]))
+                                (cons-int d data_r)))])))
 
             ;;;;;;;
             ;; ] ;;
             ;;;;;;;
-
             (if (=i i 93) ; ]
+                (begin
+                (print-sym ']')
                 (case data_r
                     ([(nil-intlist)
+                        (begin
+                        (print-int 0)
+                        (print-newline)
                         (run
                             (cons-int i inst_l)
                             inst_r
                             data_l
-                            (nil-intlist))]
+                            (nil-intlist)))]
                      [(cons-int d data_r)
+                        (begin
+                        (print-int d)
+                        (print-newline)
                         (if (not (=i d 0))
                             (bracket_r
                                 inst_l
@@ -215,7 +242,7 @@
                                 (cons-int i inst_l)
                                 inst_r
                                 data_l
-                                (cons-int d data_r)))]))
+                                (cons-int d data_r))))])))
             ;; else
                 (run
                     (cons-int i inst_l)

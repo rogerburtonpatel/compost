@@ -1,0 +1,3 @@
+(datatype intlist 
+    ([cons-int (int intlist)]
+     [nil-intlist ()]))

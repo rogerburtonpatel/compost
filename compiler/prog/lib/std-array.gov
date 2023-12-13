@@ -1,0 +1,33 @@
+(use 'prog/lib/std-intlist.gov')
+
+(datatype intlist-value
+    ([(intlist-value-c (intlist int))]))
+
+(: get (-> (int intlist) int)) 
+(define intlist-get (i xs)
+    (case (getl i xs)
+        ([(intlist-value-c xs x) x])))
+
+(: intlist-getl (-> (int intlist) intlist-value)) 
+(define intlist-getl (i xs)
+    (intlist-getl-inner i xs (nil-intlist)))
+
+(: intlist-getl-inner (-> (int intlist intlist) intlist-value)) 
+(define intlist-inner (i xs ys)
+    (case xs
+        ([(nil-intlist)
+            (if (i= i 0)
+                (intlist-getl-inner2 intlist-default (cons-int intlist-default (nil-intlist)) ys)
+                (intlist-getl-inner (- i 1) (nil-intlist) (cons-int intlist-default ys)))]
+         [(cons-int x xs)
+            (if (i= i 0)
+                (intlist-getl-inner2 x (cons-int x xs) ys)
+                (intlist-getl-inner (- i 1) xs (cons-int x ys)))])))
+
+(: intlist-getl-inner2 (-> (int intlist intlist) intlist-value)) 
+(define intlist-inner2 (r xs ys)
+    (case ys
+        ([(nil-intlist)
+            (intlist-value xs r)]
+         [(cons-int y ys)
+            (intlist-inner2 r (cons-int y xs) ys)])))
