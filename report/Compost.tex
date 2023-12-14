@@ -225,6 +225,894 @@ dune exec compost file.com | llc -relocation-model=pic | cc -x assembler -o file
     LRM deliverable was turned in. I \textbf{will} use this to try to write my own programs in your language!
 }
 
+\subsection{Introduction} {
+    This language reference manual contains a formal description of Compost's syntax, along with an informal description of its semantics and type system.
+    In addition, an initial basis for Compost programs is outlined.
+}
+
+% NOTATIONAL CONVENTIONS
+
+\subsection{More Notational Conventions}
+
+Grammar rules are written in extended Backus-Naur format, as follows:
+
+\begin{grammar}
+  <rule> ::= (<nonterminal> \texttt{terminal})
+    \alt \{ <other-rule> \}
+\end{grammar}
+
+Parentheses are concrete syntax, but any pair of balanced parentheses may be freely exchanged for a pair of square brackets.
+For example, the following two declarations are indistinguishable in the abstract syntax:
+
+\begin{verbatim}
+(val x 1)
+
+[val x 1]
+\end{verbatim}
+
+Note that braces are used in a manner akin to the Kleene closure, that is, a term enclosed in braces may be omitted or arbitrarily repeated.
+
+% LEXICAL CONVENTIONS
+
+\subsection{Lexical Conventions}
+
+\subsubsection{Whitespace}
+
+The following characters are considered as whitespace and, with one exception, ignored during tokenization:
+spaces, tabs, carriage returns, and newlines.
+
+\subsubsection{Comments}
+
+Comments are introduced by the character \texttt{;} and terminated by the newline character.
+Comments are treated as whitespace.
+
+\subsubsection{Literals}
+
+\begin{grammar}
+  <literal> ::= <integer-literal>
+  \alt <symbol-literal>
+  \alt <boolean-literal>
+  \alt <unit-literal>
+\end{grammar}
+
+Literals introduce values of Compost's primitive types.
+All literals are valid expressions.
+
+\subsubsection{Integer Literals}
+
+\begin{grammar}
+  <integer-literal> ::= token composed only of digits, possibly prefixed with a \texttt{+} or \texttt{-}.
+\end{grammar}
+
+The \texttt{+} prefix denotes a positive integer and the \texttt{-} prefix denotes a negative integer.
+The characters \texttt{1 2 3 4 5 6 7 8 9 0} are considered digits.
+
+\subsubsection{Symbol Literals}
+
+\begin{grammar}
+  <symbol-literal> ::= \texttt{'}\{ <symbol-character> \}\texttt{'}
+
+  <symbol-character> ::= any unicode code point other than \texttt{'} and the backslash character unless escaped with a backslash.
+\end{grammar}
+
+That is, any sequence of \texttt{'}-delimited unicode characters is a valid symbol literal, as long as every instance of \texttt{'} or backslash are preceded by a backslash.
+This includes characters that would otherwise be treated as whitespace if they were found outside of the symbol literal setting. Escape sequences are replaced by their 
+unescaped counterparts in the introduced symbol value. For example, the following are valid symbol literals:
+
+\begin{verbatim}
+'\'hello, world\''
+
+'\\ is a backslash'
+
+'I exist
+on multiple lines'
+\end{verbatim}
+
+The following are \textit{not} valid symbol literals:
+
+\begin{verbatim}
+'Pini's Pizzeria' ;; the apostraphe should be escaped 
+
+'\ is missing an escape backslash'
+
+'This is not a newline character: \n' ;; see above for proper usage of 
+                                      ;; multi-line strings
+\end{verbatim}
+
+\subsubsection{Other Literals}
+
+\begin{grammar}
+  <boolean-literal> ::= \texttt{true} | \texttt{false}
+
+  <unit-literal> ::= \texttt{unit}
+\end{grammar}
+
+\subsubsection{Reserved Words}
+
+The following tokens are considered reserved:
+\begin{verbatim}
+; ( ) [  ] : _ -> if val define datatype use case begin let dup int bool sym unit
+\end{verbatim}
+
+% VALUES
+
+\subsection{Values}
+
+This section describes the kinds of values manipulated by Compost programs.
+
+\subsubsection{Integers}
+
+Integer values are 32-bit signed integers with a range of -2,147,483,648 to 2,147,483,647.
+
+\subsubsection{Symbols}
+
+Symbol values are interned immutable strings of unicode characters.
+
+\subsubsection{Booleans}
+
+Boolean values are either the boolean \texttt{true} or the boolean \texttt{false}.
+
+\subsubsection{Unit}
+
+Unit values are the value \texttt{unit}.
+
+\subsubsection{Variant Values}
+
+Variant values are either a constant constructor or a non-constant constructor applied to a series of value arguments.
+We write an arbitrary constant constructor $c$ as $(c)$ and an arbitrary non-constant constructor $d$ applied to arguments $v_1...v_{n}$ as $(d\ v_{1}\ ...\ v_{n})$.
+\\\\
+Variant constructors are monomorphic, that is, for any constructor $c$, there exist types $\tau_{1}...\tau_{n}$ such that for any application of constructor $c$ to arguments $v_{1}...v_{n}$, $v_{i}$ must have type $\tau_{i}$ for all $i\in1,2,...,n$.
+
+\subsubsection{Functions}
+
+Functions in Compost are first-class objects.
+Function values are mappings from ordered sets of values, to values.
+That is, a function $f$, when applied to values $v_{1}...v_{n}$, produces a value $v_{r}$.
+Like variant constructors, functions are monomorphic, so the types of $v_{1}...v_{n}$ and $v_{r}$ are fixed.
+
+% NAMES
+
+\subsection{Names}
+
+Compost places relatively liberal constraints on the sequences of characters considered valid names.
+
+\begin{grammar}
+  <name> ::= any token that is not an \textit{int-lit}, does not contain whitespace (including a \texttt{;} character indicating the start of a comment), a \texttt{'}, bracket, or parenthesis, and is not a reserved word.
+\end{grammar}
+
+Names are bound to datatypes, functions, values, and variant constructors, and are used to refer to them at various points in a program.
+Names are also used in the \textit{use-declaration} syntactic form to refer to files.
+
+% TYPE EXPRESSIONS
+
+\subsection{Type Expressions}
+
+
+\begin{grammar}
+
+  <type-expression> ::= <function-type>
+    \alt <int-type>
+    \alt <bool-type>
+    \alt <sym-type>
+    \alt <unit-type>
+    \alt <datatype>
+
+\end{grammar}
+
+\subsubsection{Primitive Types}
+
+\begin{grammar}
+  <int-type> ::= \texttt{int}
+
+  <bool-type> ::= \texttt{bool}
+
+  <sym-type> ::= \texttt{sym}
+
+  <unit-type> ::= \texttt{unit}
+\end{grammar}
+
+\texttt{int} is the type of integer values.
+\\\\
+\texttt{bool} is the type of boolean values.
+\\\\
+\texttt{sym} is the type of symbol values.
+\\\\
+\texttt{unit} is the type of unit values.
+
+\subsubsection{Function Types}
+
+\begin{grammar}
+  <function-type> ::= (\texttt{->} (\{ <type> \}) <type>)
+\end{grammar}
+
+\texttt{(-> (t1 ... tn) tr)} is the type of function values which map ordered sets of values $v_{1}...v_{n}$ of types $\texttt{t}1...\texttt{t}n$ to value $v_{r}$ of type $\texttt{tr}$.
+
+\subsubsection{Datatypes}
+
+\begin{grammar}
+  <datatype> ::= <name>
+\end{grammar}
+
+Datatypes are the types of variant constructor values.
+Multiple variant constructors may share the same type.
+Datatypes and their constructors can be defined by the programmer with the following syntax:
+
+\begin{grammar}
+    <datatype-definition> ::= (\texttt{datatype} <name> (\{ <variant-constructor-definition> \}))
+
+    <variant-constructor-definition> ::= (<name> (\{ <type-expression> \}))
+\end{grammar}
+
+A \textit{name} bound to the new type $\tau_{d}$ appears directly following the \texttt{datatype} keyword, and this is followed by a list of variant constructor definitions.
+Each of these provides a \textit{name} bound to the constructor, $c$, followed by a list of \textit{type-expression}s $\tau_{1}...\tau_{n}$ typing its arguments.
+Given this definition, a variant value $(c\ v_{1}\ ...\ v_{n})$ of type $\tau_{d} $ may be introduced by applying function value $c$ to $v_{1}...v_{n}$, where the type of $v_{i}$ is $\tau_{i}$ for all $i\in1,2,...,n$
+\\\\
+The placement of a datatype or variant constructor's definition has no bearing on where it can be referenced, introduced, or eliminated.
+In fact, datatypes may be defined recursively, as in the following example:
+
+\begin{verbatim}
+(datatype int-list
+  ([cons (int int-list)]
+    [nil ()]))
+\end{verbatim}
+
+This declaration can be read as: ``an \texttt{int-list} is either \texttt{cons} applied to an \texttt{int} and an \texttt{int-list}, or \texttt{nil} applied to nothing''.
+\\\\
+
+% EXPRESSIONS
+
+\textbf{ALERT: Hi, Randy Dang here. Reading through a copy-pasted form of the LRM is still a work-in-progress, and some of the section headers are LRM-specific 
+rather than general sections that should be included in the report. Go to "Project Plan" for the next report-specific section after the LRM.}
+
+\section{Expressions}
+
+\begin{grammar}
+  <expr> ::= <literal>
+    \alt <case-expression>
+    \alt <if-expression>
+    \alt <begin-expression>
+    \alt <apply-expression>
+    \alt <let-expression>
+    \alt <dup-expression>
+    \alt <name-expression>
+\end{grammar}
+
+Meaningful computation is encoded in Compost as \textit{expr} syntactic forms, or expressions.
+These appear either as the right-hand side of \texttt{val} declarations or as the bodies of functions.
+\\\\
+We describe the semantics and typing rules of expressions largely informally but use formal notation to aid conciseness.
+Expressions are evaluated in an environment $\rho$ mapping names to values.
+Initially, these environments contain the values and types of all globally bound names (functions, \texttt{val}-bound names).
+$\rho[x\mapsto v]$ is the modified environment $\rho$ in which name $x$ is bound to value $v$.
+$\rho[x]$ is the value mapped to by $x$ in $\rho$.
+\\\\
+There also exists a typing environment $\Gamma$ mapping names to types.
+The same syntax is used to add bindings to $\Gamma$ and denote the type mapped to by a name $x$.
+We also introduce a typing judgement $\Gamma\vdash e:\tau$ which can be read ``expression $e$ has type $\tau$ in context $\Gamma$''.
+When $\Gamma$ is used in a subsection, it refers to the environment in which that particular expression is typed, rather than the initial typing environment.
+This typing judgement is defined inductively on the structure of expressions by the following subsections.
+\\\\
+Certain expressions will ``consume'' names, effectively moving them out of scope.
+As a rule of thumb, any name that can be consumed can only be consumed once in a given program path.
+Any names considered as consumed in a subexpression are considered consumed in the parent expression.
+Consumption is defined inductively on the structure of expressions by the following subsections.
+\\\\
+Side effects are produced in evaluation order except in the case of \texttt{val}-bound names, which produce their associated expression's side effects at \textbf{every} reference.
+
+\subsection{Case Expressions}
+
+\begin{grammar}
+  <case-expression> ::= (\texttt{case} <expr> (\{ <case-branch> \}))
+
+  <case-branch> ::= (<pattern> <expr>)
+
+  <pattern> ::= (<name> \{ <name> | \texttt{_} \})
+    \alt \texttt{_}
+\end{grammar}
+Note that we refer to instance of \texttt{_} in patterns as ``wildcards''.
+Values of the form $(c\ v_{1}\ ..\ v_{n})$ are eliminated by the \textit{case-expression} syntactic form.
+Consider a case expression with $n$ branches of the form:
+
+\begin{verbatim}
+(case e
+  ([(c1 v11 v12 ...) e1]
+    ...
+    [(cn vn1 vn2 ...) en]))
+\end{verbatim}
+
+\subsubsection{Typing}
+We assert that the type of \texttt{e} must be a datatype.
+Suppose that $\Gamma\vdash\texttt{e}:\tau_{d}$.
+Each \texttt{c}$i$ must be a variant constructor of $\tau_{d}$.
+For all $i\in1,2,...,n$, let $\tau_{i1},\tau_{i2},...,\tau_{im}$ be the types of \texttt{c}$i$'s $m$ arguments.
+We assert that the number of names and wildcards following \texttt{c}$i$ must be precisely $m$, and that all names must be fresh.
+Let $\Gamma_{i}$ be $\Gamma[\texttt{v}i1\mapsto\tau_{i1},...,\texttt{v}im\mapsto\tau_{im}]$.
+Note that wildcards are not bound.
+We assert that $\Gamma_{i}\vdash\texttt{e}i:\tau_{r}$.
+The type of this expression in context $\Gamma$ is $\tau_{r}$.
+
+\subsubsection{Consumption}
+Names marked as consumed in \texttt{e} are marked as consumed in all \texttt{e}$i$.
+
+\subsubsection{Evaluation}
+Suppose evaluation of \texttt{e} in environment $\rho$ yields a value $v=(c\ v_{i}\ ...\ v_{m})$.
+If there exists some branch whose pattern is prefixed by $c$, it is evaluated in the environment $\rho$ and its result is returned.
+Otherwise, a the program halts with a runtime error.
+\\\\
+Suppose this branch is the \textit{case-branch} containing the pattern prefixed by variant constructor \texttt{c}$k$.
+Evaluation of this branch yields the result of evaluating \texttt{e}$k$ in the modified environment $\rho'=\rho[\texttt{v}k1\mapsto v_{1},...,\texttt{v}km\mapsto v_{m}]$. Note that we do not bind wildcards in $\rho'$.
+
+\subsection{If Expressions}
+
+\begin{grammar}
+  <if-expression> ::= (\texttt{if} <expr> <expr> <expr>)
+\end{grammar}
+
+Consider an if expression of the form:
+
+\begin{verbatim}
+(if e1 e2 e3)
+\end{verbatim}
+
+\subsubsection{Typing}
+We assert that the $\Gamma\vdash\texttt{e1}:\texttt{bool}$.
+We further assert that $\Gamma\vdash\texttt{e2}:\tau_{r}$ and $\Gamma\vdash\texttt{e3}:\tau_{r}$.
+The type of this expression in context $\Gamma$ is $\tau_{r}$.
+
+\subsubsection{Consumption}
+Names marked as consumed in \texttt{e1} are marked as consumed in \texttt{e1} and \texttt{e2}.
+
+\subsubsection{Evaluation}
+Suppose evaluation of \texttt{e1} in environments $\rho$ yields a boolean value $v$.
+If $v$ is the value \texttt{true}, the expression \texttt{e1} is evaluated in environment $\rho$ and its result is returned.
+If $v$ is the value \texttt{false}, the expression \texttt{e2} is evaluated in environment $\rho$ and its result is returned.
+
+\subsection{Begin Expressions}
+
+\begin{grammar}
+  <begin-expression> ::= (\texttt{begin} \{ <expr> \})
+\end{grammar}
+
+Consider a begin expression of the form:
+
+\begin{verbatim}
+(begin e1 ... en)
+\end{verbatim}
+
+\subsubsection{Typing}
+The type of this expression is the type of \texttt{en}.
+
+\subsubsection{Consumption}
+For all $i\in1,2,...,n-1$, names marked as consumed in \texttt{e}$i$ are marked as consumed in \texttt{e}$i+1$.
+
+\subsubsection{Evaluation}
+Each \texttt{e}$i$ is evaluated in environment $\rho$ in order from $1...n$.
+We return the result of evaluating \texttt{e}$n$ in environment $\rho$.
+
+\subsection{Apply Expressions}
+
+\begin{grammar}
+  <apply-expression> ::= (<expr> \{ <expr> \})
+\end{grammar}
+
+Consider an apply expression of the form:
+
+\begin{verbatim}
+(e e1 ... en)
+\end{verbatim}
+
+\subsubsection{Typing}
+We assert that $\Gamma\vdash\texttt{e}:\texttt{(-> (}t_{1}\ ...\ t_{n}\texttt{)}\ t_{r}\texttt{)}$.
+Each \texttt{e}$i$ must be of type $t_{i}$ for $i\in1,2,...,n$.
+The type of this expression is $t_{r}$.
+
+\subsubsection{Consumption}
+For all $i\in1,2,...,n-1$, names marked as consumed in \texttt{e}$i$ are marked as consumed in \texttt{e}$i+1$.
+
+\subsubsection{Evaluation}
+Each \texttt{e}$i$ is evaluated in environment $\rho$ in order from $1...n$.
+Let $v_{1}...v_{n}$ be the values returned by evaluating each \texttt{e}$i$.
+\\\\
+We return the result of applying $v_{f}$ to arguments $v_{1}...v_{n}$.
+
+\subsection{Let Expressions}
+
+\begin{grammar}
+  <let-expression> ::= (\texttt{let} (\{ <let-binding> \}) <expr>)
+
+  <let-binding> ::= (<name> <expr>)
+\end{grammar}
+
+Consider a let expression of the form:
+
+\begin{verbatim}
+(let
+  ([x1 e1]
+    ...
+    [xn en])
+  e)
+\end{verbatim}
+
+\subsubsection{Typing}
+
+We assert that each \texttt{x}$i$ for $i\in1,2,...,n$ be fresh.
+Given that $\Gamma_{k}:\texttt{x}k:\tau_{k}$, for $k\in1,2,...,n-1$, we say that $\Gamma_{k+1}=\Gamma_{k}[\texttt{x}k\mapsto\tau_{k}]$.
+As a base case, let $\Gamma_{1}=\Gamma$.
+The type of this expression is the type of \texttt{e}$n$ in context $\Gamma_{n}$.
+
+\subsubsection{Consumption}
+
+For any $i\in1,2,...,n$ we mark any names consumed in \texttt{e}$i$ as consumed in both \texttt{e} and all \texttt{e}$k$ for $k>i$.
+
+\subsubsection{Evaluation}
+
+For all $i\in1,2,...,n$, let $\rho_{i+1}=\rho_{i}[\texttt{x}i\mapsto v_{i}]$, where $v_{i}$ is the value returned by evaluating \texttt{e}$i$ in environment $\rho_{i}$.
+As a base case, let $\rho_{1}=\rho$.
+We return the result of evaluating \texttt{e} in environment $\rho_{n+1}$.
+
+\subsection{Name Expressions}
+
+\begin{grammar}
+  <name-expression> ::= <name>
+\end{grammar}
+
+Consider a name expression of the form:
+
+\begin{verbatim}
+n
+\end{verbatim}
+
+\subsubsection{Typing}
+
+We assert that \texttt{n} be bound in $\Gamma$.
+We further assert that \texttt{n} not be marked as consumed.
+The type of this expression is $\Gamma[\texttt{n}]$. 
+
+\subsubsection{Consumption}
+
+If the type of \texttt{n} in context $\Gamma$ is a datatype, it is marked as consumed.
+
+\subsubsection{Evaluation}
+
+We return the value $\rho[\texttt{n}]$.
+
+\subsection{Dup Expressions}
+
+\begin{grammar}
+  <dup-expression> ::= (\texttt{dup} <name>)
+\end{grammar}
+
+Consider a dup expression of the form:
+
+\begin{verbatim}
+(dup n)
+\end{verbatim}
+
+\subsubsection{Typing}
+
+We assert that \texttt{n} be bound in $\Gamma$ and that $\Gamma[\texttt{n}]$ be a datatype.
+We further assert that \texttt{n} not be marked as consumed.
+The type of this expression is $\Gamma[\texttt{n}]$. 
+
+\subsubsection{Consumption}
+
+\texttt{n} is \textbf{not} marked as consumed.
+
+\subsubsection{Evaluation}
+
+We return the value $\rho[\texttt{n}]$.
+
+% DEFINITIONS
+
+\section{Definitions}
+Syntactic forms in the \textit{def} category are allowed only at the top level of a Compost program.
+
+\begin{grammar}
+  <def> ::= <val-binding>
+    \alt <function-definition>
+    \alt <datatype-definition>
+    \alt <type-annotation>
+    \alt <use-declaration>
+\end{grammar}
+
+We retain the environment notation conventions from the previous section.
+\\\\
+Compost maintains a global $\Gamma_{g}$ and $\rho_{g}$ which are mutated by type annotations, \texttt{val} bindings, and function definitions.
+Additional bindings may be added to these environments at code points.
+A change to either of these global environments at a given code point is reflected at all succeeding code points.
+To determine the initial $\Gamma$ or $\rho$ at a \texttt{val} binding or function definition, we take the $\Gamma_{g}$ and $\rho_{g}$ at its opening parenthesis.
+\subsection{Type Annotations}
+
+\begin{grammar}
+  <type-annotation> ::= (\texttt{:} <name> <type-expression>)
+\end{grammar}
+
+Type annotations constrain the type of globally bound names.
+Each bound name, whether bound by \texttt{val} or \texttt{define}, must have an associated type annotation.
+Consider a type annotation of the form:
+
+\begin{verbatim}
+(: n t)
+\end{verbatim}
+
+If \texttt{n} is bound by \texttt{define}, then we bind \texttt{n} to \texttt{t} in $\Gamma_{g}$ at the first character of the file.
+If \texttt{n} is bound by \texttt{val}, then we bind \texttt{n} to \texttt{t} in $\Gamma_{g}$ at the closing parenthesis of the \texttt{val} binding.
+
+\subsection{Val Bindings}
+
+\begin{grammar}
+  <val-binding> ::= (\texttt{val} <name> <exp>)
+\end{grammar}
+
+Consider a \texttt{val} binding of the form:
+
+\begin{verbatim}
+(val x e)
+\end{verbatim}
+
+Let $\Gamma,\rho$ be $\Gamma_{g},\rho_{g}$ at the opening parenthesis of the binding.
+Let $\Gamma_{c}$ be $\Gamma_{g}$ at the closing parenthesis of the binding.
+\\\\
+We assert that \texttt{x} be free in $\rho$ and bound in $\Gamma_{g}$.
+Given $\Gamma_{c}[\texttt{x}]=\tau$, we assert that $\Gamma\vdash\texttt{e}=\tau$.
+\\\\
+Let $v$ be the result of evaluating $\texttt{e}$ in environment $\rho$.
+We bind \texttt{x} to $v$ in $\rho_{g}$ at the closing parenthesis.
+\\\\
+Note that if \texttt{e} produces a side effect, it is produced \textbf{only} when \texttt{x} is referenced and \textbf{every} time \texttt{x} is referenced.
+That is, references to \texttt{val}-bound names behave as zero-arity function calls rather than references to \texttt{let}-bound names.
+The secret sauce here is that \texttt{val} bindings are simply type-checked macros.
+
+\subsection{Function Definitions}
+
+\begin{grammar}
+  <function-definition> ::= (\texttt{define} <name> (\{ <name> \}) <exp>)
+\end{grammar}
+
+Consider a function definition of the form:
+
+\begin{verbatim}
+(define x (x1 ... xn) e)
+\end{verbatim}
+
+
+Let $\Gamma,\rho$ be $\Gamma_{g},\rho_{g}$ at the opening parenthesis of the binding.
+\\\\
+We assert that $\texttt{x}$ be bound in $\Gamma$ and free in $\rho$.
+We assert that $\Gamma[\texttt{x}]=\texttt{(->}\ \texttt{(}\tau_{1}\ ...\ \tau_{n}\texttt{)}\ \tau_{r}\texttt{)}$.
+We assert that $\Gamma[\texttt{x}1\mapsto\tau_{1},...,\texttt{x}n\mapsto\tau_{n}]\vdash\texttt{e}:\tau_{r}$.
+\\\\
+We bind \texttt{x}, in $\rho_{g}$ at the first character of the file, to the function value that, when applied to arguments $v_{1},...,v_{n}$, returns the result of evaluating \texttt{e} in the environment $\rho[\texttt{x}1\mapsto v_{1},...,\texttt{x}n\mapsto v_{n}]$.
+
+\subsection{Use Declarations}
+
+\begin{grammar}
+  <use-declaration> ::= (\texttt{use} <filename>)
+\end{grammar}
+
+Use declarations are a thinly-veiled preprocessor directive which are replaced by the contents of the named file.
+
+\section{The Structure of Compost Programs}
+
+\begin{grammar}
+  <program> ::= \{ <def> \} <end-of-file>
+\end{grammar}
+
+Compost programs consists of a series of definitions.
+All executable programs must contain a function \texttt{main} of type \texttt{(-> () unit)}, which serves as the entry point for the program.
+\\\\
+When a compiled Compost program is executed, \texttt{main} is invoked.
+The program terminates when \texttt{main} has been fully evaluated.
+
+\section{Initial Basis}
+
+Compost includes an initial basis providing those functions not possible or practical to define in terms of the rest of the core Compost language.
+A type annotation, description, and if possible, an implementaion, will be provided for each such function.
+
+\subsection{Equality}
+
+\begin{verbatim}
+(: =i (-> (int int) bool))
+\end{verbatim}
+
+Integer equality.
+
+\begin{verbatim}
+(: =b (-> (bool bool) bool))
+\end{verbatim}
+
+Boolean equality.
+
+\begin{verbatim}
+(: =s (-> (sym sym) bool))
+\end{verbatim}
+
+Symbol equality.
+
+\begin{verbatim}
+(: =u (-> (unit unit) bool))
+\end{verbatim}
+
+Unit equality.
+Always returns \texttt{true}.
+
+\subsection{Arithmetic}
+
+\begin{verbatim}
+(: + (-> (int int) int))
+\end{verbatim}
+
+Two's complement addition.
+
+\begin{verbatim}
+(: - (-> (int int) int))
+\end{verbatim}
+
+Two's complement subtraction.
+
+\begin{verbatim}
+(: * (-> (int int) int))
+\end{verbatim}
+
+Two's complement multiplication.
+
+\begin{verbatim}
+(: / (-> (int int) int))
+\end{verbatim}
+
+Two's complement div.
+
+\begin{verbatim}
+(: % (-> (int int) int))
+\end{verbatim}
+
+Two's complement modulus.
+
+\begin{verbatim}
+(: neg (-> (int) int))
+\end{verbatim}
+
+Two's complement negation.
+
+\subsection{Comparison}
+
+\begin{verbatim}
+(: > (-> (int int) bool))
+\end{verbatim}
+
+Returns \texttt{true} if the first argument is greater than the second.
+Returns \texttt{false} otherwise.
+
+\begin{verbatim}
+(: < (-> (int int) bool))
+\end{verbatim}
+
+Returns \texttt{true} if the first argument is less than the second.
+Returns \texttt{false} otherwise.
+
+\begin{verbatim}
+(: >= (-> (int int) bool))
+\end{verbatim}
+
+Returns \texttt{true} if the first argument is greater than or equal to the second.
+Returns \texttt{false} otherwise.
+
+\begin{verbatim}
+(: <= (-> (int int) bool))
+\end{verbatim}
+
+Returns \texttt{true} if the first argument is less than or equal to the second.
+Returns \texttt{false} otherwise.
+
+\subsection{Boolean Logic}
+
+\begin{verbatim}
+(: not (-> (bool) bool))
+\end{verbatim}
+
+Logical NOT.
+
+\begin{verbatim}
+(: and (-> (bool bool) bool))
+\end{verbatim}
+
+Logical AND.
+
+\begin{verbatim}
+(: or (-> (bool bool) bool))
+\end{verbatim}
+
+Logical OR.
+
+\begin{verbatim}
+(: xor (-> (bool bool) bool))
+\end{verbatim}
+
+Logical XOR.
+
+\subsection{I/O: Printing}
+
+The following functions print representations of primitive values to stdout.
+
+\begin{verbatim}
+(: print-int (-> (int) unit))
+\end{verbatim}
+
+Prints the digits of decimal representation the absolute value of its argument in order from most to least significant, prefixed with a \texttt{-} if it is less than \texttt{0}.
+
+\begin{verbatim}
+(: print-bool (-> (bool) unit))
+\end{verbatim}
+
+Prints \texttt{true} to if its argument is the value \texttt{true} and prints \texttt{false} otherwise.
+
+\begin{verbatim}
+(: print-sym (-> (sym) unit))
+\end{verbatim}
+
+Prints its symbol argument's associated string.
+
+\begin{verbatim}
+(: print-unit (-> (unit) unit))
+\end{verbatim}
+
+Prints \texttt{unit}.
+
+\subsection{I/O: Input}
+
+\begin{verbatim}
+(: in (-> () sym))
+\end{verbatim}
+
+Returns a symbol containing a single character read from stdin.
+Note that all printable ASCII characters are initialized as symbols.
+
+\newpage
+
+\subsection{Lists and Helpers}
+
+\subsubsection{Integers}
+
+\begin{verbatim}
+(datatype list-int
+  ([cons-int (int list-int)]
+    [nil-int ()]))
+\end{verbatim}
+
+Lisp-style lists of integers.
+
+\begin{verbatim}
+(: filter-list-int (-> ((-> (int) bool) list-int) list-int))
+(define filter-list-int (f xxs)
+  (case xxs
+    ([(cons-int x xs)
+        (if (f x)
+          (cons-int x (filter-list-int f xs))
+          (filter-list-int f xs))]
+      [(nil-int) (nil-int)])))
+\end{verbatim}
+
+Returns a list containing all elements of \texttt{xxs} satisfying predicate \texttt{f}.
+
+\begin{verbatim}
+(: exists-list-int (-> ((-> (int) bool) list-int) bool))
+(define exists-list-int (f xxs)
+  (case xxs
+    ([(cons-int x xs)
+        (if (f x)
+          true
+          (exists-list-int f xs))]
+      [(nil-int) false])))
+\end{verbatim}
+
+Returns \texttt{true} if some element of \texttt{xxs} satisfies predicate \texttt{f}, \texttt{false} otherwise.
+
+\begin{verbatim}
+(: concat-list-int (-> (list-int list-int) list-int))
+(define concat-list-int (xxs ys)
+  (case xxs
+    ([(cons-int x xs) (cons-int x (concat-list-int xs ys))]
+      [(nil-int) ys])))
+\end{verbatim}
+
+Concatenates two lists of integers.
+
+\newpage
+
+\subsubsection{Symbols}
+
+\begin{verbatim}
+(datatype string
+  ([append (int string)]
+    [empty ()]))
+\end{verbatim}
+
+Lisp-style lists of symbols.
+
+\begin{verbatim}
+(: filter-string (-> ((-> (int) bool) string) string))
+(define filter-string (f xxs)
+  (case xxs
+    ([(append x xs)
+        (if (f x)
+          (append x (filter-string xs))
+          (filter-string f xs))]
+      [(empty) (empty)])))
+\end{verbatim}
+
+Returns a string containing all elements of \texttt{xxs} satisfying predicate \texttt{f}.
+
+\begin{verbatim}
+(: exists-string (-> ((-> (int) bool) string) bool))
+(define exists-string (f xxs)
+  (case xxs
+    ([(append x xs)
+        (if (f x)
+          true
+          (exists-string f xs))]
+      [(empty) false])))
+\end{verbatim}
+
+Returns \texttt{true} if some element of \texttt{xxs} satisfies predicate \texttt{f}, \texttt{false} otherwise.
+
+\begin{verbatim}
+(: concat-string (-> (string string) string))
+(define concat-string (xxs ys)
+  (case xxs
+    ([(append x xs) (append x (concat-string xs ys))]
+      [(empty) ys])))
+\end{verbatim}
+
+Concatenates two strings.
+
+\newpage
+
+\subsubsection{Booleans}
+
+\begin{verbatim}
+(datatype list-bool
+  ([cons-bool (bool list-bool)]
+    [nil-bool ()]))
+\end{verbatim}
+
+Lisp-style lists of booleans.
+
+\begin{verbatim}
+(: filter-list-bool (-> ((-> (bool) bool) list-bool) list-bool))
+(define filter-list-bool (f xxs)
+  (case xxs
+    ([(cons-bool x xs)
+        (if (f x)
+          (cons-bool x (filter-list-bool xs))
+          (filter-list-bool f xs))]
+      [(nil-bool) (nil-bool)])))
+\end{verbatim}
+
+Returns a list containing all elements of \texttt{xxs} satisfying predicate \texttt{f}.
+
+\begin{verbatim}
+(: exists-list-bool (-> ((-> (bool) bool) list-bool) bool))
+(define exists-list-bool (f xxs)
+  (case xxs
+    ([(cons-bool x xs)
+        (if (f x)
+          true
+          (exists-list-bool f xs))]
+      [(nil-bool) false])))
+\end{verbatim}
+
+Returns \texttt{true} if some element of \texttt{xxs} satisfies predicate \texttt{f}, \texttt{false} otherwise.
+
+\begin{verbatim}
+(: concat-list-bool (-> (list-bool list-bool) list-bool))
+(define concat-list-bool (xxs ys)
+  (case xxs
+    ([(cons-bool x xs) (cons-bool x (concat-list-bool xs ys))]
+      [(nil-bool) ys])))
+\end{verbatim}
+
+Concatenates two lists of booleans.
+
 % PROJECT PLAN
 
 \section{Project Plan} {
