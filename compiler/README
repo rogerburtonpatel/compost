@@ -129,8 +129,8 @@ SCANNER / PARSER TESTS (found in tests/ast/):
 `litfintlit2.com`: tests that attempting to use a negative integer literal for a variable 
                    name does *not* parse
 
-`litfsymlit.com`: tests that attempting to use a symbol literal for a variable name does 
-                  *not* parse
+`litfsym.com`: tests that attempting to use a symbol literal for a variable name does 
+               *not* parse
 
 `litfunit.com`: tests that attempting to use the unit literal for a variable name does 
                 *not* parse
@@ -138,6 +138,8 @@ SCANNER / PARSER TESTS (found in tests/ast/):
 `lrm1.com` through `lrm10.com`: tests successful scanning/parsing of a variety of functionality 
                                 described in the LRM (mainly to ensure that examples given in 
                                 the LRM were syntactically correct)
+
+`nameint.com`: tests successful scanning/parsing of a program that uses "int" as a variable name
 
 `semi0.com`: tests scanning/parsing of code containing a semicolon inside a symbol
 
@@ -171,6 +173,8 @@ PREPROCESSOR TESTS (found in tests/past/):
 
 `begin.com`: tests preprocessing of begin statement 
 
+`caseval.com`: tests preprocessing of case statement referencing a name bound by a val macro
+
 `define.com`: tests preprocessing of simple function definition 
 
 `definetwo.com`: tests preprocessing of two different function definitions 
@@ -181,11 +185,17 @@ PREPROCESSOR TESTS (found in tests/past/):
 
 `double.com`: tests code that includes multiple other source files
 
+`dtdupe.com`: tests that code using the same name for a val-bound macro and a datatype variant-constructor does *not*
+              pass the preprocessing stage
+
 `globdef.com`: tests preprocessing of global definition 
 
 `globlet.com`: tests preprocessing of global definition used in let statements
 
 `nest.com`: tests preprocessing of code that includes one other source file which itself includes a different source file 
+
+`prim.com`: tests that code attempting to bind a name that is already bound to some primitive operation does *not*
+            pass the preprocessing stage
 
 `test.com`: tests preprocessing of two different function definitions. A source file that is included in some 
             other preprocessing tests.
@@ -196,12 +206,16 @@ PREPROCESSOR TESTS (found in tests/past/):
 
 `valdef1.com`: tests preprocessing of val definitions (treating them as macros)
 
+`weirdval.com`: tests preprocessing of val definitions in more versatile cases 
+
 DISAMBIGUATOR TESTS (found in tests/uast/):
 
 `hello-world.com`: tests disambiguation of a simple Hello World program (treating the function name as 
                    a global variable)
 
-TYPE CHECKER TESTS (found in tests/tast/):
+`rename.com`: tests disambiguation of program that re-binds the same variable name within a let expression
+
+TYPE CHECKER TESTS (found in tests/tast/tast-fail OR tests/tast/test-succ):
 
 `applyLiteralError.com`: tests that a semantic error is thrown when attempting to apply a literal 
                          as a function
@@ -213,6 +227,9 @@ TYPE CHECKER TESTS (found in tests/tast/):
 
 `dupUnboundError.com`: tests that a semantic error is thrown when attempting to call `dup` on an unbound 
                        name 
+
+`dupVconNameSameTypeError.com`: tests that a semantic error is thrown when attempting to use the same 
+                                variant constructor name twice
 
 `duplicateVConError.com`: tests that a semantic error is thrown when defining two variant constructors 
                           (of different datatypes) with the same name 
@@ -254,6 +271,11 @@ TYPE CHECKER TESTS (found in tests/tast/):
 `mismatchTwoAnnotationsError.com`: tests that a semantic error is thrown when two type annotations are given for the 
                                    same function, but specify different function types 
 
+`patternName.com`: tests that a program using a name as a pattern passes the type checking phase
+
+`patternWarn.com`: tests that programs with non-exhaustative pattern matches or unreachable patterns pass the type, 
+                   checking phase but throw a compiler warning
+
 `redefinePrimitiveError.com`: tests that a semantic error is thrown when the user attempts to redefine a built-in 
                               primitive function such as `print-sym`
 
@@ -285,13 +307,23 @@ LLVM TESTS (found in tests/llvm/):
 
 RUN TESTS (found in tests/run/):
 
+`add-or-sub.com`: Tests application of function that returns a primitive function 
+
 `arith.com`: Tests primitive arithmetic operators including addition, 
              multiplication, and mod.
 
+`bigdata.com`: Tests for proper implementation of datatype with a large number of 
+               arguments to a variant constructor
+
 `data.com`: Tests for proper creation and printing of a custom intlist datatype 
+
+`datatypes.com`: Stress test that tests proper behavior for a variety of custom 
+                 datatypes
 
 `emoji.com`: Tests the use of an emoji as a name and the ability to 
              print a symbol containing an emoji. 
+
+`even-odd.com`: Tests proper implementation of mutually recursive functions 
 
 `fib.com`: Contains the implementation of a naive fibonacci algorithm 
            and computes the 35th fibonacci number.
@@ -315,16 +347,34 @@ RUN TESTS (found in tests/run/):
 `list.com`: Tests the ability to create and duplicate a custom intlist (*without* 
             printing it out)
 
+`max.com`: Tests the ability to combine primitive comparison operators and if conditions 
+           in a "max" function example.
+
 `minidatatypes.com`: Tests for proper creation and printing of the elements of a 
                      custom intlist datatype
+
+`nesteddatatypes.com`: Tests proper implementation of a large "chungus" type datatype,
+                       with multiple layers of nesting
+
+`primitives.com`: Tests the vast majority of the primitive operators we supply 
 
 `print.com`: Tests all four built-in print functions (print-int, print-bool, print-sym,
              and print-unit).
 
+`quick_sort.com`: Simple quick sort program that utilizes higher-order functions, custom 
+                  int-list datatype, and deep copying.
+
+`return_func.com`: Program that tests the ability to apply a function returned from another 
+                   function
+
 `recurse.com`: Tests recursion functionality via a recursive "count-down" function.
+
+`scope_names.com`: Tests that the same name used in different scopes is applied appropriately.
 
 `tail.com`: Calls a recursive function that will result in a stack overflow
             without our tailcall optimization.
+
+`val.com`: Tests correct application of `val` macros.
 
 DEMO PROGRAMS (found in prog/):
 
@@ -352,7 +402,7 @@ Features not included in MicroC:
 
 `emoji.com`: uses an emoji as a variable name, which cannot be done in MicroC
 
-Guaranteed memory safety!
+Guaranteed memory safety! (on the condition that users adhere to our consumption rule)
 
 Top-level pattern matching for custom datatypes. 
 
