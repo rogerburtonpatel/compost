@@ -1,4 +1,3 @@
-struct list;
 typedef struct list * list;
 
 list _nil();
