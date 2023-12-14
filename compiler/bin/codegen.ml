@@ -228,7 +228,7 @@ let codegen program =
       );
       ("xor", fun builder ->
         function 
-        | [| a; b |] -> L.build_and a b "tmp" builder 
+        | [| a; b |] -> L.build_xor a b "tmp" builder 
         | _ -> raise (Impossible "xor has 2 parameters")
       );
 
