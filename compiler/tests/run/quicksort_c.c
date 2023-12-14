@@ -11,8 +11,6 @@ list _quick_sort(list);
 
 char _print_intlist(list);
 
-char _driver();
-
 int main(int argc, char** argv) {
   list l = _cons(4, _cons(3, _cons(2, _cons(1, _nil()))));
   _print_intlist(_quick_sort(l));
