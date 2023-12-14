@@ -50,5 +50,6 @@ rule token = parse
 
 and comment = parse
   '\n' { token lexbuf }
+| eof  { token lexbuf }
 | _    { comment lexbuf }
 
