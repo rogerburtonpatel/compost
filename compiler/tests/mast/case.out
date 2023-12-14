@@ -1,5 +1,31 @@
-(define dup_intlist (type (-> ((struct (members i32 i64 i64)) *) (struct (members i32 i64 i64)) *)) (instance) (case %instance ([(cons-int var0 var1) (alloc (type (struct (members i32 i64 i64))) 0 [ %var0; (@dup_intlist %var1) ] ] [(nil-intlist ) (alloc (type (struct (members i32 i64 i64))) 1 [  ] ])))
-(define free_intlist (type (-> ((struct (members i32 i64 i64)) *) i1)) (instance) (case %instance ([(cons-int var0 var1) (free %instance (@free_intlist %var1))] [(nil-intlist ) (free %instance unit)])))
-(define _cons-int (type (-> (i32 (struct (members i32 i64 i64)) *) (struct (members i32 i64 i64)) *)) (var0 var1) (alloc (type (struct (members i32 i64 i64))) 0 [ %var0; %var1 ] )
-(define _nil-intlist (type (-> () (struct (members i32 i64 i64)) *)) () (alloc (type (struct (members i32 i64 i64))) 1 [  ] )
-(define main (type (-> () i1)) () (let ([%listinst (@_cons-int 1 (@_nil-intlist ))]) (let ([%listinst2 (@dup_intlist %listinst)]) (let ([%1 %listinst]) (case %1 ([(cons-int x xs) (free %1 (let ([%3 (@free_intlist %xs)]) (let ([%2 (@free_intlist %listinst2)]) unit)))] [_ (free %1 (let ([%4 (@free_intlist %listinst2)]) unit))]))))))
+(define dup_intlist (type (-> ((struct (members i32 i64 i64)) *) (struct (members i32 i64 i64)) *)) (instance) 
+(case %instance ([(0 var0 var1) (alloc (type (struct (members i32 i64 i64))) 0 [ %var0; (@dup_intlist %var1) ] ]
+[(1 ) (alloc (type (struct (members i32 i64 i64))) 1 [  ] ]
+[7 (err ((struct (members i32 i64 i64)) *) IMPOSSIBLE: inexhaustive match in dup)])))
+
+(define free_intlist (type (-> ((struct (members i32 i64 i64)) *) i1)) (instance) 
+(case %instance ([(0 var0 var1) (free %instance (@free_intlist %var1))]
+[(1 ) (free %instance unit)]
+[8 (err (i1) IMPOSSIBLE: inexhaustive match in dup)])))
+
+(define _cons-int (type (-> (i32 (struct (members i32 i64 i64)) *) (struct (members i32 i64 i64)) *)) (var0 var1) 
+(alloc (type (struct (members i32 i64 i64))) 0 [ %var0; %var1 ] )
+
+(define _nil-intlist (type (-> () (struct (members i32 i64 i64)) *)) () 
+(alloc (type (struct (members i32 i64 i64))) 1 [  ] )
+
+(define main (type (-> () i1)) () 
+(let ([%listinst (let ([%4 1]) 
+(let ([%5 (let ([%6 @_nil-intlist]) 
+(%6 ))]) 
+(let ([%3 @_cons-int]) 
+(%3 %4 %5))))]) 
+(let ([%listinst2 (@dup_intlist %listinst)]) 
+(let ([%2 %listinst]) 
+(case %2 ([(0 x xs) (free %2 (let ([%10 (@free_intlist %xs)]) 
+(let ([%9 (@free_intlist %listinst2)]) 
+unit)))]
+[1 (let ([%1 %2]) 
+(let ([%12 (@free_intlist %listinst2)]) 
+(let ([%11 (@free_intlist %2)]) 
+unit)))]))))))

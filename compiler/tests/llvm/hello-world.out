@@ -5,14 +5,53 @@ source_filename = "Compost"
 @unit = private unnamed_addr constant [5 x i8] c"unit\00", align 1
 @true = private unnamed_addr constant [5 x i8] c"true\00", align 1
 @false = private unnamed_addr constant [6 x i8] c"false\00", align 1
+@fmt_char = private unnamed_addr constant [3 x i8] c"%c\00", align 1
 @fmt_int = private unnamed_addr constant [3 x i8] c"%d\00", align 1
 @newline = private unnamed_addr constant [2 x i8] c"\0A\00", align 1
 
 declare void @abort()
 
+declare void @free(i8*)
+
 declare i32 @printf(i8*, ...)
 
 declare i32 @getchar()
+
+define i32 @"~"(i32 %0) {
+entry:
+  %tmp = xor i32 %0, -1
+  ret i32 %tmp
+}
+
+define i32 @">>"(i32 %0, i32 %1) {
+entry:
+  %tmp = lshr i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @"<<"(i32 %0, i32 %1) {
+entry:
+  %tmp = shl i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @"^"(i32 %0, i32 %1) {
+entry:
+  %tmp = xor i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @"|"(i32 %0, i32 %1) {
+entry:
+  %tmp = or i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @"&"(i32 %0, i32 %1) {
+entry:
+  %tmp = and i32 %0, %1
+  ret i32 %tmp
+}
 
 define i1 @xor(i1 %0, i1 %1) {
 entry:
@@ -68,9 +107,21 @@ entry:
   ret i32 %tmp
 }
 
+define i32 @umod(i32 %0, i32 %1) {
+entry:
+  %tmp = urem i32 %0, %1
+  ret i32 %tmp
+}
+
 define i32 @"%"(i32 %0, i32 %1) {
 entry:
   %tmp = srem i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @udiv(i32 %0, i32 %1) {
+entry:
+  %tmp = udiv i32 %0, %1
   ret i32 %tmp
 }
 
@@ -140,6 +191,12 @@ entry:
   ret i1 false
 }
 
+define i1 @print-ascii(i32 %0) {
+entry:
+  %tmp = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @fmt_char, i32 0, i32 0), i32 %0)
+  ret i1 false
+}
+
 define i1 @print-int(i32 %0) {
 entry:
   %tmp = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @fmt_int, i32 0, i32 0), i32 %0)
@@ -160,6 +217,6 @@ entry:
 
 define i1 @main() {
 entry:
-  %tmp = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([14 x i8], [14 x i8]* @sym_lit, i32 0, i32 0))
-  ret i1 false
+  %apply_result = tail call i1 @print-sym(i8* getelementptr inbounds ([14 x i8], [14 x i8]* @sym_lit, i32 0, i32 0))
+  ret i1 %apply_result
 }

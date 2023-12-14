@@ -1,1 +1,4 @@
-(define main (type (-> () i1)) () (@print-sym 'Hello, World!'))
+(define main (type (-> () i1)) () 
+(let ([%2 'Hello, World!']) 
+(let ([%1 @print-sym]) 
+(%1 %2))))
