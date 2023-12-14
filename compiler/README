@@ -328,9 +328,13 @@ RUN TESTS (found in tests/run/):
 
 DEMO PROGRAMS (found in prog/):
 
-`quick_sort.com`: Defines an int-list datatype, constructs one, and sorts the list 
-                  using the quicksort algorithm. Prints out the integers in the sorted 
-                  list in order.
+`quicksort/quick_sort.com`: Defines an int-list datatype, constructs one, and sorts the list 
+                            using the quicksort algorithm. Prints out the integers in the sorted 
+                            list in order.
+
+`quicksort/quicksort_c.com`
+and 
+`quicksort/quicksort_c.c`: Quick sort program where compost functions are called from C code.
 
 `brainfuck/brainfuck.com`: An interpreter for the Brainfuck language (Turing complete);
                            pipe in a Brainfuck program followed by a `!` character 
