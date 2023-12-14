@@ -13,3 +13,10 @@ lrm/Compost.out
 # compiler 
 compiler/_build/
 compiler/tests/*.exe
+
+# report
+report/Compost.aux
+report/Compost.log
+report/Compost.out
+report/Compost.toc
+
