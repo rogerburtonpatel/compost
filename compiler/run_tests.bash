@@ -61,7 +61,7 @@ compileAndRun () {
     shift
     pushd $BASEDIR > /dev/null
     outBin=$(mktemp)
-    ./compile-compost "$comFile" "$outBin"
+    ./gcc "$comFile" "$outBin"
     $outBin < "$inFile"
     rm "$outBin"
     popd > /dev/null
