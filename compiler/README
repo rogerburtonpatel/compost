@@ -40,14 +40,14 @@ For example, to run our simple "Hello World" test, run:
 `./run_tests.bash -r hello-world.com`
 
 To run *just* the compiler on a source file (producing the executable), run:
-    ./compile-compost file.com
+    ./gcc file.com
 where `file.com` is the file containing a Compost program (the full path 
 needs to be specified if not in the current working directory). A runnable 
 executable called `file` would then be created in the location where 
 `file.com` was.
 
 To compile *and* run a source file with one command, run:
-    ./compostrun file.com
+    ./gci file.com
 where `file.com` is the name of a file containing the Compost program to 
 compile and run.
 
@@ -326,6 +326,17 @@ RUN TESTS (found in tests/run/):
 `tail.com`: Calls a recursive function that will result in a stack overflow
             without our tailcall optimization.
 
+DEMO PROGRAMS (found in prog/):
+
+`quick_sort.com`: Defines an int-list datatype, constructs one, and sorts the list 
+                  using the quicksort algorithm. Prints out the integers in the sorted 
+                  list in order.
+
+`brainfuck/brainfuck.com`: An interpreter for the Brainfuck language (Turing complete);
+                           pipe in a Brainfuck program followed by a `!` character 
+                           followed by the desired input to that program in order to 
+                           run it.
+
 ----------------------------------------------------------------------------------
 Features not included in MicroC:
 
@@ -336,6 +347,10 @@ Features not included in MicroC:
 `hello-ho.com`: passes in a function as an argument to another function 
 
 `emoji.com`: uses an emoji as a variable name, which cannot be done in MicroC
+
+Guaranteed memory safety!
+
+Top-level pattern matching for custom datatypes. 
 
 ----------------------------------------------------------------------------------
 How test validates compilation or reports issues.
