@@ -37,4 +37,5 @@
          [(cons x xs)
             (begin 
                 (print-int x)
+                (print-sym ' ')
                 (print_intlist xs))])))
