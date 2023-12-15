@@ -1,5 +1,9 @@
 /* Ocamlyacc parser for MicroC */
 
+/* Author: Randy Dang
+   Edited by: Jasper Geer, Roger Burtonpatel, Jackson Warhover 
+ */
+
 %{
   open Ast
   open Freshnames

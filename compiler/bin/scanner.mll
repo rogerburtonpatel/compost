@@ -1,5 +1,9 @@
 (* Ocamllex scanner for Compost *)
 
+(* Author: Randy Dang 
+ * Edited by: Jasper Geer, Jackson Warhover 
+ *)
+
 {
   open Parser
 

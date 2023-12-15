@@ -1211,6 +1211,82 @@ Returns the integer representation of a single ASCII character read from stdin.
     If possible, include a visualization of version control commits (but not a dump of a commit log)
 }
 
+\subsection{Planning and Development Process} {
+    Most of the initial planning was done in ``brainstorming sessions'' that we held as a team early 
+    in the semester where we would discuss ideas for interesting features and the feasibility of such 
+    features (e.g. whether implementing such a feature would be decidable). We often made plans according 
+    to the course deliverable schedule, ensuring that we made language and design decisions by the time 
+    the relevant deliverable was due. Large-scale decisions were decided as a group, and 
+    decisions that affected only one or two passes of the compiler were made by the person or people 
+    assigned to those passes. Our language guru served as the ground truth for any decisions involving 
+    language-specific semantics. 
+    \\\\
+    We generally met as a full team about once every 1-2 weeks where we got caught up on each other's 
+    progress, held semantic and architectural debates, and made plans for next steps. We decided pretty 
+    early on that unlike microC's implementation, we wanted to implement our compiler in more than two 
+    passes. During the weeks before the deadline of the ``Hello World'' deliverable, we spent a fair 
+    amount of time up front hashing out the functionality of each pass and what we wanted the intermediate 
+    representation to look like between each pass. Once we had each IR explicitly defined, it became 
+    easy to assign different passes to different team members and implement those mostly independently
+    (though we frequently discussed implementation strategies with teammates). 
+    \\\\
+    We have made several changes to some of the IRs since our initial design. Since such changes affected 
+    the implementer of either the previous or the next pass, we made sure to communicate our desires 
+    to make such changes during our meetings and/or on Slack.
+}
+
+\subsection{Project Timeline} {
+    Below is our timeline of events for completing this project:
+    \\\\
+    \begin{tabular}{|c|c|}
+        \hline 
+        \textbf{Date Range} & \textbf{Task(s) Completed} \\ 
+        \hline 
+        Sep 13 - Sep 20 & Decide Features \& Write Proposal \\
+        \hline 
+        Oct 2 - Oct 9 & Hash Out Language Grammar \\ 
+        \hline 
+        Oct 9 - Oct 18 & Implement Scanner/Parser \\ 
+        & Implement Testing Framework for Scanner/Parser \\ 
+        & Write Initial Language Reference Manual \\ 
+        \hline 
+        Oct 23 - Oct 30 & Hash Out Compiler Passes \& \\
+        & Intermediate Representations \\
+        \hline 
+        Oct 30 - Nov 8 & Implement Bare Minimum Functionality in Each \\ 
+        & Pass for ``Hello World'' and Basic Arithmetic \\ 
+        \hline 
+        Nov 13 - Nov 29 & Implement All Features \textit{except} \\ 
+        & for Custom Datatypes \& Associated Memory Safety (the hardest ones) \\ 
+        \hline 
+        Dec 4 - Dec 12 & Implement Custom Datatypes \& Memory Safety \\ 
+        \hline 
+        Dec 12 - Dec 15 & Prepare Presentation, Report, \\ 
+        & \& Experiment with Crazy Programs (e.g. Brainf**k) \\ 
+        \hline 
+    \end{tabular}
+}
+
+\subsection{Roles and Responsibilities} {
+    We decided on assigning each team member to the following roles:
+    \\\\
+    Randy Dang was assigned the role of \textit{manager}, who was responsible for calling 
+    meetings and ensuring that we were making steady progress according to the course 
+    deliverable deadlines. He usually coordinated the submission process for such deliverables, 
+    writing necessary documentation and checking that our submissions met the criteria.
+    \\\\
+    Jasper Geer was assigned the role of \textit{language guru}, who was responsible for making 
+    semantic decisions surrounding the Compost language. (WORK IN PROGRESS)
+}
+
+\subsection{Tools Used} {
+
+}
+
+\subsection{Version Control Commits} {
+
+}
+
 % ARCHITECTURAL DESIGN
 
 \section{Architectural Design} {
@@ -1219,6 +1295,30 @@ Returns the integer representation of a single ASCII character read from stdin.
     Summarize how the language's "interesting" features were implemented
     \\\\
     State who implemented each component
+}
+
+\subsection{Overall Architecture} {
+
+}
+
+\subsection{Feature 1: Memory Safety under Affine Type System!} {
+
+}
+
+\subsection{Feature 2: Partial Type Inference} {
+
+}
+
+\subsection{Feature 3: Custom ADTs and Top-Level Pattern Matching} {
+
+}
+
+\subsection{Miscellaneous Features} {
+    Tailcall optimization 
+    \\\\
+    Higher order functions
+    \\\\
+    Include Global Object Value (.gov) Files 
 }
 
 % TEST PLAN
