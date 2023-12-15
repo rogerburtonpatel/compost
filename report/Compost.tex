@@ -1533,7 +1533,27 @@ Returns the integer representation of a single ASCII character read from stdin.
 }
 
 \subsection{Jackson Warhover} {
+    A major takeaway I had was that initial planning and design can do wonders in streamlining the process
+    of writing a complex project like a compiler. Focusing on the LRM in early stages and working through
+    to make sure invariants were understood were absolutely critical steps.
 
+    We had a good plan from the start for exacrly how to implement IRs, which made creating them very simple. 
+    It also made it very easy to add new IRs as they were necessary. I think a lack of design considerations
+    in the early stages would have made implementing new IRs much harder
+
+    I also learned that communication of invariants is important. For invariants that are not inheritly
+    described by the structure of the types in the LRM, it is important for all members of a group to understand
+    what the purpose of an IR is in order to reduce redundancy. Clear communication of ideas about what section
+    is responsible for what means cleaner code in the end.
+
+    In terms of testing, I learned just how critical the initial work on testing infastructure can be. For us,
+    a lot of this work was correctly put in early on, and refactors were made as necessary, which might have
+    bren time consuming in the moment, but equated to a significant reduction in workload for tests going
+    forward.
+
+    I also agree with Randy about how functional programing is perfect for writing a compiler. This might judt
+    be because I'm used to it at this point, but I really cant imagine implementing something nearly as clean
+    in a language like C. 
 }
 
 % APPENDIX 
