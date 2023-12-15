@@ -1321,6 +1321,23 @@ Returns the integer representation of a single ASCII character read from stdin.
     Summarize how the language's "interesting" features were implemented
     \\\\
     State who implemented each component
+    \\\\
+    We have a fairly simple, yet effective method for "importing" external files into a Compost program.
+    As part of our original parsed abstract syntax tree, a "use" definition can be provided, which takes
+    a single sym. Sym was chosen over a name because a sym by definition can represent any character, and
+    file paths needed to support some of the characters that were reserved, such as parenthesis. "use"
+    definitions get handled as part of our preprocessor, where the post-preprocessor subset of the Ast
+    does not include the definition "use." We use the same process as the toplevel compost.ml to load the
+    data in a file provided by "use." Since a program is just a list of definitions, with "use" being one
+    of those definitions, and a single "use" essentially corrersponding to a separate list of definitions,
+    we simply expand out each use to build a final definition list, recursively, to handle nested "use"
+    definitions. The preprocessor will check to ensure that there is no recursion loop of "use" definitions,
+    and additionally, since duplicate globals are not allowed, a single file will only be expanded a single
+    time, and the preprocessor will simply ignore any subsiquent "use" definitions for that file. This
+    means that if you have library A, and then library B and C both require library A, then library B and C
+    can both "use" library A, and still both be "use"'d by some other program. In our provided examples,
+    library files, or files intended to be used as part of a "use" definition, have the file extension .gov,
+    to indicate that they are "global only values," but also because it's funny.
 }
 
 \subsection{Overall Architecture} 
