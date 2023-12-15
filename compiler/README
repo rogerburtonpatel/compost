@@ -45,11 +45,14 @@ where `file.com` is the file containing a Compost program (the full path
 needs to be specified if not in the current working directory). A runnable 
 executable called `file` would then be created in the location where 
 `file.com` was.
+(gcc stands for "good compost compiler", and this is not to be confused 
+with the C compiler of the same name)
 
 To compile *and* run a source file with one command, run:
     ./gci file.com
 where `file.com` is the name of a file containing the Compost program to 
-compile and run.
+compile and run. Note that this approach does *not* guarantee memory 
+safety because gci utilizes lli, which leaks memory. 
 
 To print the LLVM IR produced by our compiler, run:
     dune exec compost file.com
@@ -355,6 +358,10 @@ RUN TESTS (found in tests/run/):
 
 `nesteddatatypes.com`: Tests proper implementation of a large "chungus" type datatype,
                        with multiple layers of nesting
+
+`nestedhofunctions.com`: Tests proper implementation of multiple layers of higher-order 
+                         functions (e.g. a function that returns a function that returns 
+                         a function)
 
 `primitives.com`: Tests the vast majority of the primitive operators we supply 
 
