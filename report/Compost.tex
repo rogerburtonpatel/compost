@@ -9,9 +9,12 @@
 \usepackage{listings}
 \usepackage{changepage}
 \usepackage{syntax}
+\usepackage{minted}
 
 \newcommand\op{\texttt{(}}
 \newcommand\cl{\texttt{)}}
+
+\newcommand\mintconfigs{[breaklines, frame=single]{ocaml}}
 
 \renewcommand{\syntleft}{\normalfont\itshape}
 \renewcommand{\syntright}{}
@@ -1415,6 +1418,17 @@ Returns the integer representation of a single ASCII character read from stdin.
     State who did what
 }
 
+% Potential template for inserting code with syntax highlighting (in the case of LLVM)
+%
+%\begin{minted}[breaklines, frame=single]{scheme}
+%[Insert Compost code here]
+%\end{minted}
+%
+%\begin{minted}[breaklines, frame=single]{ocaml}
+%[Insert LLVM Code here]
+%\end{minted}
+%
+
 % LESSONS LEARNED
 
 \section{Lessons Learned} {
@@ -1441,10 +1455,2485 @@ Returns the integer representation of a single ASCII character read from stdin.
 
 % APPENDIX 
 
-\section{Appendix} {
-    Attach a complete code listing of your translator with each module signed by its author(s)
-    \\\\
-    Do not include any automatically generated files, only the sources.
+\section{Appendix: Code Listing}
+
+\subsection{Representations}
+
+\subsubsection{ast.ml}
+
+\begin{minted}[breaklines, frame=single]{ocaml}
+(* Abstract Syntax Tree and functions for printing it *)
+
+(* Author: Randy Dang 
+ * Edited by: Jasper Geer, Jackson Warhover, Roger Burtonpatel
+ *)
+
+type name = string 
+
+type ty = FunTy of (ty list) * ty | SingleTy of name 
+
+type symlit = string
+
+type filename = symlit
+
+type literal = 
+    IntLit of int 
+  | BoolLit of bool 
+  | SymLit of symlit 
+  | UnitLit 
+
+type pattern =
+    Pattern of name * name list
+  | Name of name
+  | WildcardPattern
+
+and expr =
+    Literal of literal 
+  | NameExpr of name 
+  | Case of expr * (pattern * expr) list
+  | If of expr * expr * expr 
+  | Begin of expr list 
+  | Let of ((name * expr) list) * expr 
+  | Apply of expr * (expr list) 
+  | Dup of name 
+
+type def =
+    Val of name * expr
+  | Define of name * (name list) * expr 
+  | Datatype of name * (name * ty list) list
+  | TyAnnotation of name * ty 
+  | Use of filename 
+
+type program = def list
+
+(* Pretty printing functions *)
+
+let rec string_of_namelist = function 
+    [] -> ""
+  | name :: names -> name ^ " " ^ string_of_namelist names 
+
+let rec string_of_ty = function 
+    FunTy(tylist, ty) ->
+      "(-> (" ^ String.concat " " (List.map string_of_ty tylist) ^ ") " ^ string_of_ty ty ^ ")"
+  | SingleTy(name) -> name 
+
+let string_of_symlit lit = 
+    let escape_backslashes = String.concat "\\\\" (String.split_on_char '\\' lit) 
+    in 
+    let escape_quotes = String.concat "\\\'" (String.split_on_char '\'' escape_backslashes)
+    in 
+    "'" ^ escape_quotes ^ "'"
+
+let string_of_lit = function 
+    IntLit(lit) -> string_of_int lit 
+  | BoolLit(lit) -> string_of_bool lit 
+  | SymLit(lit) -> string_of_symlit lit 
+  | UnitLit -> "unit"
+
+let is_int = String.for_all (function '0' .. '9' -> true | _ -> false)
+
+let string_of_nameorwildcard = function
+    name when is_int name -> "_"
+  | name -> name
+
+let string_of_pattern = function
+  | Pattern (name, []) -> 
+  "(" ^ name ^ ")"
+  | Pattern (name, nameorwildcardlist) -> 
+      "(" ^ name ^ " " ^ String.concat " " (List.map string_of_nameorwildcard nameorwildcardlist) ^ ")"
+  | WildcardPattern -> "_"
+  | Name n -> n
+
+let string_of_variant = function 
+    (name, tylist) -> "[" ^ name ^ " (" ^ String.concat " " (List.map string_of_ty tylist) ^ ")]"
+
+let rec string_of_expr = function 
+    Literal(lit) -> string_of_lit lit 
+  | NameExpr(name) -> name 
+  | If(expr1, expr2, expr3) -> 
+      "(if " ^ string_of_expr expr1 ^ " " ^ string_of_expr expr2 ^ " " ^ string_of_expr expr3 ^ ")"
+  | Begin(exprlist) -> 
+      "(begin " ^ String.concat " " (List.map string_of_expr exprlist) ^ ")"
+  | Let(bindlist, expr) ->
+      "(let " ^ "(" ^ String.concat " " (List.map string_of_bind bindlist) ^ ") " ^ string_of_expr expr ^ ")"
+  | Apply(expr, []) -> 
+      "(" ^ string_of_expr expr ^ ")"
+  | Apply(expr, exprlist) -> 
+      "(" ^ string_of_expr expr ^ " " ^ String.concat " " (List.map string_of_expr exprlist) ^ ")"
+  | Case(expr, casebranchlist) ->
+      "(case " ^ string_of_expr expr ^ " (" ^ String.concat " " (List.map string_of_casebranch casebranchlist) ^ "))"
+  | Dup(name) ->
+      "(dup " ^ name ^ ")"
+
+and string_of_bind = function 
+    (name, expr) -> "[" ^ name ^ " " ^ string_of_expr expr ^ "]"
+  
+and string_of_casebranch = function 
+    (pattern, expr) -> "[" ^ string_of_pattern pattern ^ " " ^ string_of_expr expr ^ "]"
+
+let string_of_def = function 
+    Val(name, expr) -> "(val " ^ name ^ " " ^ string_of_expr expr ^ ")"
+  | Define(name, namelist, expr) -> 
+      "(define " ^ name ^ " (" ^ String.concat " " namelist ^ ") " ^ string_of_expr expr ^ ")"
+  | Datatype(name, variantlist) ->
+      "(datatype " ^ name ^ " (" ^ String.concat " " (List.map string_of_variant variantlist) ^ "))"
+  | TyAnnotation(name, ty) -> 
+      "(: " ^ name ^ " " ^ string_of_ty ty ^ ")"
+  | Use(filename) ->
+      "(use " ^ filename ^ ")"
+
+let string_of_program deflist = String.concat "\n" (List.map string_of_def deflist) ^ "\n"
+\end{minted}
+
+\subsubsection{past.ml}
+
+\begin{minted}[breaklines, frame=single]{ocaml}
+(* Processed Abstract Syntax Tree and functions for printing it *)
+
+(* Author: Jackson Warhover 
+ * Edited by: Jasper Geer, Roger Burtonpatel 
+ *)
+
+type name = Ast.name
+
+type ty = Ast.ty
+
+type literal = Ast.literal
+
+type pattern = Ast.pattern
+
+and expr =
+  Literal of literal 
+| NameExpr of name 
+| Case of expr * (pattern * expr) list
+| If of expr * expr * expr 
+| Let of name * expr * expr
+| Apply of expr * (expr list) 
+| Dup of name 
+
+type def =
+  Define of name * (name list) * expr 
+| Datatype of name * (name * ty list) list
+| TyAnnotation of name * ty 
+
+type program = def list
+
+
+(* Backwards to Ast & Printing *)
+
+let rec pcb_to_acb = function (p, expr) -> (p, pexpr_to_aexpr expr)
+
+and pexpr_to_aexpr = function
+  Literal(lit) -> Ast.Literal(lit)
+| NameExpr(name) -> Ast.NameExpr(name)
+| If(expr1, expr2, expr3) -> Ast.If(pexpr_to_aexpr expr1, pexpr_to_aexpr expr2, pexpr_to_aexpr expr3)
+| Let(name, expr1, expr2) -> Ast.Let([(name, pexpr_to_aexpr expr1)], pexpr_to_aexpr expr2)
+| Apply(expr, exprlist) -> Ast.Apply(pexpr_to_aexpr expr, (List.map pexpr_to_aexpr exprlist))
+| Case(expr, casebranchlist) -> Ast.Case(pexpr_to_aexpr expr, (List.map pcb_to_acb casebranchlist))
+| Dup(name) -> Ast.Dup(name)
+
+let pdef_to_adef = function
+  Define(name, namelist, expr) -> Ast.Define(name, namelist, pexpr_to_aexpr expr)
+| Datatype(name, variantlist) -> Ast.Datatype(name, variantlist)
+| TyAnnotation(name, ty) -> Ast.TyAnnotation(name, ty)
+
+let ast_of_program deflist = List.map pdef_to_adef deflist
+
+let string_of_program deflist = Ast.string_of_program (ast_of_program deflist)
+
+\end{minted}
+
+\subsubsection{uast.ml}
+
+\begin{minted}[breaklines, frame=single]{ocaml}
+(* Unambiguous Abstract Syntax Tree *)
+
+(* Author: Jasper Geer 
+ * Edited by: Roger Burtonpatel, Jackson Warhover 
+ *)
+
+type name = string
+
+type ty = 
+    FunTy of (ty list) * ty
+  | Int
+  | Bool
+  | Unit
+  | Sym
+  | CustomTy of name 
+
+type literal = Ast.literal
+
+type pattern =
+    Pattern of name * name list
+  | Name of name * bool
+                    (* if false, wildcard. *)
+
+and expr =
+    Literal of literal
+  | Local of name
+  | Global of name
+  | Case of expr * (pattern * expr) list
+  | If of expr * expr * expr
+  | Let of name * expr * expr
+  | Apply of expr * (expr list)
+  | Dup of name
+
+type def =
+    Define of name * name list * expr
+  | Datatype of name * (name * ty list) list
+  | TyAnnotation of name * ty
+
+type program = def list
+
+
+(* Backwards to PAst & Printing *)
+
+let up_to_pp = function
+  | Pattern(cn, ns) -> Ast.Pattern(cn, List.map ((^) "%") ns)
+  | Name (_, false) -> Ast.WildcardPattern
+  | Name (n, true)  -> Ast.Name ("%" ^ n)
+
+let rec ucb_to_pcb = function (p, expr) -> (up_to_pp p, uexpr_to_pexpr expr)
+
+and uexpr_to_pexpr = function
+  | Literal(lit) -> Past.Literal(lit)
+  | Local(name) -> Past.NameExpr("%" ^ name)
+  | Global(name) -> Past.NameExpr("@" ^ name)
+  | If(expr1, expr2, expr3) -> Past.If(uexpr_to_pexpr expr1, uexpr_to_pexpr expr2, uexpr_to_pexpr expr3)
+  | Let(name, expr1, expr2) -> Past.Let("%" ^ name, uexpr_to_pexpr expr1, uexpr_to_pexpr expr2)
+  | Apply(expr, exprlist) -> Past.Apply(uexpr_to_pexpr expr, (List.map uexpr_to_pexpr exprlist))
+  | Case(expr, casebranchlist) -> Past.Case(uexpr_to_pexpr expr, (List.map ucb_to_pcb casebranchlist))
+  | Dup(name) -> Past.Dup(name)
+
+let rec uty_to_pty = function
+  | FunTy(tys, ty) -> Ast.FunTy(List.map uty_to_pty tys, uty_to_pty ty)
+  | Int -> Ast.SingleTy("int")
+  | Bool -> Ast.SingleTy("bool")
+  | Unit -> Ast.SingleTy("unit")
+  | Sym -> Ast.SingleTy("sym")
+  | CustomTy(n) -> Ast.SingleTy(n)
+
+let rec uvs_to_pvs = function
+  | [] -> []
+  | (n, tys) :: vs -> (n, List.map uty_to_pty tys) :: uvs_to_pvs vs
+
+let udef_to_pdef = function
+  | Define(name, namelist, expr) -> Past.Define("@" ^ name, namelist, uexpr_to_pexpr expr)
+  | Datatype(name, variantlist) -> Past.Datatype(name, uvs_to_pvs variantlist)
+  | TyAnnotation(name, ty) -> Past.TyAnnotation("@" ^ name, uty_to_pty ty)
+
+let past_of_program deflist = List.map udef_to_pdef deflist
+
+let string_of_program deflist = Past.string_of_program (past_of_program deflist)
+  
+\end{minted}
+
+\subsubsection{tast.ml}
+
+\begin{minted}[breaklines, frame=single]{ocaml}
+(* Type-Checked Abstract Syntax Tree *)
+
+(* Author: Jasper Geer 
+ * Edited by: Roger Burtonpatel, Randy Dang, Jackson Warhover 
+ *)
+
+(* open Ast *)
+
+type name = Ast.name
+
+type filename = Ast.filename
+
+type ty = Uast.ty
+
+type 'a typed = 'a * ty
+
+type literal = Ast.literal
+
+type pattern =
+    Pattern of name * (name typed) list
+  | Name of name * bool
+
+and expr =
+    Literal of literal
+  | Local of name
+  | Global of name
+  | Case of (expr typed) * (pattern * (expr typed)) list
+  | If of (expr typed) * (expr typed) * (expr typed)
+  | Let of name * (expr typed) * (expr typed)
+  | Apply of (expr typed) * (expr typed) list
+  | Dup of name
+  | Err of string
+
+type def =
+    Define of name * ty * name list * (expr typed)
+  | Datatype of name * (name * ty list) list
+
+type program = def list
+  
+\end{minted}
+
+\subsubsection{nast.ml}
+
+\begin{minted}[breaklines, frame=single]{ocaml}
+(* Normalized Abstract Syntax Tree *)
+
+(* Author: Jasper Geer *)
+
+type name = Ast.name
+
+type filename = Ast.filename
+
+type ty = Uast.ty
+
+type literal = Ast.literal
+
+type pattern =
+    Pattern of name * (name * ty) list
+  | Name of name
+
+and expr =
+    Literal of literal
+  | Local of name
+  | Global of name
+  | Case of ty * name * (pattern * expr) list
+  | If of name * expr * expr
+  | Let of name * ty * expr * expr
+  | Apply of name * name list
+  | Dup of ty * name
+  | Err of ty * string
+
+type def =
+    Define of name * ty * name list * expr
+  | Datatype of name * (name * ty list) list
+
+type program = def list
+  
+\end{minted}
+
+\subsubsection{fast.ml}
+
+\begin{minted}[breaklines, frame=single]{ocaml}
+(* Explicit-Free Abstract Syntax Tree *)
+
+(* Author: Jasper Geer 
+ * Edited by: Randy Dang, Jackson Warhover, Roger Burtonpatel
+ *)
+
+type name = Ast.name
+
+type typename = name
+
+type filename = Ast.filename
+
+type ty = Uast.ty
+
+type literal = Ast.literal
+
+type pattern =
+    Pattern of name * (name * ty) list
+  | Name of name
+
+and expr =
+    Literal of literal
+  | Local of name
+  | Global of name
+  (* Case no longer implicity frees the top level of its scrutinee *)
+  | Case of expr * (pattern * expr) list
+  | If of expr * expr * expr
+  | Let of name * expr * expr
+  | Apply of expr * expr list
+  | Dup of ty * name
+  (* Memory-Related *)
+  | Free of ty * name * expr (* Corresponds to a call to `free()` *)
+  | FreeRec of ty * name * expr (* Corresponds to a call to "_free_" ^ (name_of ty) *)
+  | Err of ty * string
+
+type def =
+    Define of name * ty * name list * expr
+  | Datatype of name * (name * ty list) list
+
+type program = def list
+  
+\end{minted}
+
+\subsubsection{mast.ml}
+
+\begin{minted}[breaklines, frame=single]{ocaml}
+(* Explicitly Memory Managed Abstract Syntax Tree *)
+
+(* Author: Jasper Geer 
+ * Edited by: Randy Dang, Roger Burtonpatel  
+ *)
+type name = Ast.name
+
+type filename = Ast.filename
+
+(* ty is now LLVM types *)
+(* Note: FunTy and Ptr might be redundant, we will see *)
+
+type ty = Fun of ty * ty list | Int of int | Ptr of ty | Struct of ty list
+
+type literal = Ast.literal
+
+type pattern =
+    Pattern of int * (name * ty) list
+  | Name of name
+
+and bind = name * expr
+
+and expr =
+    Literal of literal
+  | Local of name
+  | Global of name
+  | Case of expr * (pattern * expr) list
+  | If of expr * expr * expr
+  | Let of name * expr * expr
+  | Apply of expr * expr list
+  (* Memory-Related *)
+  | Free of name * expr
+  (* Allocates a struct with a given tag and fields *)
+  (* populated by the values bound to the names in the list *)
+  | Alloc of ty * int * expr list
+  | Err of ty * string
+
+type def = Define of name * ty * name list * expr
+  (* Datatype definitions can be erased *)
+  (* All necessary type information is encoded in the _alloc and _free functions *)
+
+type program = def list
+
+(* Pretty-printing functions *)
+
+let rec string_of_ty = function 
+    Fun(ty, tylist) ->
+      "(-> (" ^ String.concat " " (List.map string_of_ty tylist) ^ ") " ^ string_of_ty ty ^ ")"
+  | Int(int) -> "i" ^ string_of_int int 
+  | Ptr(ty) -> string_of_ty ty ^ " *"
+  | Struct(tylist) -> 
+      "(struct (members " ^ String.concat " " (List.map string_of_ty tylist) ^ "))"
+
+let string_of_lit lit = Ast.string_of_lit lit 
+
+let is_int = String.for_all (function '0' .. '1' -> true | _ -> false)
+
+let string_of_nameorwildcard (name, _) =
+  if is_int name then "_"
+  else name
+
+let string_of_pattern = function
+    Pattern(tag, nameorwildcardlist) -> 
+      "(" ^ string_of_int tag ^ " " ^ String.concat " " (List.map string_of_nameorwildcard nameorwildcardlist) ^ ")"
+  | Name n -> n
+
+let rec string_of_expr = function 
+    Literal(lit) -> string_of_lit lit 
+  | Local(name) -> "%" ^ name 
+  | Global(name) -> "@" ^ name 
+  | Case(expr, casebranchlist) ->
+      "(case " ^ string_of_expr expr ^ " (" ^ String.concat "\n" (List.map string_of_casebranch casebranchlist) ^ "))"
+  | If(expr1, expr2, expr3) -> 
+      "(if " ^ string_of_expr expr1 ^ " " ^ string_of_expr expr2 ^ " " ^ string_of_expr expr3 ^ ")"
+  | Let(name, expr1, expr2) ->
+      "(let " ^ "([%" ^ name ^ " " ^ string_of_expr expr1 ^ "]) \n" ^ string_of_expr expr2 ^ ")"
+  | Apply(expr, exprlist) -> 
+      "(" ^ string_of_expr expr ^ " " ^ String.concat " " (List.map string_of_expr exprlist) ^ ")"
+  | Free(name, expr) -> 
+      "(free %" ^ name ^ " " ^ string_of_expr expr ^ ")"
+  | Alloc(ty, tag, exprlist) -> 
+      "(alloc (type " ^ string_of_ty ty ^ ") " ^ string_of_int tag ^ " [ " ^ String.concat "; " (List.map string_of_expr exprlist) ^ " ] " 
+  | Err(ty, name) ->
+    "(err (" ^ string_of_ty ty ^ ") "  ^ name ^ ")"
+  
+and string_of_bind = function 
+    (name, expr) -> "[" ^ name ^ " " ^ string_of_expr expr ^ "]\n"
+  
+and string_of_casebranch = function 
+    (pattern, expr) -> "[" ^ string_of_pattern pattern ^ " " ^ string_of_expr expr ^ "]"
+  
+let string_of_def = function 
+  | Define(name, ty, namelist, expr) -> 
+      "(define " ^ name ^ " (type " ^ string_of_ty ty ^ ") (" ^ String.concat " " namelist ^ ") \n" ^ string_of_expr expr ^ ")\n"
+
+let string_of_program deflist = String.concat "\n" (List.map string_of_def deflist)
+  
+\end{minted}
+
+\subsection{Helper Modules}
+
+\subsubsection{difflist.ml}
+
+\begin{minted}[breaklines, frame=single]{ocaml}
+(* Author: Jackson Warhover *)
+
+let singleton x xs = x :: xs
+let empty tail = tail
+let tolist f = f []
+let cons f g x = f (g x)
+\end{minted}
+
+\subsubsection{freshnames.ml}
+
+\begin{minted}[breaklines, frame=single]{ocaml}
+(* Author: Jasper Geer *)
+
+(* God I hate global mutable state but it is so very useful here *)
+let counter = ref 0
+
+let fresh_name () = begin counter := !counter + 1 ; Int.to_string !counter end
+\end{minted}
+
+\subsubsection{primitives.ml}
+
+\begin{minted}[breaklines, frame=single]{ocaml}
+(* Author: Jasper Geer 
+ * Edited by: Randy Dang, Jackson Warhover 
+ *)
+
+(* Association list of primitive function names and their types *)
+let primitives =
+  [
+    (* I/O *)
+    ("print-newline", Uast.FunTy ([], Uast.Unit));
+    ("print-sym", Uast.FunTy ([Uast.Sym], Uast.Unit));
+    ("print-int", Uast.FunTy ([Uast.Int], Uast.Unit));
+    ("print-ascii", Uast.FunTy ([Uast.Int], Uast.Unit));
+    ("print-bool", Uast.FunTy ([Uast.Bool], Uast.Unit));
+    ("print-unit", Uast.FunTy ([Uast.Unit], Uast.Unit));
+    ("in", Uast.FunTy ([], Uast.Int));
+
+    (* Equality *)
+    ("=i", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Bool));
+    ("=s", Uast.FunTy ([Uast.Sym; Uast.Sym], Uast.Bool));
+    ("=b", Uast.FunTy ([Uast.Bool; Uast.Bool], Uast.Bool));
+    ("=u", Uast.FunTy ([Uast.Unit; Uast.Unit], Uast.Bool));
+
+    (* Arithmetic *)
+    ("+", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Int));
+    ("-", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Int));
+    ("*", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Int));
+    ("/", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Int));
+    ("%", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Int));
+    ("udiv", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Int));
+    ("umod", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Int));
+    ("neg", Uast.FunTy ([Uast.Int], Uast.Int));
+
+    (* Comparison *)
+    (">", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Bool));
+    ("<", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Bool));
+    (">=", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Bool));
+    ("<=", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Bool));
+
+    (* Boolean *)
+    ("not", Uast.FunTy ([Uast.Bool], Uast.Bool));
+    ("and", Uast.FunTy ([Uast.Bool; Uast.Bool], Uast.Bool));
+    ("or", Uast.FunTy ([Uast.Bool; Uast.Bool], Uast.Bool));
+    ("xor", Uast.FunTy ([Uast.Bool; Uast.Bool], Uast.Bool));
+
+    (* Bitwise *)
+    ("&", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Int));
+    ("|", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Int));
+    ("^", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Int));
+    ("<<", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Int));
+    (">>", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Int));
+    ("~", Uast.FunTy ([Uast.Int], Uast.Int));
+  ]
+
+let primitive_tys =
+  [
+    ("int", Uast.Int);
+    ("bool", Uast.Bool);
+    ("unit", Uast.Unit);
+    ("sym", Uast.Sym);
+  ]
+
+\end{minted}
+
+\subsection{Pass Implementations}
+
+\subsubsection{scanner.mll}
+
+\begin{minted}[breaklines, frame=single]{ocaml}
+(* Ocamllex scanner for Compost *)
+
+(* Author: Randy Dang 
+ * Edited by: Jasper Geer, Jackson Warhover 
+ *)
+
+{
+  open Parser
+
+  let format_sym_lit sym_lit =
+  let sym_len = String.length sym_lit in
+  let sym_body = Str.string_after (Str.string_before sym_lit (sym_len - 1)) 1 in
+  let escape_backslash = Str.global_replace (Str.regexp {|\\\\|}) "\\\\" in
+  let escape_single_quote = Str.global_replace (Str.regexp {|\\'|}) "'" in
+  escape_backslash (escape_single_quote sym_body)
 }
+
+let digit = ['0' - '9']
+let digits = ('+' | '-' | "") digit+
+
+let boolean = "true" | "false" 
+
+let string_char = [^'\'' '\\' ] | "\\\'" | "\\\\"
+let string_contents = string_char*
+
+let symlit = '\'' string_contents '\''
+
+rule token = parse
+  [' ' '\t' '\r' '\n'] { token lexbuf } (* Whitespace *)
+| ';'     { comment lexbuf }            (* Comments *)
+| '('      { LPAREN }
+| ')'      { RPAREN }
+| '['      { LBRACKET }
+| ']'      { RBRACKET }
+| ':'      { COLON }
+| '_'      { WILDCARD }
+| "->"     { ARROW }
+| "if"     { IF }
+| "val"    { VAL }
+| "define" { DEFINE }
+| "datatype" { DATATYPE }
+| "use"    { USE }
+| "case"   { CASE }
+| "begin"  { BEGIN }
+| "let"    { LET }
+| "dup"    { DUP }
+| "unit"   { UNIT }
+| digits as lxm { INTLIT(int_of_string lxm) }
+| boolean as lxm { BOOLLIT(bool_of_string lxm) }
+| symlit as lxm { SYMLIT(format_sym_lit lxm) }
+| [^'(' ')' '[' ']' '\'' ' ' '\t' '\r' '\n' ';']+ as lxm { NAME(lxm) }
+| eof { EOF }
+| _ as char { raise (Failure("illegal character " ^ Char.escaped char)) }
+
+and comment = parse
+  '\n' { token lexbuf }
+| eof  { token lexbuf }
+| _    { comment lexbuf }
+    
+\end{minted}
+
+\subsubsection{parser.mly}
+
+\begin{minted}[breaklines, frame=single]{ocaml}
+/* Ocamlyacc parser for MicroC */
+
+/* Author: Randy Dang
+   Edited by: Jasper Geer, Roger Burtonpatel, Jackson Warhover 
+  */
+
+%{
+  open Ast
+  open Freshnames
+%}
+
+%token LPAREN RPAREN LBRACKET RBRACKET 
+%token VAL DEFINE DATATYPE USE COLON 
+%token CASE IF BEGIN LET 
+%token UNIT 
+%token WILDCARD ARROW DUP 
+%token EOF 
+
+%token <string> NAME SYMLIT 
+%token <int> INTLIT
+%token <bool> BOOLLIT
+
+%start program
+%type <Ast.program> program
+
+/* No need to specify any associativity or precedence in our syntax because 
+    our parenthesized syntax makes everything explicit
+  */
+
+%%
+
+program:
+  defs EOF { $1 }
+
+defs:
+    /* nothing */ { [] }
+  | def defs { $1 :: $2 }
+
+def:
+    LPAREN definternal RPAREN { $2 }
+  | LBRACKET definternal RBRACKET { $2 }
+
+definternal:
+    VAL NAME expr { Val($2, $3) }
+  | DEFINE NAME parennamelist expr { Define($2, $3, $4) }
+  | DATATYPE NAME parenvariantlist { Datatype($2, $3) }
+  | COLON NAME ty { TyAnnotation($2, $3) }
+  | USE filename { Use($2) }
+
+parennamelist:
+    LPAREN namelist RPAREN { $2 }
+  | LBRACKET namelist RBRACKET { $2 }
+
+namelist:
+    /* nothing */  { [] }
+  | NAME namelist { $1 :: $2 }
+
+parenvariantlist:
+    LPAREN variantlist RPAREN { $2 }
+  | LBRACKET variantlist RBRACKET { $2 }
+
+variantlist:
+    /* nothing */ { [] }
+  | variant variantlist { $1 :: $2 }
+
+variant: 
+    LPAREN variantinternal RPAREN { $2 }
+  | LBRACKET variantinternal RBRACKET { $2 }
+
+variantinternal: NAME parentylist { ($1, $2) }
+
+parentylist:
+    LPAREN tylist RPAREN { $2 }
+  | LBRACKET tylist RBRACKET { $2 }
+
+tylist:
+    /* nothing */ { [] }
+  | ty tylist { $1 :: $2 }
+
+ty: 
+    LPAREN funtyinternal RPAREN { $2 }
+  | LBRACKET funtyinternal RBRACKET { $2 }
+  | UNIT { SingleTy("unit") }
+  | NAME { SingleTy($1) }
+
+funtyinternal:
+    ARROW parentylist ty { FunTy($2, $3) }
+
+filename: SYMLIT { $1 } 
+
+expr:
+    literal { Literal($1) }
+  | NAME { NameExpr($1) } 
+  | LPAREN exprinternal RPAREN { $2 }
+  | LBRACKET exprinternal RBRACKET { $2 }
+
+exprinternal:
+    IF expr expr expr { If($2, $3, $4) }
+  | BEGIN exprlist { Begin($2)}
+  | expr exprlist { Apply($1, $2) }
+  | LET parenbindlist expr { Let($2, $3) }
+  | CASE expr parencasebranchlist { Case($2, $3) }
+  | DUP NAME { Dup($2) }
+
+exprlist:
+    /* nothing */ { [] }
+  | expr exprlist { $1 :: $2 }
+
+parenbindlist:
+    LPAREN bindlist RPAREN { $2 }
+  | LBRACKET bindlist RBRACKET { $2 }
+
+bindlist:
+    /* nothing */ { [] }
+  | LPAREN bind RPAREN bindlist { $2 :: $4 }
+  | LBRACKET bind RBRACKET bindlist { $2 :: $4 }
+
+bind: NAME expr { ($1, $2) }
+
+casebranch: 
+    LPAREN pattern expr RPAREN { ($2, $3) }
+  | LBRACKET pattern expr RBRACKET { ($2, $3) }
+
+parencasebranchlist:
+    LPAREN casebranchlist RPAREN { $2 }
+  | LBRACKET casebranchlist RBRACKET { $2 }
+
+casebranchlist:
+    /* nothing */ { [] }
+  | casebranch casebranchlist { $1 :: $2 }
+
+pattern:
+    LPAREN patterninternal RPAREN { $2 }
+  | LBRACKET patterninternal RBRACKET { $2 }
+  | WILDCARD { WildcardPattern }
+  | NAME { Name $1 }
+
+patterninternal: NAME nameorwildcardlist { Pattern($1, $2) }
+
+nameorwildcardlist:
+    /* nothing */ { [] }
+  | nameorwildcard nameorwildcardlist { $1 :: $2 }
+
+nameorwildcard:
+    NAME { $1 }
+  | WILDCARD { fresh_name () }
+
+literal:
+    INTLIT { IntLit($1) }
+  | SYMLIT { SymLit($1) }
+  | BOOLLIT { BoolLit($1) }
+  | UNIT { UnitLit }
+    
+\end{minted}
+
+\subsubsection{preprocess.ml}
+
+\begin{minted}[breaklines, frame=single]{ocaml}
+(* Author: Jackson Warhover 
+ * Edited by: Jasper Geer, Roger Burtonpatel 
+ *)
+
+module P = Past
+module A = Ast
+module D = Difflist
+
+module Prim = Primitives
+
+module S = Set.Make(String)
+module SM = Map.Make(String)
+
+(* to make pretty printing errors nicer later *)
+exception RecursiveUse
+exception DuplicateGlobal
+exception TypeNameUsage
+let except_ru c = if c then raise RecursiveUse else ()
+let except_dg c = if c then raise DuplicateGlobal else ()
+let except_tnu c = if c then raise TypeNameUsage else ()
+
+let fold_prim l (n, _) = S.add n l
+let vb  = ref (SM.empty)                                            (* val binding *)
+let gbs = ref (List.fold_left fold_prim S.empty Prim.primitives)    (* global binding set *)
+let lbs = ref (S.empty)                                             (* local binding set *)
+let dts = ref (List.fold_left fold_prim S.empty Prim.primitive_tys) (* datatype set *)
+let use = ref (S.empty)                                             (* use set *)
+
+(* lbr: local bindings (recursive) - locals bound in this context *)
+(* pattern: Ast - pattern * expr list *)
+(* return: Past - pattern * expr list *)
+let rec apes_to_ppes lbr = function
+    [] -> []
+  | ((A.Pattern (n, ns), e) :: pes) ->
+    lbs := List.fold_right (fun n2 lbs ->
+      let () = except_tnu (S.mem n2 !dts) in
+      S.add n2 lbs
+    ) ns !lbs ;
+    let lbr2 = List.fold_right S.add ns lbr in
+    (A.Pattern(n, ns), ae_to_pe lbr2 e) :: (apes_to_ppes lbr pes)
+  | ((A.WildcardPattern, e) :: pes) ->
+    (A.WildcardPattern, ae_to_pe lbr e) :: (apes_to_ppes lbr pes)
+  | ((A.Name n, e) :: pes) ->
+    let () = except_tnu (S.mem n !dts) in
+    lbs := S.add n !lbs ;
+    let lbr = S.add n lbr in 
+    (A.Name n, ae_to_pe lbr e) :: (apes_to_ppes lbr pes)
+
+(* lbr: local bindings (recursive) - locals bound in this context *)
+(* pattern: Ast - expr *)
+(* return: Past - expr *)
+and ae_to_pe lbr = function
+  | A.Begin([]) -> P.Literal(A.UnitLit)
+  | A.Begin([e]) -> ae_to_pe lbr e
+  | A.Begin(e :: es) -> P.Let(Freshnames.fresh_name (), ae_to_pe lbr e, ae_to_pe lbr (A.Begin(es)))
+  | A.Let([], e) -> ae_to_pe lbr e
+  | A.Let(((abn, abe) :: abs), e) ->
+    let () = except_tnu (S.mem abn !dts) in
+    lbs := S.add abn !lbs ;
+    let lbr2 = S.add abn lbr in
+    P.Let(abn, ae_to_pe lbr abe, ae_to_pe lbr2 (A.Let(abs, e)))
+  | A.Literal(l) -> P.Literal(l)
+  | A.NameExpr(n) ->
+    (* if S.mem n !dts then raise TypeNameUsage else (* not really necessary *) *)
+    lbs := S.add n !lbs ;
+    if (not (S.mem n lbr)) && (SM.mem n !vb)
+    then SM.find n !vb
+    else P.NameExpr(n)
+  | A.Case(e, pes) -> P.Case(ae_to_pe lbr e, apes_to_ppes lbr pes)
+  | A.If(e1, e2, e3) -> P.If(ae_to_pe lbr e1, ae_to_pe lbr e2, ae_to_pe lbr e3)
+  | A.Apply(e, es) -> P.Apply(ae_to_pe lbr e, List.map (ae_to_pe lbr) es)
+  | A.Dup(n) -> 
+    (* if S.mem n !dts then raise TypeNameUsage else (* not really necessary *) *)
+    P.Dup(n)
+
+(* use_r: use statements (recursive) - checking for recursive use *)
+(* pattern: Ast - def *)
+(* return: Past - def difflist *)
+let rec ad_to_pdl use_r = function
+  | A.Use(filename) ->
+    let () = except_ru (S.mem filename use_r) in
+    if S.mem filename !use then D.empty else
+    let channel = open_in filename in
+    let lexbuf = Lexing.from_channel channel in
+    let ast = Parser.program Scanner.token lexbuf in
+    use := S.add filename !use ;
+    let use_r = S.add filename use_r in
+    adl_to_pdl ast use_r
+  | A.Val(n, e) -> 
+    let () = except_dg (SM.mem n !vb ) in
+    let () = except_dg (S.mem n !gbs) in
+    let () = except_dg (S.mem n !dts) in
+    let pe = ae_to_pe S.empty e in
+    vb := SM.add n pe !vb ;
+    D.empty
+  | A.Define(n, ns, e) -> 
+    let () = except_dg (SM.mem n !vb ) in
+    let () = except_dg (S.mem n !gbs) in
+    let () = except_dg (S.mem n !dts) in
+    gbs := S.add n !gbs ;
+    lbs := List.fold_right (fun n2 lbs ->
+      let () = except_tnu (S.mem n2 !dts) in
+      S.add n2 lbs
+    ) ns !lbs ;
+    let lbr = List.fold_right S.add ns S.empty in
+    let pe = ae_to_pe lbr e in
+    D.singleton (P.Define(n, ns, pe))
+  | A.Datatype(n, ntss) -> 
+    let () = except_dg (SM.mem n !vb ) in
+    let () = except_dg (S.mem n !gbs) in
+    let () = except_dg (S.mem n !dts) in
+    let () = except_tnu (S.mem n !lbs) in
+    dts := S.add n !dts ;
+    gbs := List.fold_right (fun (n2, _) gbs ->
+        let () = except_dg (SM.mem n2 !vb ) in
+        let () = except_dg (S.mem n2 gbs) in
+        let () = except_dg (S.mem n2 !dts) in
+        S.add n2 gbs
+    ) ntss !gbs ;
+    D.singleton (P.Datatype(n, ntss))
+  | A.TyAnnotation(n, t) -> D.singleton (P.TyAnnotation(n, t)) (* TODO? *)
+
+(* use_r: use statements (recursive) - checking for recursive use *)
+(* pdl: Past - def difflist (FOLD ACCUM) *)
+(* ad: Ast - def (FOLD LIST ELEM) *)
+(* return: Past - def difflist (FOLD ACCUM) *)
+and fold_adl_to_pdl use_r pdl ad = D.cons pdl (ad_to_pdl use_r ad)
+
+(* adl: Ast - def list *)
+(* use_r: use statements (recursive) - checking for recursive use *)
+(* return: Past - def difflist *)
+and adl_to_pdl adl use_r = 
+  List.fold_left (fold_adl_to_pdl use_r) D.empty adl
+
+(* ENTRY POINT FROM COMPOST.ML *)
+(* adeflist: Ast - def list *)
+let preprocess adeflist = D.tolist (adl_to_pdl adeflist S.empty)
+ 
+\end{minted}
+
+\subsubsection{disambiguate.ml}
+
+\begin{minted}[breaklines, frame=single]{ocaml}
+(* Author: Jasper Geer 
+ * Edited by: Roger Burtonpatel, Jackson Warhover
+ *)
+
+module P = Past
+module U = Uast
+module A = Ast
+
+module Prim = Primitives
+
+module S = Set.Make(String)
+module StringMap = Map.Make(String)
+
+(* let rec freeIn n = function 
+  | U.Literal _ -> false 
+  | U.Global n' | U.Local n' -> n = n'
+  | U.Case *)
+
+let primty = List.fold_right (fun (n, ty) pts ->
+    StringMap.add n ty pts
+) Prim.primitive_tys StringMap.empty
+
+let rec aty_to_uty = function
+  | A.FunTy(tys, ty) -> U.FunTy(List.map aty_to_uty tys, aty_to_uty ty)
+  | A.SingleTy(n) ->
+    if StringMap.mem n primty then StringMap.find n primty else
+    U.CustomTy(n)
+
+let rec expr locals renamings = function
+  | P.Literal l -> U.Literal l
+  | P.NameExpr n when S.mem n locals ->
+    if StringMap.mem n renamings
+    then U.Local (StringMap.find n renamings)
+    else U.Local n
+  | P.NameExpr n -> U.Global n
+  | P.Case (e, branches) ->
+    let e' = expr locals renamings e in
+    let branch (p, body) = match p with
+      | A.Pattern (n, bindings) ->
+        let rename_binding renamings name =
+          if S.mem name locals
+          then
+            let new_name = Freshnames.fresh_name () in
+            (StringMap.add name new_name renamings, new_name)
+          else (renamings, name)
+        in
+        let (renamings', bindings') = List.fold_left_map rename_binding renamings bindings in
+        let locals' = S.union (S.of_list bindings) locals in
+        (U.Pattern (n, bindings'), expr locals' renamings' body)
+        (* THESE NEED TO BE FIXED *)
+      | A.WildcardPattern -> (U.Name (Freshnames.fresh_name (), false), expr locals renamings body)
+      | A.Name n -> (U.Name (n, true), expr locals renamings body)
+    in
+    let branches' = List.map branch branches in
+    U.Case (e', branches')
+  | P.If (e1, e2, e3) ->
+    let e1' = expr locals renamings e1 in
+    let e2' = expr locals renamings e2 in
+    let e3' = expr locals renamings e3 in
+    U.If (e1', e2', e3')
+  | P.Let (n, e, body) when S.mem n locals ->
+    let n' = Freshnames.fresh_name () in
+    let e' = expr locals renamings e in
+    let renamings' = StringMap.add n n' renamings in
+    let body' = expr (S.add n locals) renamings' body in
+    U.Let (n', e', body')
+  | P.Let (n, e, body) ->
+    let e' = expr locals renamings e in
+    let body' = expr (S.add n locals) renamings body in
+    U.Let (n, e', body')
+  | P.Apply (e, es) ->
+    let e' = expr locals renamings e in
+    let es' = List.map (expr locals renamings) es in
+    U.Apply (e', es')
+  | P.Dup n -> U.Dup n
+
+let rec vs_to_utyvs = function
+  | [] -> []
+  | (n, tys) :: vs -> (n, List.map aty_to_uty tys) :: vs_to_utyvs vs
+
+let def = function
+  | P.Define (n, args, body) -> U.Define (n, args, expr (S.of_list args) StringMap.empty body)
+  | P.Datatype (n, variants) -> U.Datatype (n, vs_to_utyvs variants)
+  | P.TyAnnotation (n, ty) -> U.TyAnnotation (n, aty_to_uty ty)
+
+let disambiguate = List.map def
+ 
+\end{minted}
+
+\subsubsection{typecheck.ml}
+
+\begin{minted}[breaklines, frame=single]{ocaml}
+(* 
+ * Author: Roger Burtonpatel
+ * Edited by: Jasper Geer, Randy Dang, Jackson Warhover
+ *)
+
+module A = Ast 
+module U = Uast
+module T = Tast
+
+module StringMap = Map.Make(String)
+exception Impossible of string
+exception Todo
+exception NotFound of string
+exception TypeError of string
+
+
+let rec eqType t1 t2 = match (t1, t2) with 
+| (U.Int, U.Int) | (U.Bool, U.Bool) | (U.Sym, U.Sym) | (U.Unit, U.Unit) -> true 
+| (U.FunTy (arg_ts, ret_t)), (U.FunTy (arg_ts', ret_t')) -> 
+                    eqTypes arg_ts arg_ts' && eqType ret_t ret_t'
+| (U.CustomTy n, U.CustomTy n') -> n = n'
+| _ -> false
+and eqTypes ts ts' = List.equal eqType ts ts'
+
+let rec tyString = function 
+| U.Int -> "int"
+| U.Bool -> "bool"
+| U.Sym -> "symbol"
+| U.Unit -> "Unit"
+| U.FunTy (arg_ts, ret_t) -> 
+                    "(-> (" 
+                    ^ String.concat " " (List.map tyString arg_ts) ^ ") " 
+                    ^ tyString ret_t ^ ")"
+| U.CustomTy name -> name 
+(* let typesMatchOrError t1 t2 metainfo = 
+  if eqType t1 t2 
+  then true
+  else raise 
+      (TypeError ("type mismatch: expected "
+                  ^ tyString t1
+                  ^ " but got "
+                  ^ tyString t2 ^ metainfo)) *)
+
+
+let checkFunTypes n param_ts arg_ts ret_t = 
+  let rec go t_s t_s' = 
+  match (t_s, t_s') with 
+| ([], []) -> ()
+| (tau::taus, tau'::taus') -> 
+      if eqType tau tau' 
+      then go taus taus'
+      else
+        let funtysMismatchError n ts ts' ret_t = 
+          "type mismatch: expected "
+                              ^ tyString (U.FunTy (ts, ret_t))
+                              ^ " but got "
+                              ^ tyString (U.FunTy (ts', ret_t)) 
+                              ^ " in application of function " ^ n
+        in raise (TypeError (funtysMismatchError n param_ts arg_ts ret_t))
+| (_, _) -> raise (Impossible "mismatch in number of types in checkFunArgTypes")
+    in go param_ts arg_ts 
+
+let extendGammaWithPat topty gamma delta pat = 
+  match pat with 
+  | U.Name (_, false) -> gamma
+  | U.Name (n, true) -> StringMap.add n topty gamma
+  | U.Pattern (pn, ns) -> 
+    let (typ_args, _) = StringMap.find pn delta in 
+    let gamma' = 
+      List.fold_left2 (fun g n t -> StringMap.add n t g) 
+                        gamma ns typ_args in 
+      gamma' 
+
+let aPatofTPat = function 
+  | T.Name (_, false)     ->  A.WildcardPattern
+  | T.Name (n, true)      ->  A.Name n
+  | T.Pattern (n, ns_tys) ->  let (names, _) = List.split ns_tys in 
+                              A.Pattern (n, names)
+
+let print_warning warn =
+  let _ = Printf.eprintf ("\n") in 
+  let _ = Printf.eprintf ("\027[1;38;5;90m") in 
+  let _ = Printf.eprintf ("Warning:") in 
+  let _ = Printf.eprintf ("\027[0m") in 
+  let _ = Printf.eprintf (" %s\n") warn in 
+  flush stderr;
+  ()
+
+let typerror err = 
+  let _ = Printf.eprintf ("\027[1;31m") in 
+  let _ = Printf.eprintf ("Error:") in 
+  let _ = Printf.eprintf ("\027[0m") in 
+  let _ = Printf.eprintf (" %s\n") err in 
+  exit 1 
+let pruneBranchesWith (branches : (T.pattern * (T.expr T.typed)) list)
+                      (possibleVariants : A.name list) = 
+  let checkBranch (newbranches, foundVariants, warn) branch = 
+    match branch with 
+    | (T.Name _, _) -> 
+        (* wildcard or name says "all possible variants have been found" *)
+        (List.append newbranches [branch], possibleVariants, warn)
+    | (T.Pattern (vcon, _) as pat, _) -> 
+        (* only add if not yet found *)
+        let (warn', pats') = if List.exists (fun vc -> vc = vcon) foundVariants 
+          then ("unreachable pattern \"" 
+                ^ A.string_of_pattern (aPatofTPat pat) ^ "\"", newbranches)
+        else ("", List.append newbranches [branch])
+      in (pats', vcon::foundVariants, warn')
+  in 
+  let (branches', foundVariants, warn) = 
+    List.fold_left checkBranch ([], [], "") branches in
+  let () = 
+    if not (warn = "") then print_warning warn else 
+    let (ps, fs) = (List.sort String.compare possibleVariants, 
+                        List.sort String.compare foundVariants) in  
+    if not (List.equal String.equal ps fs) 
+    then print_warning "pattern matching is non-exhaustive"
+  in 
+  branches'
+
+
+let curry f x y = f (x, y)
+
+(* gamma: name -> ty *)
+(* delta: value constructor name -> (types-of-its-arguments, type-it-constructs) *)
+
+let rec typeof gamma delta expr = 
+  let rec typ = function  
+  | U.Literal l -> 
+    (match l with A.IntLit _ -> U.Int
+                              | A.BoolLit _ -> U.Bool
+                              | A.SymLit _ -> U.Sym
+                              | A.UnitLit -> U.Unit)
+  (* NOTE: Do we want a sanity check that all globals are Funty? *)
+  | U.Local n | U.Global n -> 
+                    if not (StringMap.mem n gamma)
+                    then 
+                      raise (NotFound ("unbound name \"" ^ n ^ "\""))
+                    else StringMap.find n gamma
+  | U.If (e1, e2, e3) ->     
+    (match (typ e1, typ e2, typ e3) with 
+                          | (U.Bool, t1, t2) -> 
+                            if t1 = t2 
+                            then t1 
+                            else raise 
+                              (TypeError "mismatched types in if branches")
+                          | _ -> raise 
+                              (TypeError ("condition failed to typecheck to "
+                                          ^ "boolean in \"if\" expression")))
+  | U.Let (n, e, e') ->
+    let rhs_t = typ e in 
+                        let extended_gamma = (StringMap.add n rhs_t gamma) in 
+                        typeof extended_gamma delta e'
+  | U.Apply (f, es) -> 
+    let funty = typeof gamma delta f in 
+    (match funty with 
+    | U.FunTy (arg_ts, ret_t) -> 
+      let n = (match f with U.Global n' | U.Local n' -> "\"" ^ n' ^ "\""  
+                                        | _ -> "") in 
+        let n_expected = List.length arg_ts in 
+                  let n_given    = List.length es in 
+                  if n_expected != n_given 
+                  then raise (TypeError ("mismatch in number of arguments in " 
+                                        ^ "application of " ^ n ^ ": expected "
+                                        ^ Int.to_string n_expected 
+                                        ^ " but " 
+                                        ^ Int.to_string n_given 
+                                        ^ " were given."))
+                (* typecheck arguments - purely side-effecting *)
+                  else 
+                    let () = checkFunTypes n (List.map typ es) arg_ts ret_t in 
+                  ret_t (* type is return type *)
+        | _ ->  raise (TypeError ("attempted to apply non-function of type " ^ tyString funty)))
+
+  | U.Dup n -> if not (StringMap.mem n gamma)
+    then raise (NotFound ("attempted to dup unbound name \"" ^ n ^ "\""))
+    else StringMap.find n gamma
+
+  | U.Case (_, []) -> raise (TypeError "empty case expression")
+  | U.Case (e, branches) -> 
+    let typ_scrutinee = typ e in 
+    (* scrutinee MUST be custom type; no literal pattern matching *)
+      (match typ_scrutinee with U.CustomTy sname -> 
+        let (patterns, rhss) = List.split branches in 
+        (* check all patterns to be well-formed with regards to the scrutinee *)
+        let typeCheckPattern = function
+          | U.Name _ -> ()
+          | U.Pattern (pname, _) -> 
+            (* ensure pattern maps to a type *)
+            if not (StringMap.mem pname delta)
+            then raise (TypeError ("unknown type constructor \"" ^ pname 
+                                  ^ "\" in case branch"))
+            else 
+            (* ensure the type it matches to is correct *)
+            let (_, typ_of_pat) = StringMap.find pname delta in 
+              if not (eqType typ_scrutinee typ_of_pat)
+              then raise (TypeError ("scrutinee in case has type \"" ^ sname 
+                                      ^ "\" but a branch is a pattern of type " 
+                                      ^ pname ^ " \""))
+              else () (* success *)
+        in 
+        (* typeCheckRHS to be mapped over branches. 
+        1. extends rhs environments with pattern-introduced names and types
+        2. typechecks rhss
+        3. ensure all types are equal *)
+        let typeCheckRHS pattern rhs = 
+          (* extends gamma with bindings introduced by pat *)
+              let extended_gamma = 
+                extendGammaWithPat typ_scrutinee gamma delta pattern in 
+              (* print_endline "Typechecking rhs with gamma: \n";
+              StringMap.iter (fun s t -> print_endline (s ^ " -> " ^ tyString t)) 
+              extended_gamma ; *)
+              typeof extended_gamma delta rhs
+            in 
+            
+        (* make bindings over pattern types *)
+        let _           = List.iter typeCheckPattern patterns in 
+        let typs_rhss   = List.map2 typeCheckRHS patterns rhss in 
+
+        let typ_fst_rhs = List.hd typs_rhss in 
+        (* check all rhs's to be of the same type *)
+        let check_rhs_ty_match rhs' = 
+          if not (eqType rhs' typ_fst_rhs) 
+          then raise (TypeError ("a case expression's first branch has type " 
+                      ^ tyString typ_fst_rhs ^ ", but a later branch has type "
+                      ^ tyString rhs'))
+        in 
+        let _ = List.iter check_rhs_ty_match typs_rhss in 
+        typ_fst_rhs
+        | _ -> raise (TypeError
+                        ("expected custom datatype in case expression but got " 
+                        ^ tyString typ_scrutinee)))
+    in typ expr
+
+let addWildcard ty = function
+    | [] -> raise (Impossible "empty pat list")
+    | pats -> 
+      if not (List.exists (function | (T.Name (_, false), _) -> true 
+                                    | _ -> false) pats) 
+      then List.append pats [(T.Name ("__MATCH_FAILCASE__", false),
+                            (T.Err "pattern match failed", ty))]
+    else pats
+
+let rec exp gamma delta expr = 
+  let typeof' = typeof gamma delta in
+  let rec exp' e = 
+    (begin
+    match e with
+    | U.Literal l -> T.Literal l 
+    | U.Local n   -> let _ = typeof' e in T.Local  n 
+    | U.Global n  -> let _ = typeof' e in T.Global n 
+    | U.Case (ex, branches) -> 
+        let ty_branch     = typeof' e in
+        let ty_ex = typeof' ex in 
+        let (pats, rhss)  = List.split branches in
+        let patconvert    = function 
+          | U.Name (n, isWildcard) -> T.Name (n, isWildcard)
+          | U.Pattern (n, ns) -> 
+              let (vartys, _) = StringMap.find n delta in 
+              let names_tys = List.combine ns vartys in 
+              T.Pattern (n, names_tys)
+          in 
+        let rhs_es = 
+          List.map2 (fun pat rhs -> 
+                      let extended_gamma = 
+                          extendGammaWithPat ty_ex gamma delta pat in 
+                          exp extended_gamma delta rhs) pats rhss in 
+        let pats'         = List.map patconvert pats in 
+        let branches'     = List.combine pats' rhs_es in 
+        (* let branches'     = List.map (fun (pat, (e, t)) -> 
+                                          T.CaseBranch (pat, (e, t))) 
+                            branches_full in  *)
+        (match ty_ex with (U.CustomTy n) -> 
+        (* extract all value constructors from gamma *)
+        let possibleVariants = StringMap.fold 
+        (fun vconname (_, ty) variants -> 
+          match ty with U.CustomTy n' when n = n' -> vconname::variants
+          | _ -> variants) delta [] in 
+          let prunedbranches = pruneBranchesWith branches' possibleVariants in
+          T.Case (exp' ex, addWildcard ty_branch prunedbranches)
+          | _ -> raise (Impossible "failed to extract custom name from type"))
+    | U.If (e1, e2, e3) -> 
+        let _ = typeof' e in
+          T.If (exp' e1, exp' e2, exp' e3)
+    | U.Let (n, e1, e') ->  let ty_e   = typeof' e1 in 
+                            let gamma' = StringMap.add n ty_e gamma in 
+                            let _      = typeof gamma' delta e' in
+                            T.Let (n, exp gamma delta e1,
+                                            exp gamma' delta e')
+    | U.Apply (e, es) as app -> let _ = typeof' app in 
+                                  let es' = List.map exp' es in 
+                                  T.Apply (exp' e, es')
+  | U.Dup n -> let _ = typeof' e in T.Dup n
+  end
+      , typeof' e)
+  in exp' expr
+
+let typecheckDef (defs, gamma, delta) = function
+| U.Define (n, args, body) -> 
+  if not (StringMap.mem n gamma)
+  then raise (TypeError 
+                ("definition of function \"" ^ n 
+                ^ "\" with no prior type annotation."))
+  else let known_annotated_ty = StringMap.find n gamma in
+  (match known_annotated_ty with 
+    | (U.FunTy (argtys, expected_ret_ty)) -> 
+      let known_argscount = List.length argtys in 
+      let given_argscount = List.length args in 
+      if not (known_argscount = given_argscount)
+      then raise (TypeError ("prior annotation defined function \"" 
+                            ^ n ^ "\" has " ^ Int.to_string known_argscount 
+                            ^ " arguments, but its definition has "
+                            ^ Int.to_string given_argscount ^ " arguments."))
+      else 
+      let extended_gamma = 
+        List.fold_left2 (* insane folding *)
+            (fun env name ty -> StringMap.add name ty env) gamma args argtys in 
+      let ret_ty = typeof extended_gamma delta body in 
+        if not (eqType expected_ret_ty ret_ty) 
+        then raise (TypeError ("prior annotation defined function \"" 
+                              ^ n ^ "\" to be of type \"" 
+                              ^ tyString known_annotated_ty
+                              ^ "\" but a definition was given that has type \""
+                              ^ tyString (U.FunTy (argtys, ret_ty )) ^ "\""))
+      else 
+        let funty = Uast.FunTy (argtys, ret_ty) in 
+        let def' = T.Define (n, funty, args, exp extended_gamma delta body) in
+        (List.append defs [def'], gamma, delta)
+    | _ -> raise (Impossible "found non-func name in top-level environment"))
+| U.Datatype (n, variants) -> 
+  let check_variant delta' (vname, ts)  =
+    if not (StringMap.mem vname delta')
+    then    StringMap.add vname (ts, U.CustomTy n) delta'
+    else let (_, existing_type) = StringMap.find vname delta' in
+        raise (TypeError ("duplicate type constructor \"" 
+                          ^ vname ^ "\" in user-defined datatype \""
+                          ^ n ^ "\": constructor already exists for type \"" 
+                          ^ tyString existing_type ^ "\"")) 
+    in let extended_delta = List.fold_left check_variant delta variants in
+    let add_variant gamma' (vname, ts) = 
+      StringMap.add vname (Uast.FunTy (ts, U.CustomTy n)) gamma' 
+    in 
+    let extended_gamma = List.fold_left add_variant gamma variants in 
+    let datatype' = T.Datatype (n, variants) in
+      List.append defs [datatype'], extended_gamma, extended_delta
+
+| U.TyAnnotation (n, ty) -> 
+  if not (StringMap.mem n gamma)
+  then let extended_gamma = StringMap.add n ty gamma in 
+  (defs, extended_gamma, delta)
+  else let found_typ = StringMap.find n gamma in 
+    if not (eqType ty found_typ)
+    then raise (TypeError ("prior annotation defined function \"" ^ n ^ 
+    "\" to be of type \"" 
+    ^ tyString found_typ
+    ^ "\" but a second annotation was given that has type \""
+    ^ tyString ty ^ "\""))
+
+else (defs, gamma, delta)
+(* walks the program, building environments and typechecking against them. *)
+let typecheck prog =
+  let gamma =
+    let prim_constraints = List.fold_right
+        (fun (prim_name, ty) -> StringMap.add prim_name ty)
+        Primitives.primitives StringMap.empty
+    in
+    let fun_constraints = List.fold_right
+        (function
+          | U.TyAnnotation (n, ty) -> StringMap.add n ty
+          | _ -> fun env -> env)
+        prog StringMap.empty
+    in
+    StringMap.union
+      (fun n _ _ -> raise 
+                      (TypeError ("attempted to define a function with "
+                                  ^ "name \"" ^ n ^ "\", but a primitive "
+                                  ^ "function with that name already exists.")))
+      prim_constraints fun_constraints
+  in
+  let delta = StringMap.empty in
+  let defs = [] in 
+  List.fold_left typecheckDef (defs, gamma, delta) prog
+ 
+\end{minted}
+
+\subsubsection{normalize.ml}
+
+\begin{minted}[breaklines, frame=single]{ocaml}
+(* Author: Jasper Geer *)
+
+module T = Tast
+module N = Nast
+
+let typeof (_, ty) = ty
+
+let rec normalize_expr (expr, ty) = match expr with
+  | T.Err n -> N.Err (ty, n)
+  | T.Literal l -> N.Literal l
+  | T.Local n -> N.Local n
+  | T.Global n -> N.Global n
+  | T.Case (e, branches) ->
+    let pattern = function
+      | T.Pattern (n, ns) -> N.Pattern (n, ns)
+      | T.Name (n, _) -> N.Name n
+    in
+    let branches' =
+      List.map (function (pat, e) -> (pattern pat, normalize_expr e)) branches in
+    let e' = normalize_expr e in
+    let n = Freshnames.fresh_name () in
+    (N.Let (n, typeof e, e',
+            N.Case (ty, n, branches')))
+  | T.If (e1, e2, e3) ->
+    let e1' = normalize_expr e1 in
+    let e2' = normalize_expr e2 in
+    let e3' = normalize_expr e3 in
+    let n = Freshnames.fresh_name () in
+    (N.Let (n, typeof e1, e1',
+            N.If (n, e2', e3')))
+  | T.Let (n, e, body) ->
+    N.Let (n, typeof e, normalize_expr e, normalize_expr body)
+  | T.Apply (e1, es) ->
+    let e1' = normalize_expr e1 in
+    let fun_name = Freshnames.fresh_name () in
+    let names = List.init (List.length es) (fun _ -> Freshnames.fresh_name ()) in
+    let binds = List.combine names es in
+    let apply = N.Let (fun_name, typeof e1, e1', N.Apply (fun_name, names)) in
+    List.fold_right (fun (n, e) acc -> N.Let (n, typeof e, normalize_expr e, acc)) binds apply
+  | T.Dup n -> N.Dup (ty, n)
+
+let normalize_def = function
+  | T.Define (n, ty, params, body) -> N.Define (n, ty, params, normalize_expr body)
+  | T.Datatype (n, variants) -> N.Datatype (n, variants)
+
+let normalize = List.map normalize_def  
+\end{minted}
+
+\subsubsection{consumptioncheck.ml}
+
+\begin{minted}[breaklines, frame=single]{ocaml}
+(* Consumption Checker *)
+
+(* Author: Jasper Geer 
+ * Edited by: Randy Dang, Jackson Warhover
+ *)
+module N = Nast
+module F = Fast
+module T = Tast
+
+module S = Set.Make(String)
+module StringMap = Map.Make(String)
+
+let unions sets = List.fold_right S.union sets S.empty
+
+exception NameAlreadyConsumed of string
+exception Impossible of string
+
+(* Check affine-typeness *)
+
+let is_dataty = function
+  | Uast.CustomTy _ -> true
+  | _ -> false
+
+let rec check_affine live dead =
+  let has_dataty n = is_dataty (StringMap.find n live) in
+  let check_name n =
+    if S.mem n dead && has_dataty n
+    then raise (NameAlreadyConsumed n)
+    else () in
+  function
+  | N.Err _ -> dead
+  | N.Local n -> check_name n; S.add n dead
+  | N.Global _ -> dead
+  | N.Dup _ -> dead
+  | N.Literal _ -> dead
+  | N.If (n, e1, e2) ->
+    check_name n;
+    let dead' = S.add n dead in
+    let d1 = check_affine live dead' e1 in
+    let d2 = check_affine live dead' e2 in
+    S.union d1 d2
+  | N.Let (n, ty, e, body) ->
+    let dead' = check_affine live dead e in
+    let live' = StringMap.add n ty live in
+    check_affine live' dead' body
+  | N.Case (scrutinee_ty, scrutinee, branches) ->
+    check_name scrutinee;
+    let dead' = S.add scrutinee dead in
+    let branch (pattern, body) = match pattern with
+      | N.Pattern (_, binds) ->
+        let live' = List.fold_right
+            (fun (n, ty) acc -> StringMap.add n ty acc) binds live
+        in
+        check_affine live' dead' body
+      | N.Name n ->
+        let live' = StringMap.add n scrutinee_ty live in
+        check_affine live' dead' body
+    in
+    unions (List.map branch branches)
+  | N.Apply (n, ns) ->
+    List.iter check_name (n :: ns);
+    List.fold_right (fun n acc -> S.add n acc) (n :: ns) dead
+
+let rec not_free =
+  function
+  | N.Err _ -> S.empty
+  | N.Local n -> S.singleton n
+  | N.Global _ -> S.empty
+  | N.Dup _ -> S.empty
+  | N.Literal _ -> S.empty
+  | N.If (n, e1, e2) -> S.add n (unions [not_free e1; not_free e2])
+  | N.Let (_, _, e, body) -> unions [not_free e; not_free body]
+  | N.Apply (n, ns) -> S.of_list (n :: ns)
+  | N.Case (_, n, branches) -> S.add n (unions (List.map (function (_, branch) -> not_free branch) branches))
+
+
+let merge = StringMap.union
+    (fun n ty1 ty2 ->
+        if ty1 = ty2
+        then Some ty1
+        else raise (Impossible ("type of " ^ n ^ " is not consistent.")))
+
+let consume_in to_consume expr =
+  StringMap.fold (fun n ty acc ->
+      if is_dataty ty
+      then F.FreeRec (ty, n, acc)
+      else acc) to_consume expr
+
+(* Automatically insert free directives into well-typed code *)
+
+let rec insert_frees to_consume =
+  function
+  | N.If (n, e1, e2) ->
+    let to_consume' = StringMap.remove n to_consume in
+    let e1' = insert_frees to_consume' e1 in
+    let e2' = insert_frees to_consume' e2 in
+    F.If (F.Local n, e1', e2')
+  | N.Case (ty, scrutinee, branches) ->
+    let to_consume' = StringMap.remove scrutinee to_consume in
+    let branch (pattern, body) = match pattern with
+      | N.Pattern (tag, binds) ->
+        let introduced =
+          List.fold_right
+            (fun (n, ty) acc -> StringMap.add n ty acc) binds StringMap.empty
+        in
+        let body' = insert_frees (merge introduced to_consume') body in
+        (F.Pattern (tag, binds), F.Free (ty, scrutinee, body'))
+      | N.Name n ->
+        let body' = insert_frees (StringMap.add n ty to_consume) body in
+        (F.Name n, F.Let (n, F.Local scrutinee, body'))
+    in
+    F.Case (F.Local scrutinee, List.map branch branches)
+  | N.Let (n, ty, e, body) ->
+    let consumed_in_e = not_free e in
+    let to_consume_e = StringMap.filter (fun n _ -> S.mem n consumed_in_e) to_consume in
+    let to_consume_body = StringMap.add n ty
+        (StringMap.filter (fun n _ -> not (S.mem n consumed_in_e)) to_consume)
+    in
+    let e' = insert_frees to_consume_e e in
+    let body' = insert_frees to_consume_body body in
+    F.Let (n, e', body')
+  | N.Apply (n, ns) ->
+    let to_consume' = List.fold_right (fun n acc -> StringMap.remove n acc) (n :: ns) to_consume in
+    consume_in to_consume' (F.Apply (F.Local n, List.map (fun n -> F.Local n) ns))
+  | N.Dup (_, n) when StringMap.mem n to_consume ->
+    let to_consume' = StringMap.remove n to_consume in
+    consume_in to_consume' (F.Local n)
+  | N.Dup (ty, n) ->
+    let to_consume' = StringMap.remove n to_consume in
+    consume_in to_consume' (F.Dup (ty, n))
+  | N.Literal l -> consume_in to_consume (F.Literal l)
+  | N.Global n -> consume_in to_consume (F.Global n)
+  | N.Local n ->
+    let to_consume' = StringMap.remove n to_consume in
+    consume_in to_consume' (F.Local n)
+  | N.Err (ty, msg) -> consume_in to_consume (F.Err (ty, msg))
+
+let insert_frees_def =
+  function
+  | N.Define (fun_name, fun_ty, params, body) ->
+    let param_tys = match fun_ty with
+                    | Uast.FunTy (param_tys, _) -> param_tys
+                    | _ -> raise (Impossible "function does not have function type")
+    in
+    let typed_params = List.combine params param_tys in
+    let params_to_consume = List.fold_right
+        (fun (n, ty) acc -> StringMap.add n ty acc) typed_params StringMap.empty in
+    let _ = check_affine params_to_consume S.empty body in
+    let body' = insert_frees params_to_consume body in
+    F.Define(fun_name, fun_ty, params, body')
+  | N.Datatype (n, variants) -> F.Datatype (n, variants)
+
+let consumption_check = List.map insert_frees_def
+  
+\end{minted}
+
+\subsubsection{memorymanage.ml}
+
+\begin{minted}[breaklines, frame=single]{ocaml}
+(* Converts explicit free AST to explicit memory managed AST *)
+
+(* Author: Randy Dang 
+ * Edited by: Jasper Geer, Jackson Warhover
+ *)
+
+(* 
+ * Notes: Convert types to LLVM types 
+ * Generate alloc and free functions for each datatype 
+ * Convert all dup calls to the appropriate alloc function (and 
+ * use the "primitive" alloc where necessary)
+ * Convert all freerec calls to the appropriate free function 
+ * Keep all free calls the way they are 
+ * Delete datatype definitions 
+ * Prefix user functions with "_"
+ *)
+
+module F = Fast 
+module M = Mast 
+
+module StringMap = Map.Make(String) 
+
+let typeof (_, ty) = ty
+
+let id x = x 
+
+(* Defined in case we want to throw an error *)
+exception InvalidDup of string 
+exception Unimplemented of string 
+exception Impossible of string 
+
+(* Convert Compost type `ty` to the appropriate LLVM type *)
+let rec convert_builtin_ty ty = 
+    match ty with 
+    | Uast.FunTy(tylist, ty) ->
+        let convert_param_ty = function
+            | Uast.FunTy _  as fun_ty -> M.Ptr(convert_builtin_ty fun_ty)
+            | other_ty -> convert_builtin_ty other_ty
+        in
+        M.Fun(convert_builtin_ty ty, List.map convert_param_ty tylist)
+    | Uast.Unit -> M.Int(1)
+    | Uast.Int -> M.Int(32) (* 32-bit integer *)
+    | Uast.Bool -> M.Int(1) (* 1-bit integer *)
+    | Uast.Sym -> M.Ptr(Int(8)) (* pointer to a 8-bit integer *)
+    | Uast.CustomTy(_) -> raise (Impossible "Erroneously called convert_builtin_ty on a custom datatype")
+
+(* Convert an integer to a generated variable name corresponding to that integer, e.g. 1 -> "var1" *)
+let varname_of_int int = "var" ^ string_of_int int 
+
+let mast_of_fast fast = 
+    (* Get all datatype definitions *)
+    let datatypes = 
+        let add_datatype map def = 
+            match def with 
+            | F.Datatype(name, variants) -> StringMap.add name variants map 
+            | _ -> map
+        in
+        List.fold_left add_datatype StringMap.empty fast 
+    in 
+    (* Get all variant constructor definitions and generate indices *)
+    let variant_tags = 
+        let add_variant (map, tag) (name, _) = (StringMap.add name tag map, tag + 1) in 
+        let add_datatype_variant map def = 
+            match def with 
+            | F.Datatype(_, variants) -> 
+                let (map', _) = List.fold_left add_variant (map, 0) variants in 
+                map'
+            | _ -> map (* No change if not a datatype definition *) 
+        in
+        List.fold_left add_datatype_variant StringMap.empty fast 
+    in
+    (* Convert fast ty to mast ty *)
+    let rec convert_ty ty = 
+        match ty with 
+        (* LLVM type for a custom type is a pointer to a struct containing a 
+          * 32-bit variant identifier (i.e. tag), followed by $n$ i64s, where 
+          * $n$ equals the maximum number of arguments for a variant constructor 
+          * of this type
+          *)
+        | Uast.CustomTy(tyname) -> 
+            let variants = StringMap.find tyname datatypes in
+            (* Get maxnum_variantargs, which is the maximum possible number of arguments to 
+              * a variant constructor of this type 
+              *)
+            let update_maxnum_variantargs currmax currvariant = 
+                let (_, currvarianttys) = currvariant in 
+                max currmax (List.length currvarianttys) 
+            in
+            let maxnum_variantargs = List.fold_left update_maxnum_variantargs 0 variants in 
+            M.Ptr(M.Struct(M.Int(32) :: List.init maxnum_variantargs (fun _ -> M.Int(64))))
+        | Uast.FunTy(tylist, ty) ->
+            let convert_param_ty = function
+                | Uast.FunTy _  as fun_ty -> M.Ptr(convert_ty fun_ty)
+                | other_ty -> convert_ty other_ty
+            in
+            M.Fun(convert_param_ty ty, List.map convert_param_ty tylist)
+        | _ -> convert_builtin_ty ty 
+    in 
+    (* Convert fast expr to mast expr *)
+    let rec convert_expr fast_expr =
+        match fast_expr with
+        | F.Literal(lit) -> M.Literal(lit)
+        | F.Local(name) -> M.Local(name)
+        | F.Global("main") -> M.Global("main")
+        | F.Global(name) when List.mem_assoc name Primitives.primitives -> M.Global(name)
+        | F.Global(name) -> M.Global("_" ^ name)
+        | F.Case(expr, casebranches) ->
+            let convert_casebranch (pattern, pexpr) = 
+                let convert_pattern pattern = 
+                    match pattern with 
+                    | F.Pattern(name, names) ->
+                        M.Pattern(StringMap.find name variant_tags, List.map (fun (name, ty) -> (name, convert_ty ty)) names)
+                    | F.Name n -> M.Name n
+                in
+                (convert_pattern pattern, convert_expr pexpr) 
+            in 
+            M.Case(convert_expr expr, List.map convert_casebranch casebranches)
+        | F.If(expr1, expr2, expr3) ->
+            M.If(convert_expr expr1, convert_expr expr2, convert_expr expr3)
+        | F.Let(name, expr, body) -> M.Let(name, convert_expr expr, convert_expr body)
+        | F.Apply(expr, exprlist) -> M.Apply(convert_expr expr, List.map convert_expr exprlist)
+        | F.Dup(ty, name) -> 
+            (match ty with 
+              | CustomTy(tyname) -> M.Apply(M.Global("dup_" ^ tyname), [M.Local(name)])
+              | _ -> M.Local(name) (* no-op for now that returns the name; another option is to throw InvalidDup exception *))
+        | F.FreeRec(ty, name, expr) -> 
+            (match ty with 
+              | CustomTy(tyname) -> M.Let(Freshnames.fresh_name (), M.Apply(M.Global("free_" ^ tyname), [M.Local(name)]), convert_expr expr)
+              | _ -> raise (Impossible "Erroneously called FreeRec on something that was not a custom type"))
+        | F.Free(_, name, expr) -> M.Free(name, convert_expr expr)
+        | F.Err (ty, msg) -> M.Err (convert_ty ty, msg)
+    in
+    (* Converts a fast definition to a _list_ of mast definitions *)
+    let convert_defs fast_def =
+        match fast_def with
+        | F.Define("main", fun_ty, params, body) ->
+            [ M.Define("main", convert_ty fun_ty, params, convert_expr body) ]
+        | F.Define(name, fun_ty, params, body) ->
+            (* Prefix each function name with "_" to guarantee it does not conflict with generated functions *)
+            [ M.Define("_" ^ name, convert_ty fun_ty, params, convert_expr body) ]
+        | F.Datatype(name, variants) ->
+            (* Generate all relevant functions for this datatype *)
+            let data_ty = match convert_ty (Uast.CustomTy(name)) with
+              | M.Ptr ty -> ty
+              | _ -> raise (Impossible "custom type is not pointer to struct")
+            in
+            let data_ty_ptr = M.Ptr data_ty in
+            let dup_func = 
+                let func_type = M.Fun(data_ty_ptr, [data_ty_ptr]) in
+                let param_names = ["instance"] in 
+                let body = 
+                    let gen_casebranch variant_idx (_, variant_tys) = 
+                        (* Let variant_varnames just be a sequence of integers starting from 0, prepended by "var" *)
+                        let variant_varnames = List.init (List.length variant_tys) varname_of_int in 
+                        let pattern = M.Pattern(variant_idx, List.combine variant_varnames (List.map convert_ty variant_tys)) in
+                        let expr = 
+                            let alloc_ty index ty = 
+                            match ty with 
+                              | Uast.CustomTy(name) -> (index + 1, M.Apply(Global("dup_" ^ name), [Local(varname_of_int index)]))
+                              | _ -> (index + 1, Local(varname_of_int index)) 
+                            in 
+                            let (_, alloc_expr) = List.fold_left_map alloc_ty 0 variant_tys 
+                            in 
+                            M.Alloc(data_ty, variant_idx, alloc_expr) 
+                        in 
+                        (variant_idx + 1, (pattern, expr))
+                    in 
+                    let (_, casebranches) = List.fold_left_map gen_casebranch 0 variants in
+                    let casebranches' = List.append casebranches [(M.Name (Freshnames.fresh_name ()), M.Err (data_ty_ptr, "IMPOSSIBLE: inexhaustive match in dup"))] in
+                    M.Case(Local("instance"), casebranches')
+                in 
+                M.Define("dup_" ^ name, func_type, param_names, body)
+            in 
+            let free_func = 
+                let func_type = M.Fun(convert_ty Uast.Unit, [data_ty_ptr]) in
+                let param_names = ["instance"] in 
+                let body = 
+                    let gen_casebranch variant_idx (_, variant_tys) = 
+                        (* Let variant_varnames just be a sequence of integers starting from 0, prepended by "var" *)
+                        let variant_varnames = List.init (List.length variant_tys) varname_of_int in 
+                        let pattern = M.Pattern(variant_idx, List.combine variant_varnames (List.map convert_ty variant_tys)) in
+                        let expr = 
+                            let unitlit = M.Literal(Ast.UnitLit) in 
+                            let gen_free_call varname ty = 
+                                match ty with 
+                                  | Uast.CustomTy(name) -> M.Apply(Global("free_" ^ name), [Local(varname)]) 
+                                  | _ -> unitlit 
+                            in 
+                            (* Get all calls to free functions *)
+                            let free_calls = List.filter ((<>) unitlit) (List.map2 gen_free_call variant_varnames variant_tys) in 
+                            let rec free_expr_of_calls free_calls = 
+                                match free_calls with 
+                                  | [] -> unitlit
+                                  | [call] -> call 
+                                  | call :: calls -> M.Let(Freshnames.fresh_name (), call, free_expr_of_calls calls)
+                            in 
+                            M.Free("instance", free_expr_of_calls free_calls)
+                        in 
+                        (variant_idx + 1, (pattern, expr))
+                    in 
+                    let (_, casebranches) = List.fold_left_map gen_casebranch 0 variants  in
+                    let casebranches' = List.append casebranches [(M.Name (Freshnames.fresh_name ()), M.Err (M.Int 1, "IMPOSSIBLE: inexhaustive match in dup"))] in
+                    M.Case(Local("instance"), casebranches')
+                in 
+                M.Define("free_" ^ name, func_type, param_names, body) 
+            in
+            let alloc_variant_funcs = 
+                let alloc_variant_func (variant_name, variant_tys) = 
+                    (* Let argument names of function just be a sequence of integers starting from 0, prepended by "var" *)
+                    let func_type = M.Fun(data_ty_ptr, (List.map convert_ty variant_tys)) in
+                    let func_argnames = List.init (List.length variant_tys) varname_of_int in 
+                    let alloc_ty index _ = (index + 1, M.Local(varname_of_int index)) in 
+                    let (_, alloc_expr) = List.fold_left_map alloc_ty 0 variant_tys in 
+                    let alloc_call = M.Alloc(data_ty, StringMap.find variant_name variant_tags, alloc_expr) in 
+                    M.Define("_" ^ variant_name, func_type, func_argnames, alloc_call)
+                in
+                let variants = StringMap.find name datatypes in 
+                List.map alloc_variant_func variants 
+            in
+            dup_func :: free_func :: alloc_variant_funcs
+    in 
+    let defs = List.map convert_defs fast in 
+    List.flatten defs
+  
+\end{minted}
+
+\subsubsection{codegen.ml}
+
+\begin{minted}[breaklines, frame=single]{ocaml}
+(* Author: Jasper Geer 
+ * Edited by: Randy Dang
+ *)
+
+module L = Llvm
+module M = Mast
+module P = Primitives
+
+module StringMap = Map.Make(String)
+module StringSet = Set.Make(String)
+
+let ctx = L.create_context
+
+exception Impossible of string
+
+let codegen program =
+  let context = L.global_context () in
+  let i64_t = L.i64_type context
+  and i32_t = L.i32_type context
+  and i8_t = L.i8_type context
+  and i1_t = L.i1_type context
+  and void_t = L.void_type context
+  and the_module = L.create_module context "Compost" in
+
+  let rec lltype_of_ty = function
+    | M.Int i -> L.integer_type context i
+    | M.Fun (ret_ty, param_tys) ->
+      let ret_ty' = lltype_of_ty ret_ty in
+      let param_tys' = List.map lltype_of_ty param_tys in
+      L.function_type ret_ty' (Array.of_list param_tys')
+    | M.Struct tys ->
+      let tys' = List.map lltype_of_ty tys in
+      L.struct_type context (Array.of_list tys')
+    | M.Ptr ty -> L.pointer_type (lltype_of_ty ty)
+  in
+  let unions sets = List.fold_right StringSet.union sets StringSet.empty in
+
+  let symbols =
+    let rec get_sym_lits = function
+      | M.Literal (Ast.SymLit str) -> StringSet.singleton str
+      | M.Case (e, branches) ->
+        let branch_lits = unions (List.map (fun (_, e) -> get_sym_lits e) branches) in
+        StringSet.union (get_sym_lits e) branch_lits
+      | M.If (e1, e2, e3) -> unions [get_sym_lits e1; get_sym_lits e2; get_sym_lits e3]
+      | M.Let (_, e1, e2) -> unions [get_sym_lits e1; get_sym_lits e2]
+      | M.Apply (e, args) -> unions ((get_sym_lits e) :: (List.map get_sym_lits args))
+      | M.Free (_, e) -> get_sym_lits e
+      | _ -> StringSet.empty
+    in
+    let sym_lits = unions (List.map (fun (M.Define (_, _, _, body)) -> get_sym_lits body) program) in
+    let build_symbol sym_lit syms =
+      let sym_value = L.const_stringz context sym_lit in
+      let sym_var = L.define_global "sym_lit" sym_value the_module in
+      StringMap.add sym_lit sym_var syms
+    in
+    StringSet.fold build_symbol sym_lits StringMap.empty
+  in
+
+  let abort_t = L.function_type void_t [| |] in
+  let abort_func = L.declare_function "abort" abort_t the_module in
+
+  let free_t = L.function_type void_t [| L.pointer_type i8_t |] in
+  let free_func = L.declare_function "free" free_t the_module in
+
+  (* Association list of primitive functions names and how to build them *)
+  let primitives =
+    let printf_t = L.var_arg_function_type i32_t [| L.pointer_type i8_t |] in
+    let printf_func = L.declare_function "printf" printf_t the_module in
+
+    let getchar_t = L.function_type i32_t [| |] in
+    let getchar_func = L.declare_function "getchar" getchar_t the_module in
+
+    let unit_value = L.const_int i1_t 0 in
+    [
+      ("print-newline", fun builder ->
+          function
+          | [| |] ->
+            let newline = L.build_global_stringptr "\n" "newline" builder in
+            let _ = L.build_call printf_func [| newline |] "tmp" builder in
+            unit_value
+          | _ -> raise (Impossible "print-sym has 1 parameter")
+
+      );
+      ("print-sym", fun builder ->
+          function
+          | [| s |] ->
+            let _ = L.build_call printf_func [| s |] "tmp" builder in
+            unit_value
+          | _ -> raise (Impossible "print-sym has 1 parameter")
+      );
+      ("print-int", fun builder ->
+        function
+        | [| i |] ->
+            let fmt_int = L.build_global_stringptr "%d" "fmt_int" builder in
+            let _ = L.build_call printf_func [| fmt_int; i |] "tmp" builder in
+            unit_value
+        | _ -> raise (Impossible "print-int has 1 parameter")
+      );
+      ("print-ascii", fun builder ->
+        function
+        | [| i |] ->
+            let fmt_int = L.build_global_stringptr "%c" "fmt_char" builder in
+            let _ = L.build_call printf_func [| fmt_int; i |] "tmp" builder in
+            unit_value
+        | _ -> raise (Impossible "print-int has 1 parameter")
+      );
+      ("print-bool", fun builder ->
+          function
+          | [| b |] ->
+            let true_str = L.build_global_stringptr "true" "true" builder in
+            let false_str = L.build_global_stringptr "false" "false" builder in
+            let to_print = L.build_select b true_str false_str "tmp" builder in
+            let _ = L.build_call printf_func [| to_print |] "tmp" builder in
+            unit_value
+          | _ -> raise (Impossible "print-bool has 1 parameter")
+      );
+      ("print-unit", fun builder ->
+          function
+          | [| _ |] ->
+            let unit_str = L.build_global_stringptr "unit" "unit" builder in
+            let _ = L.build_call printf_func [| unit_str |] "tmp" builder in
+            unit_value
+          | _ -> raise (Impossible "print-unit has 1 parameter")
+      );
+      ("in", fun builder ->
+          function
+          | [| |] -> L.build_call getchar_func [| |] "tmp" builder
+          | _ -> raise (Impossible "in has no parameters")
+      );
+
+      (* Equality *)
+      ("=i", fun builder ->
+          function
+          | [| a; b |] -> L.build_icmp L.Icmp.Eq a b "tmp" builder
+          | _ -> raise (Impossible "i= has 2 parameters")
+      );
+      ("=s", fun builder ->
+          function
+          | [| a; b |] -> L.build_icmp L.Icmp.Eq a b "tmp" builder
+          | _ -> raise (Impossible "s= has 2 parameters")
+      );
+      ("=b", fun builder ->
+          function
+          | [| a; b |] -> L.build_icmp L.Icmp.Eq a b "tmp" builder
+          | _ -> raise (Impossible "b= has 2 parameters")
+      );
+      ("=u", fun _ ->
+          function
+          | [| _; _ |] -> L.const_int i1_t 1
+          | _ -> raise (Impossible "u= has 2 parameters")
+      );
+
+      (* Arithmetic *)
+      ("+", fun builder ->
+          function
+          | [| a; b |] -> L.build_add a b "tmp" builder
+          | _ -> raise (Impossible "+ has 2 parameters")
+      );
+      ("-", fun builder ->
+          function
+          | [| a; b |] -> L.build_sub a b "tmp" builder
+          | _ -> raise (Impossible "- has 2 parameters")
+      );
+      ("*", fun builder ->
+          function
+          | [| a; b |] -> L.build_mul a b "tmp" builder
+          | _ -> raise (Impossible "* has 2 parameters")
+      );
+      ("/", fun builder ->
+          function
+          | [| a; b |] -> L.build_sdiv a b "tmp" builder
+          | _ -> raise (Impossible "/ has 2 parameters")
+      );
+      ("udiv", fun builder ->
+          function
+          | [| a; b |] -> L.build_udiv a b "tmp" builder
+          | _ -> raise (Impossible "udiv has 2 parameters")
+      );
+      ("%", fun builder ->
+          function
+          | [| a; b |] -> L.build_srem a b "tmp" builder
+          | _ -> raise (Impossible "% has 2 parameters")
+      );
+      ("umod", fun builder ->
+          function
+          | [| a; b |] -> L.build_urem a b "tmp" builder
+          | _ -> raise (Impossible "umod has 2 parameters")
+      );
+      ("neg", fun builder ->
+          function
+          | [| a |] -> L.build_neg a "tmp" builder
+          | _ -> raise (Impossible "neg has 2 parameters")
+      );
+
+      (* Comparison *)
+      (">", fun builder ->
+          function
+          | [| a; b |] -> L.build_icmp L.Icmp.Sgt a b "tmp" builder
+          | _ -> raise (Impossible "> has 2 parameters")
+      );
+      ("<", fun builder ->
+          function
+          | [| a; b |] -> L.build_icmp L.Icmp.Slt a b "tmp" builder
+          | _ -> raise (Impossible "< has 2 parameters")
+      );
+      (">=", fun builder ->
+          function
+          | [| a; b |] -> L.build_icmp L.Icmp.Sge a b "tmp" builder
+          | _ -> raise (Impossible ">= has 2 parameters")
+      );
+      ("<=", fun builder ->
+          function
+          | [| a; b |] -> L.build_icmp L.Icmp.Sle a b "tmp" builder
+          | _ -> raise (Impossible "<= has 2 parameters")
+      );
+
+      (* Boolean *)
+      ("not", fun builder ->
+          function 
+          | [| a |] -> L.build_not a "tmp" builder 
+          | _ -> raise (Impossible "not has 1 parameter")
+      );
+      ("and", fun builder ->
+        function 
+        | [| a; b |] -> L.build_and a b "tmp" builder 
+        | _ -> raise (Impossible "and has 2 parameters")
+      );
+      ("or", fun builder ->
+        function 
+        | [| a; b |] -> L.build_or a b "tmp" builder 
+        | _ -> raise (Impossible "and has 2 parameters")
+      );
+      ("xor", fun builder ->
+        function 
+        | [| a; b |] -> L.build_xor a b "tmp" builder 
+        | _ -> raise (Impossible "xor has 2 parameters")
+      );
+
+      (* Bitwise *)
+      ("&", fun builder ->
+          function
+          | [| a; b |] -> L.build_and a b "tmp" builder
+          | _ -> raise (Impossible "& has 2 parameters")
+      );
+      ("|", fun builder ->
+          function
+          | [| a; b |] -> L.build_or a b "tmp" builder
+          | _ -> raise (Impossible "| has 2 parameters")
+      );
+      ("^", fun builder ->
+          function
+          | [| a; b |] -> L.build_xor a b "tmp" builder
+          | _ -> raise (Impossible "^ has 2 parameters")
+      );
+      ("<<", fun builder ->
+          function
+          | [| a; b |] -> L.build_shl a b "tmp" builder
+          | _ -> raise (Impossible "^ has 2 parameters")
+      );
+      (">>", fun builder ->
+          function
+          | [| a; b |] -> L.build_lshr a b "tmp" builder
+          | _ -> raise (Impossible ">> has 2 parameters")
+      );
+      ("~", fun builder ->
+          function
+          | [| a |] -> L.build_not a "tmp" builder
+          | _ -> raise (Impossible "~ has 1 parameter")
+      );
+    ]
+  in
+
+  (* Build the set of function declarations *)
+  let functions =
+    let primitive_decls =
+      let build_primitive (fun_name, build_fun) decls =
+        let fun_ty = List.assoc fun_name P.primitives in
+        let fun_lltype = lltype_of_ty (Memorymanage.convert_builtin_ty fun_ty) in
+        let decl = L.define_function fun_name fun_lltype the_module in
+        let builder = L.builder_at_end context (L.entry_block decl) in
+        let return_val = build_fun builder (L.params decl) in
+        let _ = L.build_ret return_val builder in
+        StringMap.add fun_name decl decls
+      in
+      List.fold_right build_primitive primitives StringMap.empty
+    in
+    let function_decl (M.Define (fun_name, fun_ty, _, _)) decls =
+      let fun_lltype = lltype_of_ty fun_ty in
+      StringMap.add fun_name (L.define_function fun_name fun_lltype the_module) decls
+    in
+    let decls = List.fold_right function_decl program StringMap.empty in
+    let name_conflict = Impossible "user-defined function and primitive function share the same name" in
+    StringMap.union (fun _ _ -> raise name_conflict) decls primitive_decls
+  in
+  let build_function_body (M.Define (n, _, params, body)) =
+    let the_function = StringMap.find n functions in
+    let make_bogus_val ty builder = match L.classify_type ty with
+      | L.TypeKind.Pointer ->
+        let bogus_int = L.const_int i64_t (-1) in
+        L.build_inttoptr bogus_int ty "bogus" builder
+      | L.TypeKind.Integer ->
+        let bitwidth = L.integer_bitwidth ty in
+        let bogus_int = L.const_int (L.integer_type context bitwidth) (-1) in
+        bogus_int
+      | _ -> raise (Impossible "Non-pointer, non-integer return type")
+    in
+
+    (* Recursively build the return value of the function *)
+    let rec expr is_tail locals builder =
+      let non_tail = expr false in
+      let tail = expr is_tail in
+      let terminate ret_val builder =
+        if is_tail
+          then
+            let _ = L.build_ret ret_val builder in
+            (ret_val, builder)
+          else
+            (ret_val, builder)
+      in
+      function
+      | M.Literal l ->
+        let (lit_val, builder) =
+        match l with
+        | Ast.IntLit i -> (L.const_int i32_t i, builder)
+        | Ast.SymLit s ->
+          let sym = StringMap.find s symbols in
+          (L.build_bitcast sym (L.pointer_type i8_t) s builder, builder)
+        | Ast.BoolLit b -> if b
+          then (L.const_int i1_t 1, builder)
+          else (L.const_int i1_t 0, builder)
+        | Ast.UnitLit -> (L.const_int i1_t 0, builder)
+        in
+        terminate lit_val builder
+      | M.Local n ->
+        let local_val = StringMap.find n locals in
+        terminate local_val builder
+      | M.Global n ->
+        let global_val = StringMap.find n functions in
+        terminate global_val builder
+      | M.Let (n, e, body) ->
+        let (e_val, builder') = non_tail locals builder e in
+        let locals' = StringMap.add n e_val locals in
+        tail locals' builder' body
+      | M.Apply (M.Global n, args) when List.mem_assoc n primitives ->
+        let (arg_vals, builder') = List.fold_left
+            (fun (arg_vals, b) arg ->
+              let (arg_val, b') = non_tail locals b arg in
+              (arg_vals @ [arg_val], b')
+            ) ([], builder) args in
+        let call_val = List.assoc n primitives builder' (Array.of_list arg_vals) in
+        terminate call_val builder'
+      | M.Apply (f, args) ->
+        let (f_val, builder') = non_tail locals builder f in
+        let (arg_vals, builder'') = List.fold_left
+            (fun (arg_vals, b) arg ->
+              let (arg_val, b') = non_tail locals b arg in
+              (arg_vals @ [arg_val], b')
+            ) ([], builder') args in
+        let call_val = L.build_call f_val (Array.of_list arg_vals) "apply_result" builder'' in
+        let _ = L.set_tail_call true call_val in
+        terminate call_val builder''
+      | M.Free (n, e) ->
+        let to_free = L.build_bitcast (StringMap.find n locals) (L.pointer_type i8_t) "to_free" builder in
+        let _ = L.build_call free_func [| to_free |] "" builder in
+        tail locals builder e
+      | M.If (cond, b1, b2) when is_tail ->
+        let (cond_val, builder') = non_tail locals builder cond in
+
+        let then_bb = L.append_block context "then" the_function in
+        let then_builder = L.builder_at_end context then_bb in
+        let (then_val, then_builder') = tail locals then_builder b1 in
+        let _ = L.build_ret then_val then_builder' in
+
+        let else_bb = L.append_block context "else" the_function in
+        let else_builder = L.builder_at_end context else_bb in
+        let (else_val, else_builder') = tail locals else_builder b2 in
+        let _ = L.build_ret else_val else_builder' in
+
+        let _ = L.build_cond_br cond_val then_bb else_bb builder' in
+
+        let branch_ty = L.type_of else_val in
+        let bogus_val = make_bogus_val branch_ty builder' in
+        (* Throw up something for the enclosing call to use - we will never return this *)
+        (bogus_val, builder')
+
+      | M.If (cond, b1, b2) ->
+        let (cond_val, builder') = non_tail locals builder cond in
+
+        let merge_bb = L.append_block context "merge" the_function in
+        let branch_instr = L.build_br merge_bb in
+
+        let then_bb = L.append_block context "then" the_function in
+        let then_builder = L.builder_at_end context then_bb in
+        let (then_val, then_builder') = non_tail locals then_builder b1 in
+        let then_val' = then_val in
+        let _ = branch_instr then_builder' in
+
+        let else_bb = L.append_block context "else" the_function in
+        let else_builder = L.builder_at_end context else_bb in
+        let (else_val, else_builder') = non_tail locals else_builder b2 in
+        let else_val' = else_val in
+        let _ = branch_instr else_builder' in
+
+        let _ = L.build_cond_br cond_val then_bb else_bb builder' in
+        let merge_builder = L.builder_at_end context merge_bb in
+
+        (L.build_phi [(then_val', L.insertion_block then_builder');
+                      (else_val', L.insertion_block else_builder')]
+          "if_result" merge_builder, merge_builder)
+
+      | M.Alloc (ty, tag, args) ->
+        let struct_val = L.build_malloc (lltype_of_ty ty) "struct" builder in
+        let tag_val = L.const_int i32_t tag in
+        let tag_ptr = L.build_struct_gep struct_val 0 "tag_ptr" builder in
+        let _ = L.build_store tag_val tag_ptr builder in
+        let (builder', _) = List.fold_left
+            (fun (b, i) arg ->
+              let (arg_val, b') = non_tail locals b arg in
+              let convert_to_i64 v = match L.classify_type (L.type_of v) with
+                | L.TypeKind.Pointer -> L.build_ptrtoint v i64_t "tmp" b'
+                | _ -> L.build_zext v i64_t "tmp" b'
+              in
+              let converted_val = convert_to_i64 arg_val in
+              let elem_ptr = L.build_struct_gep struct_val i "elem_ptr" b' in
+              let _ = L.build_store converted_val elem_ptr b' in
+              (b', i + 1)
+            ) (builder, 1) args in
+        terminate struct_val builder'
+      | M.Err (ty, msg) ->
+        let msg_str = L.build_global_stringptr msg "err_msg" builder in
+        let _ = List.assoc "print-sym" primitives builder [| msg_str |]in
+        let abort_call = L.build_call abort_func [| |] "" builder in
+        let _ = if is_tail then L.set_tail_call true abort_call in
+        let bogus_val = make_bogus_val (lltype_of_ty ty) builder in
+        let _ = L.set_tail_call true abort_call in
+        terminate bogus_val builder
+
+      | M.Case (scrutinee, branches) when is_tail ->
+        let (scrutinee_val, builder') = non_tail locals builder scrutinee in
+        let tag_ptr = L.build_struct_gep scrutinee_val 0 "tag_ptr" builder' in (* error here *)
+        let tag_val = L.build_load tag_ptr "tag_val" builder' in
+        let default_bb = L.append_block context "default" the_function in
+        let switch = L.build_switch tag_val default_bb (List.length branches) builder' in
+        let build_branch (pat, body) = match pat with
+            | M.Pattern(tag, names) ->
+              let branch_bb = L.append_block context "case_branch" the_function in
+              let branch_builder = L.builder_at_end context branch_bb in
+              let convert_i64 ty v = match ty with
+                | M.Int n ->
+                  let in_ty = L.integer_type context n in
+                  L.build_trunc v in_ty "tmp" branch_builder
+                | _ -> L.build_inttoptr v (lltype_of_ty ty) "tmp" branch_builder
+              in
+              let (locals', _) =
+                List.fold_left
+                  (fun (locals, i) (n, ty) ->
+                    let arg_ptr = L.build_struct_gep scrutinee_val i "arg_ptr" branch_builder in
+                    let arg_val = L.build_load arg_ptr "arg_val" branch_builder in
+                    let converted_val = convert_i64 ty arg_val in
+                    (StringMap.add n converted_val locals, i + 1)
+                  ) (locals, 1) names
+              in
+              let (body_val, _) = tail locals' branch_builder body in
+              let idx_val = L.const_int i32_t tag in
+              let _ = L.add_case switch idx_val branch_bb in
+              body_val
+            | M.Name _ ->
+              let branch_builder = L.builder_at_end context default_bb in
+              let (body_val, _) = tail locals branch_builder body in
+              body_val
+        in
+        let branches' = List.map build_branch branches in
+        let branch_ty = L.type_of (List.hd branches') in
+        (make_bogus_val branch_ty builder', builder')
+
+      | M.Case (scrutinee, branches) ->
+        let (scrutinee_val, builder') = non_tail locals builder scrutinee in
+        let tag_ptr = L.build_struct_gep scrutinee_val 0 "tag_ptr" builder' in (* error here *)
+        let tag_val = L.build_load tag_ptr "tag_val" builder' in
+        let default_bb = L.append_block context "default" the_function in
+        let switch = L.build_switch tag_val default_bb (List.length branches) builder' in
+
+        let merge_bb = L.append_block context "merge" the_function in
+        let branch_instr = L.build_br merge_bb in
+
+        let build_branch (pat, body) = match pat with
+            | M.Pattern(tag, names) ->
+              let branch_bb = L.append_block context "case_branch" the_function in
+              let branch_builder = L.builder_at_end context branch_bb in
+              let convert_i64 ty v = match ty with
+                | M.Int n ->
+                  let in_ty = L.integer_type context n in
+                  L.build_trunc v in_ty "tmp" branch_builder
+                | _ -> L.build_inttoptr v (lltype_of_ty ty) "tmp" branch_builder
+              in
+              let (locals', _) =
+                List.fold_left
+                  (fun (locals, i) (n, ty) ->
+                    let arg_ptr = L.build_struct_gep scrutinee_val i "arg_ptr" branch_builder in
+                    let arg_val = L.build_load arg_ptr "arg_val" branch_builder in
+                    let converted_val = convert_i64 ty arg_val in
+                    (StringMap.add n converted_val locals, i + 1)
+                  ) (locals, 1) names
+              in
+              let (body_val, body_builder) = non_tail locals' branch_builder body in
+              let idx_val = L.const_int i32_t tag in
+              let _ = L.add_case switch idx_val branch_bb in
+              let _ = branch_instr body_builder in
+              (body_val, L.insertion_block body_builder)
+            | M.Name _ ->
+              let branch_builder = L.builder_at_end context default_bb in
+              let (body_val, body_builder) = non_tail locals branch_builder body in
+              let _ = branch_instr body_builder in
+              (body_val, L.insertion_block body_builder)
+        in
+        let merge_builder = L.builder_at_end context merge_bb in
+        let branches' = List.map build_branch branches in
+        (L.build_phi branches' "case_result" merge_builder, merge_builder)
+
+    in
+    let builder = L.builder_at_end context (L.entry_block the_function) in
+
+    let init_locals =
+      let param_values = L.params the_function in
+      let bindings = List.mapi (fun i n -> (n, Array.get param_values i)) params in
+      List.fold_right (fun (n, v) m -> StringMap.add n v m) bindings StringMap.empty
+    in
+    let _ = expr true init_locals builder body in
+    ()
+  in
+  List.iter build_function_body program;
+  the_module 
+\end{minted}
+
+\subsection{Program Driver}
+
+\subsubsection{compost.ml}
+
+\begin{minted}[breaklines, frame=single]{ocaml}
+(* Top-level of the Compost compiler *)
+
+(* Authors: Randy Dang, Jasper Geer, Roger Burtonpatel, Jackson Warhover *)
+
+(* Force dune to build some stuff *)
+module D = Disambiguate
+module T = Typecheck
+module C = Consumptioncheck
+module N = Normalize
+module M = Memorymanage
+module G = Codegen
+module Pre = Preprocess
+
+type action = Ast | PAst | UAst | TAst | MAst | Compile
+
+let () =
+  let action = ref Compile in
+  let set_action a () = action := a in
+  let speclist = [
+    ("-a", Arg.Unit (set_action Ast), "Print the AST");
+    ("-p", Arg.Unit (set_action PAst), "Preprocess & Print the AST");
+    ("-u", Arg.Unit (set_action UAst), "Print the UAST");
+    ("-t", Arg.Unit (set_action TAst), "Typecheck and print UAst");
+    ("-m", Arg.Unit (set_action MAst), "Typecheck, analyze consumption, add explicit memory management, and print MAst");
+    ("-c", Arg.Unit (set_action Compile),
+      "Check and print the generated LLVM IR (default)");
+  ] in
+  let usage_msg = "usage: dune exec -- compost [-a|-d|-t|-m|-c] [file.com]" in
+  let channel = ref stdin in
+  Arg.parse speclist (fun filename -> channel := open_in filename) usage_msg;
+
+  let lexbuf = Lexing.from_channel !channel in
+
+  let output =
+    let ast = Parser.program Scanner.token lexbuf in
+    if !action = Ast then (Ast.string_of_program ast) else
+
+    let past = Pre.preprocess ast in
+    if !action = PAst then (Past.string_of_program past) else
+
+    let uast = D.disambiguate past in
+    if !action = UAst then (Uast.string_of_program uast) else
+
+    let (type_checked, _, _) = T.typecheck uast in
+    if !action = TAst then (Uast.string_of_program uast) else
+
+    let normalized = N.normalize type_checked in
+
+    let consumption_checked = C.consumption_check normalized in
+    let memory_managed = M.mast_of_fast consumption_checked in
+    if !action = MAst then (Mast.string_of_program memory_managed) else
+
+    let m = G.codegen memory_managed in
+    (* Llvm_analysis.assert_valid_module m; *)
+    Llvm.string_of_llmodule m
+  in print_string output
+  
+\end{minted}
 
 \end{document}
