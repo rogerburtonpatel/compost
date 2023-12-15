@@ -1,4 +1,9 @@
 (* Type-Checked Abstract Syntax Tree *)
+
+(* Author: Jasper Geer 
+ * Edited by: Roger Burtonpatel, Randy Dang, Jackson Warhover 
+ *)
+
 (* open Ast *)
 
 type name = Ast.name

@@ -1,4 +1,9 @@
 (* Unambiguous Abstract Syntax Tree *)
+
+(* Author: Jasper Geer 
+ * Edited by: Roger Burtonpatel, Jackson Warhover 
+ *)
+
 type name = string
 
 type ty = 

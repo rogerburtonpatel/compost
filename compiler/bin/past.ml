@@ -1,5 +1,9 @@
 (* Processed Abstract Syntax Tree and functions for printing it *)
 
+(* Author: Jackson Warhover 
+ * Edited by: Jasper Geer, Roger Burtonpatel 
+ *)
+
 type name = Ast.name
 
 type ty = Ast.ty

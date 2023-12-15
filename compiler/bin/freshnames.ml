@@ -1,3 +1,5 @@
+(* Author: Jasper Geer *)
+
 (* God I hate global mutable state but it is so very useful here *)
 let counter = ref 0
 

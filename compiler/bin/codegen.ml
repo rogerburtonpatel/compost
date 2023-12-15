@@ -1,3 +1,7 @@
+(* Author: Jasper Geer 
+ * Edited by: Randy Dang
+ *)
+
 module L = Llvm
 module M = Mast
 module P = Primitives

@@ -1,3 +1,8 @@
+(* 
+ * Author: Roger Burtonpatel
+ * Edited by: Jasper Geer, Randy Dang, Jackson Warhover
+ *)
+
 module A = Ast 
 module U = Uast
 module T = Tast

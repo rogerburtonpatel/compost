@@ -1,3 +1,7 @@
+(* Author: Jasper Geer 
+ * Edited by: Randy Dang, Jackson Warhover 
+ *)
+
 (* Association list of primitive function names and their types *)
 let primitives =
   [

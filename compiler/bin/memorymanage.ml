@@ -1,5 +1,9 @@
 (* Converts explicit free AST to explicit memory managed AST *)
 
+(* Author: Randy Dang 
+ * Edited by: Jasper Geer, Jackson Warhover
+ *)
+
 (* 
  * Notes: Convert types to LLVM types 
  * Generate alloc and free functions for each datatype 
@@ -8,7 +12,7 @@
  * Convert all freerec calls to the appropriate free function 
  * Keep all free calls the way they are 
  * Delete datatype definitions 
- * Prefix user functions with something other than "_" (probably "^")
+ * Prefix user functions with "_"
  *)
 
 module F = Fast 

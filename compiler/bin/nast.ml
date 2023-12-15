@@ -1,5 +1,7 @@
 (* Normalized Abstract Syntax Tree *)
 
+(* Author: Jasper Geer *)
+
 type name = Ast.name
 
 type filename = Ast.filename

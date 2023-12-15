@@ -1,4 +1,8 @@
 (* Explicitly Memory Managed Abstract Syntax Tree *)
+
+(* Author: Jasper Geer 
+ * Edited by: Randy Dang, Roger Burtonpatel  
+ *)
 type name = Ast.name
 
 type filename = Ast.filename

@@ -1,6 +1,8 @@
 (* Top-level of the Compost compiler *)
 
-(* Force dune to build some stuff (REMOVE LATER) *)
+(* Authors: Randy Dang, Jasper Geer, Roger Burtonpatel, Jackson Warhover *)
+
+(* Force dune to build some stuff *)
 module D = Disambiguate
 module T = Typecheck
 module C = Consumptioncheck

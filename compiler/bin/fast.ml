@@ -1,4 +1,9 @@
 (* Explicit-Free Abstract Syntax Tree *)
+
+(* Author: Jasper Geer 
+ * Edited by: Randy Dang, Jackson Warhover, Roger Burtonpatel
+ *)
+
 type name = Ast.name
 
 type typename = name

@@ -1,3 +1,7 @@
+(* Author: Jasper Geer 
+ * Edited by: Roger Burtonpatel, Jackson Warhover
+ *)
+
 module P = Past
 module U = Uast
 module A = Ast

@@ -1,3 +1,7 @@
+(* Author: Jackson Warhover 
+ * Edited by: Jasper Geer, Roger Burtonpatel 
+ *)
+
 module P = Past
 module A = Ast
 module D = Difflist

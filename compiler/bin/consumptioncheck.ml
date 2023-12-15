@@ -1,4 +1,8 @@
 (* Consumption Checker *)
+
+(* Author: Jasper Geer 
+ * Edited by: Randy Dang, Jackson Warhover
+ *)
 module N = Nast
 module F = Fast
 module T = Tast

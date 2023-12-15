@@ -1,5 +1,9 @@
 (* Abstract Syntax Tree and functions for printing it *)
 
+(* Author: Randy Dang 
+ * Edited by: Jasper Geer, Jackson Warhover, Roger Burtonpatel
+ *)
+
 type name = string 
 
 type ty = FunTy of (ty list) * ty | SingleTy of name 
