@@ -93,7 +93,7 @@ let mast_of_fast fast =
                 | Uast.FunTy _  as fun_ty -> M.Ptr(convert_ty fun_ty)
                 | other_ty -> convert_ty other_ty
             in
-            M.Fun(convert_ty ty, List.map convert_param_ty tylist)
+            M.Fun(convert_param_ty ty, List.map convert_param_ty tylist)
         | _ -> convert_builtin_ty ty 
     in 
     (* Convert fast expr to mast expr *)
