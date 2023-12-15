@@ -98,7 +98,8 @@ val name_email_map : (string * string) list =
     a compiled language rather than interpreted. A Compost program consists of a sequence of definitions, 
     which mainly include preprocessor macros, function definitions, and custom datatype definitions. For 
     every function definition, there must also exist a type annotation that 
-    defines the argument and return types of that function. The function with name \texttt{main} defines 
+    defines the argument and return types of that function (the argument types are surrounded by a single 
+    pair of parentheses and listed before the return type). The function with name \texttt{main} defines 
     the entry point of the program, and it must take in no arguments and return type \texttt{unit}.  
     \\\\
     Function definitions are specified via the \texttt{define} keyword. Here is a program that simply 
@@ -117,7 +118,7 @@ val name_email_map : (string * string) list =
     and/or reduce code duplication. This program uses a preprocessor macro to accomplish the same 
     functionality as above:
     \begin{verbatim}
-(val hello-str 'Hello, World!') ;; defines the name `hello-str' as the string 
+(val hello-str 'Hello, World!') ;; defines the name `hello-str' as the symbol 
                                 ;; 'Hello, World!'
                                 ;; This is analogous to the following in C: 
                                 ;; #define hello-str "Hello, World!"
@@ -366,7 +367,7 @@ Variant constructors are monomorphic, that is, for any constructor $c$, there ex
 
 Functions in Compost are globally defined objects. They can be passed in to other functions or returned from 
 functions. 
-Function values are mappings from ordered sets of values, to values.
+Each function value is a mapping from an ordered set of values to a single value.
 That is, a function $f$, when applied to values $v_{1}...v_{n}$, produces a value $v_{r}$.
 Like variant constructors, functions are monomorphic, so the types of $v_{1}...v_{n}$ and $v_{r}$ are fixed.
 
@@ -424,7 +425,7 @@ Names are bound to datatypes, functions, values, and variant constructors, and a
   <function-type> ::= (\texttt{->} (\{ <type> \}) <type>)
 \end{grammar}
 
-\texttt{(-> (t1 ... tn) tr)} is the type of function values which map ordered sets of values $v_{1}...v_{n}$ of types $\texttt{t}1...\texttt{t}n$ to value $v_{r}$ of type $\texttt{tr}$.
+\texttt{(-> (t1 ... tn) tr)} is the type of function values which each map an ordered set of values $v_{1}...v_{n}$ of types $\texttt{t}1...\texttt{t}n$ to value $v_{r}$ of type $\texttt{tr}$.
 
 \subsubsection{Datatypes}
 
@@ -760,7 +761,7 @@ this binding regardless of where the the function \texttt{n} is defined.
 \subsubsection{Val Bindings}
 
 \begin{grammar}
-  <val-binding> ::= (\texttt{val} <name> <exp>)
+  <val-binding> ::= (\texttt{val} <name> <expr>)
 \end{grammar}
 
 Consider a \texttt{val} binding of the form:
@@ -848,7 +849,7 @@ Boolean equality.
 (: =s (-> (sym sym) bool))
 \end{verbatim}
 
-Symbol equality.
+Symbol equality (recall that symbols are interned so physical and structural equality are one in the same).
 
 \begin{verbatim}
 (: =u (-> (unit unit) bool))
