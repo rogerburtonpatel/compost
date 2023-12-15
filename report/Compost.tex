@@ -1427,13 +1427,49 @@ Returns the integer representation of a single ASCII character read from stdin.
 % TEST PLAN
 
 \section{Test Plan} {
+    DONE:
     Explain how your group approached unit and integration testing, and what automation was used.
     \\\\
     Show two or three representative source language programs along with the target language program 
     generated for each (if you can provide syntax highlighting and nice formatting that's REALLY useful)
     \\\\
     State who did what
+
+    We decided to write a custom bash script for unit and integration testing. This file had many
+    iterations over the course of the project, and was continuously evolving to meet our testing
+    needs.
+    \\\\
+    The bash script is able to adapt to the operating system it is run on and change some things
+    that need to be different. It begins by building compost to ensure that we aren't testing an
+    older version. It then checks for provided command line flags and args. A single flag can be
+    used to specify a single testing suite that we have developed. A suite consists of a folder
+    inside of the tests folder, as well as a specific call to compost to test against. running 
+    with no flag runs all of the test suites. Additionally, a filename can be provided to the
+    test script. This allowed us to run single tests, without waiting for the others to finish.
+    \\\\
+    Our design for test files was simple. Each test is written as a .com file inside of our
+    tests folder. Optionally, there is a file of the same name with .in as its extension. If
+    such a file is present, then the script will automatically send the file in on stdin.
+    Also optinally, there is a file with the same name with .out as its extension. This is
+    to specify what the expected output of the test would be. For some tests, mostly Ast tests,
+    this option is omitted, because the output is expected to be identical to the input.
+    \\\\
+    The script runs each test, and if the output is different than the expected value, it prints
+    the output and expected value, and ensures that the user knows which tests failed. Overall,
+    it allowed for extremely quick and easy development of tests.
+    \\\\
+    This works for unit testing as well as integration testing. The compost compiler supports
+    pretty-printing most of the IRs, if given the specified flag. Our suites are designed to 
+    test specific IR outputs. Other than tests in the "run" suite, our tests are mostly unit
+    tests, designed to test a specific function or a specific invariant in a specific IR.
+    This is why a lot of the tests are fairly short, meant to be a short and concise example
+    that adequately ensures that the behavior is what we expect. Tests in the "run" suite
+    can be treated as integration tests, because they are actually compiled. These are the
+    tests that typically use ".in" files. These test entire compost programs to ensure that
+    they actually run without error. Asside from the script, we have done manual testing of
+    most of these tests with valgrind to ensure memory safety of our generated code.
 }
+
 
 % Potential template for inserting code with syntax highlighting (in the case of LLVM)
 %
