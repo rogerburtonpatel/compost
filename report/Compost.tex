@@ -1199,17 +1199,7 @@ Returns the integer representation of a single ASCII character read from stdin.
 
 % PROJECT PLAN
 
-\section{Project Plan} {
-    Identify process used for planning, specification, and development
-    \\\\
-    Show your project timeline
-    \\\\
-    Identify roles/responsibilities/contributions of each team member
-    \\\\
-    Describe the software development environment used (tools and languages)
-    \\\\
-    If possible, include a visualization of version control commits (but not a dump of a commit log)
-}
+\section{Project Plan}
 
 \subsection{Planning and Development Process} {
     Most of the initial planning was done in ``brainstorming sessions'' that we held as a team early 
@@ -1253,16 +1243,19 @@ Returns the integer representation of a single ASCII character read from stdin.
         Oct 23 - Oct 30 & Hash Out Compiler Passes \& \\
         & Intermediate Representations \\
         \hline 
-        Oct 30 - Nov 8 & Implement Bare Minimum Functionality in Each \\ 
-        & Pass for ``Hello World'' and Basic Arithmetic \\ 
+        Oct 30 - Nov 8 & For Each Pass, Implement Functionality for ``Hello World'' \\ 
+        & Implement Functionality for Primitive Operators \\ 
+        & Build Extendible Testing Framework \\
         \hline 
         Nov 13 - Nov 29 & Implement All Features \textit{except} \\ 
         & for Custom Datatypes \& Associated Memory Safety (the hardest ones) \\ 
+        & Refine Extendible Testing Framework \\ 
+        & Rigorously Test Type Checker \\ 
         \hline 
         Dec 4 - Dec 12 & Implement Custom Datatypes \& Memory Safety \\ 
         \hline 
         Dec 12 - Dec 15 & Prepare Presentation, Report, \\ 
-        & \& Experiment with Crazy Programs (e.g. Brainf**k) \\ 
+        & \& Experiment with Writing Crazy Programs (e.g. Brainf**k Interpreter) \\ 
         \hline 
     \end{tabular}
 }
@@ -1271,20 +1264,53 @@ Returns the integer representation of a single ASCII character read from stdin.
     We decided on assigning each team member to the following roles:
     \\\\
     Randy Dang was assigned the role of \textit{manager}, who was responsible for calling 
-    meetings and ensuring that we were making steady progress according to the course 
-    deliverable deadlines. He usually coordinated the submission process for such deliverables, 
-    writing necessary documentation and checking that our submissions met the criteria.
+    meetings, coordinating logistics such as setting up GitHub, and coordinating plans to 
+    ensure that we were making steady progress on our compiler according to the course 
+    deliverable deadlines. He usually coordinated the submission process for such 
+    deliverables, writing necessary documentation and checking that our submissions met 
+    the criteria.
     \\\\
     Jasper Geer was assigned the role of \textit{language guru}, who was responsible for making 
-    semantic decisions surrounding the Compost language. (WORK IN PROGRESS)
+    semantic decisions surrounding the Compost language and planning and communicating the 
+    vision of the language. He was responsible for writing most of the Language 
+    Reference Manual, driving our ``IR-driven'' development process, and keeping the vision 
+    intact throughout our implementation. 
+    \\\\
+    Roger Burtonpatel and Jackson Warhover both took on the roles of \textit{co-system architects}
+    and \textit{co-testers}, and they were responsible for planning out what passes needed to be 
+    done in our compiler as well as the role of each pass, all in line with the language's vision
+    and serving to make future passes (and ultimately Codegen) easier to implement. 
+    They were also responsible for writing and architecting our testing framework, making it easy 
+    to isolate the testing of our compiler up to a specific pass, and writing pretty-printing 
+    functionality to make issues easy to debug. 
+    \\\\
+    In \textit{addition} to the roles described above, we each took the lead on implementing at least 
+    one compiler pass; the specifics of who did which pass(es) is described in the 
+    \hyperref[sec:architecture]{overall architecture section}.
 }
 
 \subsection{Tools Used} {
-
+    We used \href{https://www.github.com}{GitHub} to set up a central, remote repository (that we would 
+    push to and pull from) containing all of our contributions, and we implemented our compiler in 
+    the \href{https://www.ocaml.org}{OCaml} language as directed. Our compiler builds with the 
+    \href{https://dune.build}{Dune} build system. 
+    \\\\
+    We didn't have a standardized IDE because each of us had different preferences. Vim, Emacs, and 
+    VSCode were among our editors of choice. Depending on our operating systems, some of us developed 
+    on our local UNIX-based machines, whereas those of us with Windows used Windows Subsystem for 
+    Linux (WSL).
 }
 
 \subsection{Version Control Commits} {
-
+    Below are two visualizations containing commit information generated by GitHub.
+    \\\\
+    The first is a visualization of the frequency of commits over time:
+    \\\\
+    \includegraphics[scale=0.75]{images/commitvis.PNG}
+    \\\\
+    The second is a visualization of the amount of additions and deletions to files over time:
+    \\\\
+    \includegraphics[scale=0.5]{images/codefreqvis.PNG}
 }
 
 % ARCHITECTURAL DESIGN
@@ -1297,8 +1323,68 @@ Returns the integer representation of a single ASCII character read from stdin.
     State who implemented each component
 }
 
-\subsection{Overall Architecture} {
-
+\subsection{Overall Architecture} 
+\label{sec:architecture} {
+    The overall architecture of our compiler can be described by a ``pipe'' that begins with the Compost 
+    program and ends with the generated LLVM code, undergoing numerous transformations along the way. 
+    The UML diagram below is a graph showing all of our compiler passes. Each internal node defines an 
+    intermediate representation, which is usually a tree storing some information about the program, and 
+    each edge defines a pass which is a transformation from one representation to another.
+    \\\\
+    \includegraphics[scale=0.75]{images/architecture.png}
+    \\\\ 
+    The following table maps the abbreviations of different intermediate representations used in the above 
+    nodes to what the abbreviations stand for. 
+    \\\\
+    \begin{tabular}{|c|c|}
+    \hline 
+    \textbf{Abbreviation} & \textbf{What It Stands For} \\ 
+    \hline 
+    AST & Abstract Syntax Tree \\ 
+    \hline 
+    PAST & Preprocessed Abstract Syntax Tree \\ 
+    \hline 
+    UAST & Unambiguous Abstract Syntax Tree \\ 
+    \hline 
+    TAST & Type-Checked Abstract Syntax Tree \\ 
+    \hline 
+    NAST & Normalized Abstract Syntax Tree \\ 
+    \hline 
+    FAST & Frees-Inserted Abstract Syntax Tree \\ 
+    \hline 
+    MAST & Memory-Managed Abstract Syntax Tree \\ 
+    \hline 
+    LLVM & Low Level Virtual Machine \\ 
+    \hline 
+    \end{tabular}
+    \\\\
+    Each team member was assigned at least one pass to implement, although plenty of us made edits in 
+    each other's code after realizing the limitations of the implementations that we had initially 
+    planned for. The initial authors of each pass were as follows:
+    \\\\
+    \begin{tabular}{|c|c|}
+    \hline 
+    \textbf{Pass} & \textbf{Initial Author} \\ 
+    \hline 
+    Scanning \& Parsing (Compost $\to$ AST) & Randy Dang \\
+    \hline 
+    Preprocessing \& Desugaring (AST $\to$ PAST) & Jackson Warhover \\ 
+    \hline 
+    Disambiguation (PAST $\to$ UAST) & Jasper Geer \\ 
+    \hline 
+    Type Checking & Roger Burtonpatel \\ 
+    \hline 
+    Consumption Checking \& K Normalization & Jasper Geer \\ 
+    \hline 
+    Insertion of Frees & Jasper Geer \\ 
+    \hline 
+    Generation of Explicit Memory Management Functionality & Randy Dang \\ 
+    \hline 
+    Codegen & Jasper Geer \\ 
+    \hline 
+    \end{tabular}
+    \\\\
+    In the following sections, we summarize how we implemented Compost's most interesting features.
 }
 
 \subsection{Feature 1: Memory Safety under Affine Type System!} {
