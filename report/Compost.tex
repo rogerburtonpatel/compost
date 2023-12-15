@@ -1496,7 +1496,36 @@ Returns the integer representation of a single ASCII character read from stdin.
 }
 
 \subsection{Randy Dang} {
-
+    My major takeaways from this project are that functional languages are powerful when implementing 
+    compilers and that there is a lot of benefit to planning ahead. 
+    \\\\
+    Since language definitions and ultimately the abstract tree representations are naturally recursive, 
+    having a language that is built for handling this recursive structure allowed for much more efficient 
+    programming (last year for my Capstone project, my group implemented a Python transpiler in an 
+    Object-Oriented manner, which was less clean approach). Using existing parsing tools (such as Menhir)
+    that already implemented complex parsing algorithms also simplified the compiler implementation 
+    process, encouraging me not to ``re-invent the wheel'' when there already exists pretty sophisticated 
+    methods for solving a problem.
+    \\\\
+    When we worked on a project as large as this one, we really benefitted from going into the project with 
+    a plan in mind for how we were planning on organizing our passes, as that ultimately made development 
+    more efficient in the long-run. On smaller scales, when we planned certain algorithms (implemented in 
+    certain passes) ahead of time, we thought of potential issues that led to algorithm revisions before 
+    even beginning to implement the pass. On the other hand, failing to consider certain issues ahead of 
+    time sometimes led to a need to undo a substantial amount of work to restructure the algorithm. Thus, 
+    the benefit of planning ahead really showed up in this project.
+    \\\\
+    My advice for future teams would be to consider as many potential issues as possible up front when 
+    planning for the implementation rather than waiting for them to come up during the implementation process 
+    in order to avoid spending a lot of time stuck at dead ends (although it is also important to plan for 
+    the fact that there will inevitably be some issues only discovered during the implementation process).
+    Hashing out the intermediate representations before implementing any compiler passes also makes it easy 
+    to break up the compilation process into concrete, manageable pieces that can also be an effective way 
+    to split up the work. 
+    \\\\
+    Also, use the OCaml language server to help with development. I was embarrassingly unaware of its existence 
+    until two weeks before the end of the semester (and have been coding without syntax highlighting up until 
+    then).
 }
 
 \subsection{Jasper Geer} {
