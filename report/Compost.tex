@@ -691,7 +691,7 @@ If the type of \texttt{n} in context $\Gamma$ is a datatype, it is marked as con
 
 We return the value $\rho[\texttt{n}]$.
 
-\subsection{Dup Expressions}
+\subsubsection{Dup Expressions}
 
 \begin{grammar}
   <dup-expression> ::= (\texttt{dup} <name>)
@@ -804,7 +804,7 @@ We assert that $\Gamma[\texttt{x}1\mapsto\tau_{1},...,\texttt{x}n\mapsto\tau_{n}
 \\\\
 We bind \texttt{x}, in $\rho_{g}$ at the first character of the file, to the function value that, when applied to arguments $v_{1},...,v_{n}$, returns the result of evaluating \texttt{e} in the environment $\rho[\texttt{x}1\mapsto v_{1},...,\texttt{x}n\mapsto v_{n}]$.
 
-\subsection{Use Declarations}
+\subsubsection{Use Declarations}
 
 \begin{grammar}
   <use-declaration> ::= (\texttt{use} <symbol-literal>)
@@ -1322,23 +1322,6 @@ Returns the integer representation of a single ASCII character read from stdin.
     Summarize how the language's "interesting" features were implemented
     \\\\
     State who implemented each component
-    \\\\
-    We have a fairly simple, yet effective method for "importing" external files into a Compost program.
-    As part of our original parsed abstract syntax tree, a "use" definition can be provided, which takes
-    a single sym. Sym was chosen over a name because a sym by definition can represent any character, and
-    file paths needed to support some of the characters that were reserved, such as parenthesis. "use"
-    definitions get handled as part of our preprocessor, where the post-preprocessor subset of the Ast
-    does not include the definition "use." We use the same process as the toplevel compost.ml to load the
-    data in a file provided by "use." Since a program is just a list of definitions, with "use" being one
-    of those definitions, and a single "use" essentially corrersponding to a separate list of definitions,
-    we simply expand out each use to build a final definition list, recursively, to handle nested "use"
-    definitions. The preprocessor will check to ensure that there is no recursion loop of "use" definitions,
-    and additionally, since duplicate globals are not allowed, a single file will only be expanded a single
-    time, and the preprocessor will simply ignore any subsiquent "use" definitions for that file. This
-    means that if you have library A, and then library B and C both require library A, then library B and C
-    can both "use" library A, and still both be "use"'d by some other program. In our provided examples,
-    library files, or files intended to be used as part of a "use" definition, have the file extension .gov,
-    to indicate that they are "global only values," but also because it's funny.
 }
 
 \subsection{Overall Architecture} 
@@ -1417,12 +1400,40 @@ Returns the integer representation of a single ASCII character read from stdin.
 
 }
 
-\subsection{Miscellaneous Features} {
+\subsection{Other Miscellaneous Features} {
     Tailcall optimization 
     \\\\
     Higher order functions
     \\\\
     Include Global Object Value (.gov) Files 
+}
+
+\subsubsection{Tailcall Optimization} {
+
+}
+
+\subsubsection{Higher Order Functions} {
+    
+}
+
+\subsubsection{Importing External Files} {
+    We have a fairly simple yet effective method for importing external files into a Compost program.
+    As part of our original parsed abstract syntax tree, a use declaration can be provided, which takes
+    in a single symbol. A symbol was chosen over a name because a symbol by definition can represent any character, and
+    file paths needed to support some of the characters that were reserved such as parentheses. Use
+    declarations get handled as part of our preprocessor, and the post-preprocessor subset of the Ast
+    (the PAst) does not include use declarations in its definitions. We use the same process as the top-level driver 
+    \texttt{compost.ml} to load the
+    data in the inputted file. Since a program is just a list of definitions, with use declarations being one
+    of them, and a single use declaration essentially corresponds to a separate list of definitions,
+    we simply expand out each ``use'' to build a final definition list. We do this recursively to handle nested use
+    declarations, and the preprocessor will check to ensure that such nested declarations do not form a circular 
+    reference. Additionally, since we do not allow for duplicate globals, a single file will only ever be expanded a single
+    time; the preprocessor will simply ignore any subsequent use declarations for that file. For example,
+    if you have library \texttt{A.gov}, and libraries \texttt{B.gov} and \texttt{C.gov} both depend on \texttt{A.gov}, 
+    then both \texttt{B.gov} and \texttt{C.gov} can ``use'' \texttt{A.gov} while both being ``use''d by some other program. 
+    We use the \texttt{.gov} extension in our provided library files (files meant to be ``use''d by a program) to indicate 
+    that they are ``global only values,'' but also because it's funny.
 }
 
 % TEST PLAN
