@@ -1529,7 +1529,39 @@ Returns the integer representation of a single ASCII character read from stdin.
 }
 
 \subsection{Jasper Geer} {
-
+  I've written a few compilers at this point, but until now, I hadn't done any as a group.
+  This was certainly a challenge but I think I've learned quite a bit from the experience.
+  My first major takeaway from writing Compost is the importance of delegation.
+  \\\\
+  I think we settled on a pretty good method while writing Compost.
+  Before any work started, we laid out the architecture of our compiler, creating a sequence of well-defined
+  IRs and passes, each of which established one or two key invariants.
+  This way, we could assign each group member a single pass or a couple of passes and they could do their
+  work individually, trusting the author of the pass upstream to establish their invariants.
+  \\\\
+  This, of course, brings me to the importance of communication.
+  In order for this strategy to work, each group member needed to be an expert in the particular pass and
+  IR that they ``owned'' and at least be familar with the rest of the compiler.
+  When passes or IRs had to be modified, it was extremely important to communicate to the rest of the group
+  and make any directly affected individuals aware of precisely how this changed their job.
+  Usually used to working on my own, this was a lesson I had to learn, especially when I had to add
+  additional type information to a few IRs and add an entirely new one to make my affine type checking more
+  streamlined.
+  But, by the end, I think we reached a state where everyone was very knowledgeable in how their particular
+  piece of compiler worked and why it had to work the way it did. I still have no idea \textit{how} our macros system
+  works, but I don't need to.
+  I know what it needs to do and how it affects me, and our tests do the rest.
+  \\\\
+  In terms of advice to future groups, if you feel comfortable, breaking your ``semant'' up into multiple
+  stages lends itself to simpler code, makes bugs easier to find, and can help prevent the situation where
+  your whole group is trying to add changes to the same file all at once.
+  \\\\
+  Also, don't try to do everything in codegen if you can help it.
+  Intermediate representations that look progressively more like machine code (check out A-Normal form)
+  can be very helpful when doing more complex code generation tasks.
+  For example, our language supplies automatically generated deep copying functions.
+  Rather than fumbling around with the not-so-great LLVM bindings, we generate the functions in an
+  upstream intermediate representation and compile them in the same way we compile user-created code.
 }
 
 \subsection{Jackson Warhover} {
