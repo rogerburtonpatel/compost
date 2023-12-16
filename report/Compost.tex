@@ -1400,13 +1400,7 @@ Returns the integer representation of a single ASCII character read from stdin.
 
 }
 
-\subsection{Other Miscellaneous Features} {
-    Tailcall optimization 
-    \\\\
-    Higher order functions
-    \\\\
-    Include Global Object Value (.gov) Files 
-}
+\subsection{Other Miscellaneous Features}
 
 \subsubsection{Tailcall Optimization} {
 
@@ -1438,15 +1432,9 @@ Returns the integer representation of a single ASCII character read from stdin.
 
 % TEST PLAN
 
-\section{Test Plan} {
-    DONE:
-    Explain how your group approached unit and integration testing, and what automation was used.
-    \\\\
-    Show two or three representative source language programs along with the target language program 
-    generated for each (if you can provide syntax highlighting and nice formatting that's REALLY useful)
-    \\\\
-    State who did what
+\section{Test Plan}
 
+\subsection{Our Approach} {
     We decided to write a custom bash script for unit and integration testing. This file had many
     iterations over the course of the project, and was continuously evolving to meet our testing
     needs.
@@ -1455,44 +1443,2284 @@ Returns the integer representation of a single ASCII character read from stdin.
     that need to be different. It begins by building compost to ensure that we aren't testing an
     older version. It then checks for provided command line flags and args. A single flag can be
     used to specify a single testing suite that we have developed. A suite consists of a folder
-    inside of the tests folder, as well as a specific call to compost to test against. running 
+    inside of the tests folder, as well as a specific call to compost to test against. Running 
     with no flag runs all of the test suites. Additionally, a filename can be provided to the
-    test script. This allowed us to run single tests, without waiting for the others to finish.
+    test script along with a flag. This allowed us to run single tests without having to wait for the 
+    others to finish.
     \\\\
-    Our design for test files was simple. Each test is written as a .com file inside of our
-    tests folder. Optionally, there is a file of the same name with .in as its extension. If
-    such a file is present, then the script will automatically send the file in on stdin.
-    Also optinally, there is a file with the same name with .out as its extension. This is
+    Our design for test files was simple. Each test is written as a \texttt{.com} file inside of our
+    tests folder. Optionally, there is a file of the same name with \texttt{.in} as its extension. If
+    such a file is present, then the script will automatically send the file contents in on stdin.
+    Also optinally, there is a file with the same name with \texttt{.out} as its extension. This is
     to specify what the expected output of the test would be. For some tests, mostly Ast tests,
-    this option is omitted, because the output is expected to be identical to the input.
+    this option is omitted, because the output is expected to be identical to the \texttt{.com} input.
     \\\\
     The script runs each test, and if the output is different than the expected value, it prints
     the output and expected value, and ensures that the user knows which tests failed. Overall,
     it allowed for extremely quick and easy development of tests.
     \\\\
     This works for unit testing as well as integration testing. The compost compiler supports
-    pretty-printing most of the IRs, if given the specified flag. Our suites are designed to 
-    test specific IR outputs. Other than tests in the "run" suite, our tests are mostly unit
+    pretty-printing of most of the IRs when given the specified flag. Our suites are designed to 
+    test specific IR outputs. Other than tests in the ``run'' suite, our tests are mostly unit
     tests, designed to test a specific function or a specific invariant in a specific IR.
-    This is why a lot of the tests are fairly short, meant to be a short and concise example
-    that adequately ensures that the behavior is what we expect. Tests in the "run" suite
-    can be treated as integration tests, because they are actually compiled. These are the
-    tests that typically use ".in" files. These test entire compost programs to ensure that
-    they actually run without error. Asside from the script, we have done manual testing of
-    most of these tests with valgrind to ensure memory safety of our generated code.
+    This is why a lot of the tests are fairly short, meant to be short and concise examples
+    that adequately ensure that the behavior is what we expect. Tests in the ``run'' suite
+    can be treated as integration tests because they are actually compiled down to executable 
+    binaries. These test entire compost programs to ensure that
+    they actually run without error. Aside from the script, we have done manual testing of
+    most of these tests with \texttt{valgrind} and \texttt{leaks} to ensure memory safety of 
+    our generated code.
 }
 
+\subsection{Who Did What} {
+    Jackson and Roger implemented the Bash script and directory structure that composed the 
+    automatic testing framework. We all contributed our own tests to the suite when implementing 
+    certain features (both language features and error checking), applying the testing framework 
+    to our tests to verify that they were implemented correctly. The implementer assigned to each 
+    pass generally wrote a majority of the tests for that pass.
+}
 
-% Potential template for inserting code with syntax highlighting (in the case of LLVM)
-%
-%\begin{minted}[breaklines, frame=single]{scheme}
-%[Insert Compost code here]
-%\end{minted}
-%
-%\begin{minted}[breaklines, frame=single]{ocaml}
-%[Insert LLVM Code here]
-%\end{minted}
-%
+\subsection{Representative Source Programs}
+
+\subsubsection{Program 1: even-odd.com}
+
+This program tests mutual recursion between an \texttt{is-even} and \texttt{is-odd} function.
+
+\bigskip
+
+\textbf{Compost:}
+
+\begin{minted}[breaklines, frame=single]{scheme}
+(: is-even (-> (int) bool))
+(define is-even (x)
+  (if (=i x 0)
+      true
+      (not (is-odd x))
+  )
+)
+
+(: is-odd (-> (int) bool))
+(define is-odd (x)
+  (if (=i x 1)
+      true
+      (is-even (- x 1))
+  )
+)
+
+(val endline '
+')
+
+(: main (-> () unit))
+(define main ()
+    (begin
+        (print-bool (is-even 10))
+        (print-sym endline)
+        (print-bool (is-even 11))
+        (print-sym endline)
+        (print-bool (is-odd 11))
+        (print-sym endline)
+        (print-bool (is-odd 12))
+        (print-sym endline)))  
+\end{minted}
+
+\textbf{Target LLVM:}
+
+\begin{minted}[breaklines, frame=single]{llvm}
+; ModuleID = 'Compost'
+source_filename = "Compost"
+
+@sym_lit = global [2 x i8] c"\0A\00"
+@unit = private unnamed_addr constant [5 x i8] c"unit\00", align 1
+@true = private unnamed_addr constant [5 x i8] c"true\00", align 1
+@false = private unnamed_addr constant [6 x i8] c"false\00", align 1
+@fmt_char = private unnamed_addr constant [3 x i8] c"%c\00", align 1
+@fmt_int = private unnamed_addr constant [3 x i8] c"%d\00", align 1
+@newline = private unnamed_addr constant [2 x i8] c"\0A\00", align 1
+
+declare void @abort()
+
+declare void @free(i8*)
+
+declare i32 @printf(i8*, ...)
+
+declare i32 @getchar()
+
+define i32 @"~"(i32 %0) {
+entry:
+  %tmp = xor i32 %0, -1
+  ret i32 %tmp
+}
+
+define i32 @">>"(i32 %0, i32 %1) {
+entry:
+  %tmp = lshr i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @"<<"(i32 %0, i32 %1) {
+entry:
+  %tmp = shl i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @"^"(i32 %0, i32 %1) {
+entry:
+  %tmp = xor i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @"|"(i32 %0, i32 %1) {
+entry:
+  %tmp = or i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @"&"(i32 %0, i32 %1) {
+entry:
+  %tmp = and i32 %0, %1
+  ret i32 %tmp
+}
+
+define i1 @xor(i1 %0, i1 %1) {
+entry:
+  %tmp = xor i1 %0, %1
+  ret i1 %tmp
+}
+
+define i1 @or(i1 %0, i1 %1) {
+entry:
+  %tmp = or i1 %0, %1
+  ret i1 %tmp
+}
+
+define i1 @and(i1 %0, i1 %1) {
+entry:
+  %tmp = and i1 %0, %1
+  ret i1 %tmp
+}
+
+define i1 @not(i1 %0) {
+entry:
+  %tmp = xor i1 %0, true
+  ret i1 %tmp
+}
+
+define i1 @"<="(i32 %0, i32 %1) {
+entry:
+  %tmp = icmp sle i32 %0, %1
+  ret i1 %tmp
+}
+
+define i1 @">="(i32 %0, i32 %1) {
+entry:
+  %tmp = icmp sge i32 %0, %1
+  ret i1 %tmp
+}
+
+define i1 @"<"(i32 %0, i32 %1) {
+entry:
+  %tmp = icmp slt i32 %0, %1
+  ret i1 %tmp
+}
+
+define i1 @">"(i32 %0, i32 %1) {
+entry:
+  %tmp = icmp sgt i32 %0, %1
+  ret i1 %tmp
+}
+
+define i32 @neg(i32 %0) {
+entry:
+  %tmp = sub i32 0, %0
+  ret i32 %tmp
+}
+
+define i32 @umod(i32 %0, i32 %1) {
+entry:
+  %tmp = urem i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @"%"(i32 %0, i32 %1) {
+entry:
+  %tmp = srem i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @udiv(i32 %0, i32 %1) {
+entry:
+  %tmp = udiv i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @"/"(i32 %0, i32 %1) {
+entry:
+  %tmp = sdiv i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @"*"(i32 %0, i32 %1) {
+entry:
+  %tmp = mul i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @-(i32 %0, i32 %1) {
+entry:
+  %tmp = sub i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @"+"(i32 %0, i32 %1) {
+entry:
+  %tmp = add i32 %0, %1
+  ret i32 %tmp
+}
+
+define i1 @"=u"(i1 %0, i1 %1) {
+entry:
+  ret i1 true
+}
+
+define i1 @"=b"(i1 %0, i1 %1) {
+entry:
+  %tmp = icmp eq i1 %0, %1
+  ret i1 %tmp
+}
+
+define i1 @"=s"(i8* %0, i8* %1) {
+entry:
+  %tmp = icmp eq i8* %0, %1
+  ret i1 %tmp
+}
+
+define i1 @"=i"(i32 %0, i32 %1) {
+entry:
+  %tmp = icmp eq i32 %0, %1
+  ret i1 %tmp
+}
+
+define i32 @in() {
+entry:
+  %tmp = call i32 @getchar()
+  ret i32 %tmp
+}
+
+define i1 @print-unit(i1 %0) {
+entry:
+  %tmp = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([5 x i8], [5 x i8]* @unit, i32 0, i32 0))
+  ret i1 false
+}
+
+define i1 @print-bool(i1 %0) {
+entry:
+  %tmp = select i1 %0, i8* getelementptr inbounds ([5 x i8], [5 x i8]* @true, i32 0, i32 0), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @false, i32 0, i32 0)
+  %tmp1 = call i32 (i8*, ...) @printf(i8* %tmp)
+  ret i1 false
+}
+
+define i1 @print-ascii(i32 %0) {
+entry:
+  %tmp = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @fmt_char, i32 0, i32 0), i32 %0)
+  ret i1 false
+}
+
+define i1 @print-int(i32 %0) {
+entry:
+  %tmp = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @fmt_int, i32 0, i32 0), i32 %0)
+  ret i1 false
+}
+
+define i1 @print-sym(i8* %0) {
+entry:
+  %tmp = call i32 (i8*, ...) @printf(i8* %0)
+  ret i1 false
+}
+
+define i1 @print-newline() {
+entry:
+  %tmp = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @newline, i32 0, i32 0))
+  ret i1 false
+}
+
+define i1 @main() {
+entry:
+  %apply_result = tail call i1 @_is-even(i32 10)
+  %apply_result1 = tail call i1 @print-bool(i1 %apply_result)
+  %apply_result2 = tail call i1 @print-sym(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @sym_lit, i32 0, i32 0))
+  %apply_result3 = tail call i1 @_is-even(i32 11)
+  %apply_result4 = tail call i1 @print-bool(i1 %apply_result3)
+  %apply_result5 = tail call i1 @print-sym(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @sym_lit, i32 0, i32 0))
+  %apply_result6 = tail call i1 @_is-odd(i32 11)
+  %apply_result7 = tail call i1 @print-bool(i1 %apply_result6)
+  %apply_result8 = tail call i1 @print-sym(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @sym_lit, i32 0, i32 0))
+  %apply_result9 = tail call i1 @_is-odd(i32 12)
+  %apply_result10 = tail call i1 @print-bool(i1 %apply_result9)
+  %apply_result11 = tail call i1 @print-sym(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @sym_lit, i32 0, i32 0))
+  ret i1 %apply_result11
+}
+
+define i1 @_is-odd(i32 %0) {
+entry:
+  %apply_result = tail call i1 @"=i"(i32 %0, i32 1)
+  br i1 %apply_result, label %then, label %else
+
+then:                                             ; preds = %entry
+  ret i1 true
+  ret i1 true
+
+else:                                             ; preds = %entry
+  %apply_result1 = tail call i32 @-(i32 %0, i32 1)
+  %apply_result2 = tail call i1 @_is-even(i32 %apply_result1)
+  ret i1 %apply_result2
+  ret i1 %apply_result2
+}
+
+define i1 @_is-even(i32 %0) {
+entry:
+  %apply_result = tail call i1 @"=i"(i32 %0, i32 0)
+  br i1 %apply_result, label %then, label %else
+
+then:                                             ; preds = %entry
+  ret i1 true
+  ret i1 true
+
+else:                                             ; preds = %entry
+  %apply_result1 = tail call i1 @_is-odd(i32 %0)
+  %apply_result2 = tail call i1 @not(i1 %apply_result1)
+  ret i1 %apply_result2
+  ret i1 %apply_result2
+}  
+\end{minted}
+
+\subsubsection{Program 2: quick\_sort.com}
+
+This program tests the implementation of a simple quick sort function, which utilizes a list datatype, 
+primitive operations, and higher-order functions.
+
+\bigskip 
+
+\textbf{Compost:}
+
+\begin{minted}[breaklines, frame=single]{scheme}
+
+(datatype int-list 
+  ([cons-int (int int-list)]
+   [nil-int-list ()]))
+
+(: main (-> () unit))
+(define main ()
+  (let 
+      ([l (cons-int 4 (cons-int 2 (cons-int 5 (cons-int 3 (cons-int 1 (nil-int-list))))))]
+       [l-sorted (quick-sort l)])
+      (print-intlist l-sorted)))
+
+(: filter-cmp (-> ((-> (int int) bool) int int-list) int-list))
+(define filter-cmp (f n xxs)
+  (case xxs
+      ([(cons-int x xs) 
+          (if (f x n)
+              (cons-int x (filter-cmp f n xs))
+              (filter-cmp f n xs))]
+       [(nil-int-list) (nil-int-list)])))
+
+(: concat (-> (int-list int-list) int-list))
+(define concat (xxs ys)
+  (case xxs 
+      ([(cons-int x xs) (cons-int x (concat xs ys))]
+       [(nil-int-list) ys])))
+
+(: quick-sort (-> (int-list) int-list))
+(define quick-sort (l)
+  (case l 
+      ([(nil-int-list) (nil-int-list)]
+       [(cons-int x xs) 
+          (let 
+              ([lesser (filter-cmp < x (dup xs))]
+               [greater (filter-cmp >= x xs)])
+              (concat 
+                  (quick-sort lesser)
+                  (cons-int x (quick-sort greater))))])))
+
+(: print-intlist (-> (int-list) unit))
+(define print-intlist (l)
+  (case l
+      ([(nil-int-list) unit]
+       [(cons-int x xs) 
+          (begin 
+              (print-int x)
+              (print-intlist xs))])))
+\end{minted}
+
+\textbf{LLVM:}
+
+\begin{minted}[breaklines, frame=single]{ocaml}
+; ModuleID = 'Compost'
+source_filename = "Compost"
+
+@unit = private unnamed_addr constant [5 x i8] c"unit\00", align 1
+@true = private unnamed_addr constant [5 x i8] c"true\00", align 1
+@false = private unnamed_addr constant [6 x i8] c"false\00", align 1
+@fmt_char = private unnamed_addr constant [3 x i8] c"%c\00", align 1
+@fmt_int = private unnamed_addr constant [3 x i8] c"%d\00", align 1
+@newline = private unnamed_addr constant [2 x i8] c"\0A\00", align 1
+@err_msg = private unnamed_addr constant [38 x i8] c"IMPOSSIBLE: inexhaustive match in dup\00", align 1
+@err_msg.1 = private unnamed_addr constant [38 x i8] c"IMPOSSIBLE: inexhaustive match in dup\00", align 1
+@err_msg.2 = private unnamed_addr constant [21 x i8] c"pattern match failed\00", align 1
+@err_msg.3 = private unnamed_addr constant [21 x i8] c"pattern match failed\00", align 1
+@err_msg.4 = private unnamed_addr constant [21 x i8] c"pattern match failed\00", align 1
+@err_msg.5 = private unnamed_addr constant [21 x i8] c"pattern match failed\00", align 1
+
+declare void @abort()
+
+declare void @free(i8*)
+
+declare i32 @printf(i8*, ...)
+
+declare i32 @getchar()
+
+define i32 @"~"(i32 %0) {
+entry:
+  %tmp = xor i32 %0, -1
+  ret i32 %tmp
+}
+
+define i32 @">>"(i32 %0, i32 %1) {
+entry:
+  %tmp = lshr i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @"<<"(i32 %0, i32 %1) {
+entry:
+  %tmp = shl i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @"^"(i32 %0, i32 %1) {
+entry:
+  %tmp = xor i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @"|"(i32 %0, i32 %1) {
+entry:
+  %tmp = or i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @"&"(i32 %0, i32 %1) {
+entry:
+  %tmp = and i32 %0, %1
+  ret i32 %tmp
+}
+
+define i1 @xor(i1 %0, i1 %1) {
+entry:
+  %tmp = xor i1 %0, %1
+  ret i1 %tmp
+}
+
+define i1 @or(i1 %0, i1 %1) {
+entry:
+  %tmp = or i1 %0, %1
+  ret i1 %tmp
+}
+
+define i1 @and(i1 %0, i1 %1) {
+entry:
+  %tmp = and i1 %0, %1
+  ret i1 %tmp
+}
+
+define i1 @not(i1 %0) {
+entry:
+  %tmp = xor i1 %0, true
+  ret i1 %tmp
+}
+
+define i1 @"<="(i32 %0, i32 %1) {
+entry:
+  %tmp = icmp sle i32 %0, %1
+  ret i1 %tmp
+}
+
+define i1 @">="(i32 %0, i32 %1) {
+entry:
+  %tmp = icmp sge i32 %0, %1
+  ret i1 %tmp
+}
+
+define i1 @"<"(i32 %0, i32 %1) {
+entry:
+  %tmp = icmp slt i32 %0, %1
+  ret i1 %tmp
+}
+
+define i1 @">"(i32 %0, i32 %1) {
+entry:
+  %tmp = icmp sgt i32 %0, %1
+  ret i1 %tmp
+}
+
+define i32 @neg(i32 %0) {
+entry:
+  %tmp = sub i32 0, %0
+  ret i32 %tmp
+}
+
+define i32 @umod(i32 %0, i32 %1) {
+entry:
+  %tmp = urem i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @"%"(i32 %0, i32 %1) {
+entry:
+  %tmp = srem i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @udiv(i32 %0, i32 %1) {
+entry:
+  %tmp = udiv i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @"/"(i32 %0, i32 %1) {
+entry:
+  %tmp = sdiv i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @"*"(i32 %0, i32 %1) {
+entry:
+  %tmp = mul i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @-(i32 %0, i32 %1) {
+entry:
+  %tmp = sub i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @"+"(i32 %0, i32 %1) {
+entry:
+  %tmp = add i32 %0, %1
+  ret i32 %tmp
+}
+
+define i1 @"=u"(i1 %0, i1 %1) {
+entry:
+  ret i1 true
+}
+
+define i1 @"=b"(i1 %0, i1 %1) {
+entry:
+  %tmp = icmp eq i1 %0, %1
+  ret i1 %tmp
+}
+
+define i1 @"=s"(i8* %0, i8* %1) {
+entry:
+  %tmp = icmp eq i8* %0, %1
+  ret i1 %tmp
+}
+
+define i1 @"=i"(i32 %0, i32 %1) {
+entry:
+  %tmp = icmp eq i32 %0, %1
+  ret i1 %tmp
+}
+
+define i32 @in() {
+entry:
+  %tmp = call i32 @getchar()
+  ret i32 %tmp
+}
+
+define i1 @print-unit(i1 %0) {
+entry:
+  %tmp = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([5 x i8], [5 x i8]* @unit, i32 0, i32 0))
+  ret i1 false
+}
+
+define i1 @print-bool(i1 %0) {
+entry:
+  %tmp = select i1 %0, i8* getelementptr inbounds ([5 x i8], [5 x i8]* @true, i32 0, i32 0), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @false, i32 0, i32 0)
+  %tmp1 = call i32 (i8*, ...) @printf(i8* %tmp)
+  ret i1 false
+}
+
+define i1 @print-ascii(i32 %0) {
+entry:
+  %tmp = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @fmt_char, i32 0, i32 0), i32 %0)
+  ret i1 false
+}
+
+define i1 @print-int(i32 %0) {
+entry:
+  %tmp = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @fmt_int, i32 0, i32 0), i32 %0)
+  ret i1 false
+}
+
+define i1 @print-sym(i8* %0) {
+entry:
+  %tmp = call i32 (i8*, ...) @printf(i8* %0)
+  ret i1 false
+}
+
+define i1 @print-newline() {
+entry:
+  %tmp = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @newline, i32 0, i32 0))
+  ret i1 false
+}
+
+define i1 @_print-intlist({ i32, i64, i64 }* %0) {
+entry:
+  %tag_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 0
+  %tag_val = load i32, i32* %tag_ptr, align 4
+  switch i32 %tag_val, label %default [
+    i32 1, label %case_branch
+    i32 0, label %case_branch1
+  ]
+
+default:                                          ; preds = %entry
+  %apply_result7 = tail call i1 @free_int-list({ i32, i64, i64 }* %0)
+  %tmp8 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([21 x i8], [21 x i8]* @err_msg.5, i32 0, i32 0))
+  tail call void @abort()
+  ret i1 true
+
+case_branch:                                      ; preds = %entry
+  %to_free = bitcast { i32, i64, i64 }* %0 to i8*
+  call void @free(i8* %to_free)
+  ret i1 false
+
+case_branch1:                                     ; preds = %entry
+  %arg_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 1
+  %arg_val = load i64, i64* %arg_ptr, align 4
+  %tmp = trunc i64 %arg_val to i32
+  %arg_ptr2 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 2
+  %arg_val3 = load i64, i64* %arg_ptr2, align 4
+  %tmp4 = inttoptr i64 %arg_val3 to { i32, i64, i64 }*
+  %to_free5 = bitcast { i32, i64, i64 }* %0 to i8*
+  call void @free(i8* %to_free5)
+  %apply_result = tail call i1 @print-int(i32 %tmp)
+  %apply_result6 = tail call i1 @_print-intlist({ i32, i64, i64 }* %tmp4)
+  ret i1 %apply_result6
+}
+
+define { i32, i64, i64 }* @_quick-sort({ i32, i64, i64 }* %0) {
+entry:
+  %tag_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 0
+  %tag_val = load i32, i32* %tag_ptr, align 4
+  switch i32 %tag_val, label %default [
+    i32 1, label %case_branch
+    i32 0, label %case_branch1
+  ]
+
+default:                                          ; preds = %entry
+  %apply_result13 = tail call i1 @free_int-list({ i32, i64, i64 }* %0)
+  %apply_result14 = tail call i1 @free_int-list({ i32, i64, i64 }* %0)
+  %tmp15 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([21 x i8], [21 x i8]* @err_msg.4, i32 0, i32 0))
+  tail call void @abort()
+  ret { i32, i64, i64 }* inttoptr (i64 -1 to { i32, i64, i64 }*)
+
+case_branch:                                      ; preds = %entry
+  %to_free = bitcast { i32, i64, i64 }* %0 to i8*
+  call void @free(i8* %to_free)
+  %apply_result = tail call { i32, i64, i64 }* @_nil-int-list()
+  ret { i32, i64, i64 }* %apply_result
+
+case_branch1:                                     ; preds = %entry
+  %arg_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 1
+  %arg_val = load i64, i64* %arg_ptr, align 4
+  %tmp = trunc i64 %arg_val to i32
+  %arg_ptr2 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 2
+  %arg_val3 = load i64, i64* %arg_ptr2, align 4
+  %tmp4 = inttoptr i64 %arg_val3 to { i32, i64, i64 }*
+  %to_free5 = bitcast { i32, i64, i64 }* %0 to i8*
+  call void @free(i8* %to_free5)
+  %apply_result6 = tail call { i32, i64, i64 }* @dup_int-list({ i32, i64, i64 }* %tmp4)
+  %apply_result7 = tail call { i32, i64, i64 }* @_filter-cmp(i1 (i32, i32)* @"<", i32 %tmp, { i32, i64, i64 }* %apply_result6)
+  %apply_result8 = tail call { i32, i64, i64 }* @_filter-cmp(i1 (i32, i32)* @">=", i32 %tmp, { i32, i64, i64 }* %tmp4)
+  %apply_result9 = tail call { i32, i64, i64 }* @_quick-sort({ i32, i64, i64 }* %apply_result7)
+  %apply_result10 = tail call { i32, i64, i64 }* @_quick-sort({ i32, i64, i64 }* %apply_result8)
+  %apply_result11 = tail call { i32, i64, i64 }* @_cons-int(i32 %tmp, { i32, i64, i64 }* %apply_result10)
+  %apply_result12 = tail call { i32, i64, i64 }* @_concat({ i32, i64, i64 }* %apply_result9, { i32, i64, i64 }* %apply_result11)
+  ret { i32, i64, i64 }* %apply_result12
+}
+
+define { i32, i64, i64 }* @_concat({ i32, i64, i64 }* %0, { i32, i64, i64 }* %1) {
+entry:
+  %tag_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 0
+  %tag_val = load i32, i32* %tag_ptr, align 4
+  switch i32 %tag_val, label %default [
+    i32 0, label %case_branch
+    i32 1, label %case_branch5
+  ]
+
+default:                                          ; preds = %entry
+  %apply_result7 = tail call i1 @free_int-list({ i32, i64, i64 }* %1)
+  %apply_result8 = tail call i1 @free_int-list({ i32, i64, i64 }* %0)
+  %apply_result9 = tail call i1 @free_int-list({ i32, i64, i64 }* %0)
+  %tmp10 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([21 x i8], [21 x i8]* @err_msg.3, i32 0, i32 0))
+  tail call void @abort()
+  ret { i32, i64, i64 }* inttoptr (i64 -1 to { i32, i64, i64 }*)
+
+case_branch:                                      ; preds = %entry
+  %arg_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 1
+  %arg_val = load i64, i64* %arg_ptr, align 4
+  %tmp = trunc i64 %arg_val to i32
+  %arg_ptr1 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 2
+  %arg_val2 = load i64, i64* %arg_ptr1, align 4
+  %tmp3 = inttoptr i64 %arg_val2 to { i32, i64, i64 }*
+  %to_free = bitcast { i32, i64, i64 }* %0 to i8*
+  call void @free(i8* %to_free)
+  %apply_result = tail call { i32, i64, i64 }* @_concat({ i32, i64, i64 }* %tmp3, { i32, i64, i64 }* %1)
+  %apply_result4 = tail call { i32, i64, i64 }* @_cons-int(i32 %tmp, { i32, i64, i64 }* %apply_result)
+  ret { i32, i64, i64 }* %apply_result4
+
+case_branch5:                                     ; preds = %entry
+  %to_free6 = bitcast { i32, i64, i64 }* %0 to i8*
+  call void @free(i8* %to_free6)
+  ret { i32, i64, i64 }* %1
+}
+
+define { i32, i64, i64 }* @_filter-cmp(i1 (i32, i32)* %0, i32 %1, { i32, i64, i64 }* %2) {
+entry:
+  %tag_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %2, i32 0, i32 0
+  %tag_val = load i32, i32* %tag_ptr, align 4
+  switch i32 %tag_val, label %default [
+    i32 0, label %case_branch
+    i32 1, label %case_branch7
+  ]
+
+default:                                          ; preds = %entry
+  %apply_result10 = tail call i1 @free_int-list({ i32, i64, i64 }* %2)
+  %apply_result11 = tail call i1 @free_int-list({ i32, i64, i64 }* %2)
+  %tmp12 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([21 x i8], [21 x i8]* @err_msg.2, i32 0, i32 0))
+  tail call void @abort()
+  ret { i32, i64, i64 }* inttoptr (i64 -1 to { i32, i64, i64 }*)
+
+case_branch:                                      ; preds = %entry
+  %arg_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %2, i32 0, i32 1
+  %arg_val = load i64, i64* %arg_ptr, align 4
+  %tmp = trunc i64 %arg_val to i32
+  %arg_ptr1 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %2, i32 0, i32 2
+  %arg_val2 = load i64, i64* %arg_ptr1, align 4
+  %tmp3 = inttoptr i64 %arg_val2 to { i32, i64, i64 }*
+  %to_free = bitcast { i32, i64, i64 }* %2 to i8*
+  call void @free(i8* %to_free)
+  %apply_result = tail call i1 %0(i32 %tmp, i32 %1)
+  br i1 %apply_result, label %then, label %else
+
+then:                                             ; preds = %case_branch
+  %apply_result4 = tail call { i32, i64, i64 }* @_filter-cmp(i1 (i32, i32)* %0, i32 %1, { i32, i64, i64 }* %tmp3)
+  %apply_result5 = tail call { i32, i64, i64 }* @_cons-int(i32 %tmp, { i32, i64, i64 }* %apply_result4)
+  ret { i32, i64, i64 }* %apply_result5
+  ret { i32, i64, i64 }* %apply_result5
+
+else:                                             ; preds = %case_branch
+  %apply_result6 = tail call { i32, i64, i64 }* @_filter-cmp(i1 (i32, i32)* %0, i32 %1, { i32, i64, i64 }* %tmp3)
+  ret { i32, i64, i64 }* %apply_result6
+  ret { i32, i64, i64 }* %apply_result6
+
+case_branch7:                                     ; preds = %entry
+  %to_free8 = bitcast { i32, i64, i64 }* %2 to i8*
+  call void @free(i8* %to_free8)
+  %apply_result9 = tail call { i32, i64, i64 }* @_nil-int-list()
+  ret { i32, i64, i64 }* %apply_result9
+}
+
+define i1 @main() {
+entry:
+  %apply_result = tail call { i32, i64, i64 }* @_nil-int-list()
+  %apply_result1 = tail call { i32, i64, i64 }* @_cons-int(i32 1, { i32, i64, i64 }* %apply_result)
+  %apply_result2 = tail call { i32, i64, i64 }* @_cons-int(i32 3, { i32, i64, i64 }* %apply_result1)
+  %apply_result3 = tail call { i32, i64, i64 }* @_cons-int(i32 5, { i32, i64, i64 }* %apply_result2)
+  %apply_result4 = tail call { i32, i64, i64 }* @_cons-int(i32 2, { i32, i64, i64 }* %apply_result3)
+  %apply_result5 = tail call { i32, i64, i64 }* @_cons-int(i32 4, { i32, i64, i64 }* %apply_result4)
+  %apply_result6 = tail call { i32, i64, i64 }* @_quick-sort({ i32, i64, i64 }* %apply_result5)
+  %apply_result7 = tail call i1 @_print-intlist({ i32, i64, i64 }* %apply_result6)
+  ret i1 %apply_result7
+}
+
+define { i32, i64, i64 }* @_nil-int-list() {
+entry:
+  %malloccall = tail call i8* @malloc(i32 ptrtoint ({ i32, i64, i64 }* getelementptr ({ i32, i64, i64 }, { i32, i64, i64 }* null, i32 1) to i32))
+  %struct = bitcast i8* %malloccall to { i32, i64, i64 }*
+  %tag_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct, i32 0, i32 0
+  store i32 1, i32* %tag_ptr, align 4
+  ret { i32, i64, i64 }* %struct
+}
+
+define { i32, i64, i64 }* @_cons-int(i32 %0, { i32, i64, i64 }* %1) {
+entry:
+  %malloccall = tail call i8* @malloc(i32 ptrtoint ({ i32, i64, i64 }* getelementptr ({ i32, i64, i64 }, { i32, i64, i64 }* null, i32 1) to i32))
+  %struct = bitcast i8* %malloccall to { i32, i64, i64 }*
+  %tag_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct, i32 0, i32 0
+  store i32 0, i32* %tag_ptr, align 4
+  %tmp = zext i32 %0 to i64
+  %elem_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct, i32 0, i32 1
+  store i64 %tmp, i64* %elem_ptr, align 4
+  %tmp1 = ptrtoint { i32, i64, i64 }* %1 to i64
+  %elem_ptr2 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct, i32 0, i32 2
+  store i64 %tmp1, i64* %elem_ptr2, align 4
+  ret { i32, i64, i64 }* %struct
+}
+
+define i1 @free_int-list({ i32, i64, i64 }* %0) {
+entry:
+  %tag_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 0
+  %tag_val = load i32, i32* %tag_ptr, align 4
+  switch i32 %tag_val, label %default [
+    i32 0, label %case_branch
+    i32 1, label %case_branch4
+  ]
+
+default:                                          ; preds = %entry
+  %tmp6 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([38 x i8], [38 x i8]* @err_msg.1, i32 0, i32 0))
+  tail call void @abort()
+  ret i1 true
+
+case_branch:                                      ; preds = %entry
+  %arg_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 1
+  %arg_val = load i64, i64* %arg_ptr, align 4
+  %tmp = trunc i64 %arg_val to i32
+  %arg_ptr1 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 2
+  %arg_val2 = load i64, i64* %arg_ptr1, align 4
+  %tmp3 = inttoptr i64 %arg_val2 to { i32, i64, i64 }*
+  %to_free = bitcast { i32, i64, i64 }* %0 to i8*
+  call void @free(i8* %to_free)
+  %apply_result = tail call i1 @free_int-list({ i32, i64, i64 }* %tmp3)
+  ret i1 %apply_result
+
+case_branch4:                                     ; preds = %entry
+  %to_free5 = bitcast { i32, i64, i64 }* %0 to i8*
+  call void @free(i8* %to_free5)
+  ret i1 false
+}
+
+define { i32, i64, i64 }* @dup_int-list({ i32, i64, i64 }* %0) {
+entry:
+  %tag_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 0
+  %tag_val = load i32, i32* %tag_ptr, align 4
+  switch i32 %tag_val, label %default [
+    i32 0, label %case_branch
+    i32 1, label %case_branch8
+  ]
+
+default:                                          ; preds = %entry
+  %tmp12 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([38 x i8], [38 x i8]* @err_msg, i32 0, i32 0))
+  tail call void @abort()
+  ret { i32, i64, i64 }* inttoptr (i64 -1 to { i32, i64, i64 }*)
+
+case_branch:                                      ; preds = %entry
+  %arg_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 1
+  %arg_val = load i64, i64* %arg_ptr, align 4
+  %tmp = trunc i64 %arg_val to i32
+  %arg_ptr1 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 2
+  %arg_val2 = load i64, i64* %arg_ptr1, align 4
+  %tmp3 = inttoptr i64 %arg_val2 to { i32, i64, i64 }*
+  %malloccall = tail call i8* @malloc(i32 ptrtoint ({ i32, i64, i64 }* getelementptr ({ i32, i64, i64 }, { i32, i64, i64 }* null, i32 1) to i32))
+  %struct = bitcast i8* %malloccall to { i32, i64, i64 }*
+  %tag_ptr4 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct, i32 0, i32 0
+  store i32 0, i32* %tag_ptr4, align 4
+  %tmp5 = zext i32 %tmp to i64
+  %elem_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct, i32 0, i32 1
+  store i64 %tmp5, i64* %elem_ptr, align 4
+  %apply_result = tail call { i32, i64, i64 }* @dup_int-list({ i32, i64, i64 }* %tmp3)
+  %tmp6 = ptrtoint { i32, i64, i64 }* %apply_result to i64
+  %elem_ptr7 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct, i32 0, i32 2
+  store i64 %tmp6, i64* %elem_ptr7, align 4
+  ret { i32, i64, i64 }* %struct
+
+case_branch8:                                     ; preds = %entry
+  %malloccall9 = tail call i8* @malloc(i32 ptrtoint ({ i32, i64, i64 }* getelementptr ({ i32, i64, i64 }, { i32, i64, i64 }* null, i32 1) to i32))
+  %struct10 = bitcast i8* %malloccall9 to { i32, i64, i64 }*
+  %tag_ptr11 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct10, i32 0, i32 0
+  store i32 1, i32* %tag_ptr11, align 4
+  ret { i32, i64, i64 }* %struct10
+}
+
+declare noalias i8* @malloc(i32)  
+\end{minted}
+
+\subsubsection{Program 3: datatypes.com}
+
+This program tests a variety of different datatype definitions and example use cases of those datatypes.
+
+\bigskip 
+
+\textbf{Compost:}
+
+\begin{minted}[breaklines, frame=single]{scheme}
+;; Datatype definitions 
+(datatype intlist 
+    ([cons-int (int intlist)]
+      [nil-intlist ()]))
+
+(datatype direction 
+    ([left ()]
+      [right ()]
+      [up ()]
+      [down ()]))
+
+(datatype bst 
+    ([buildbst (int bst bst)]
+      [nil-bst ()]))    
+
+(datatype multilist 
+    ([cons-multi-int (int multilist)]
+      [cons-multi-bool (bool multilist)]
+      [nil-multilist ()]))
+
+(datatype twointlist 
+    ([build (intlist intlist)]))
+
+;; General purpose functions 
+(: print-endline (-> () unit))
+(define print-endline () 
+    (print-sym '
+'))
+
+;; Driver function 
+(: main (-> () unit))
+(define main ()
+    (begin 
+        (test-intlist)
+        (test-direction)
+        (test-bst)
+        (test-multilist)
+        (test-twointlist)))
+
+;; Tests functionality of the `intlist` datatype 
+
+(: test-intlist (-> () unit))
+(define test-intlist ()
+    (begin
+        (print-sym 'Starting intlist test')
+        (print-endline)
+        (let 
+            ([intlistinst (init-intlist)]
+              [intlistinst2 (dup intlistinst)])
+            (print-intlist intlistinst2)) 
+        (print-sym 'Finished intlist test')
+        (print-endline)))
+
+(: init-intlist (-> () intlist))
+(define init-intlist ()
+    (cons-int 0 (cons-int 1 (cons-int 2 (nil-intlist)))))
+
+(: print-intlist (-> (intlist) unit))
+(define print-intlist (listinst)
+    (case listinst
+        ([(cons-int x xs) (begin (print-int x) (print-intlist xs))]
+          [(nil-intlist) (print-endline)])))
+
+
+;; Tests functionality of the `direction` datatype 
+
+(: test-direction (-> () unit))
+(define test-direction ()
+    (begin 
+        (print-sym 'Starting direction test')
+        (print-endline)
+        (let 
+            ([leftdir (left)]
+              [rightdir (right)]
+              [leftdir2 (dup leftdir)])
+            (begin 
+                (print-dir leftdir2)
+                (print-dir rightdir)))
+        (print-sym 'Finished direction test')
+        (print-endline)))
+
+(: print-dir (-> (direction) unit))
+(define print-dir (dirinst)
+    (begin
+        (case dirinst 
+            ([(left) (print-sym 'Left')]
+              [(right) (print-sym 'Right')]
+              [(up) (print-sym 'Up')]
+              [(down) (print-sym 'Down')]))
+        (print-endline)))
+
+
+;; Tests functionality of the bst datatfype 
+
+(: test-bst (-> () unit))
+(define test-bst ()
+    (begin 
+        (print-sym 'Starting bst test')
+        (print-endline)
+        (let 
+            ([bst1 (init-bst)]
+              [bst2 (dup bst1)])
+            (in-order-print bst2))
+        (print-endline)
+        (print-sym 'Finishing bst test')
+        (print-endline)))
+
+(: init-bst (-> () bst))
+(define init-bst ()
+    (let 
+        ([leaf1 (buildbst 0 (nil-bst) (nil-bst))]  ;; Built BST is: 3
+          [leaf2 (buildbst 2 (nil-bst) (nil-bst))]  ;;              / \
+          [leaf3 (buildbst 4 (nil-bst) (nil-bst))]  ;;             1   5
+          [subtree1 (buildbst 1 leaf1 leaf2)]       ;;            / \  /
+          [subtree2 (buildbst 5 leaf3 (nil-bst))]   ;;           0  2 4
+          [root (buildbst 3 subtree1 subtree2)])
+        root))
+
+(: in-order-print (-> (bst) unit))
+(define in-order-print (root)
+    (case root 
+        ([(nil-bst) unit]
+          [(buildbst num left-subtree right-subtree) 
+            (begin 
+                (in-order-print left-subtree) 
+                (print-int num) 
+                (in-order-print right-subtree))])))
+
+
+;; Tests functionality of the multilist datatype 
+
+(: test-multilist (-> () unit))
+(define test-multilist ()
+    (begin
+        (print-sym 'Starting multilist test')
+        (print-endline)
+        (let 
+            ([multilistinst (init-multilist)]
+              [multilistinst2 (dup multilistinst)])
+            (begin (print-multilist multilistinst)
+                (print-multilist-ints multilistinst2)))
+        (print-sym 'Finished multilist test')
+        (print-endline)))
+
+(: init-multilist (-> () multilist))
+(define init-multilist ()
+    (cons-multi-int 1 
+        (cons-multi-bool true 
+            (cons-multi-int 2 
+                (cons-multi-bool false 
+                    (nil-multilist))))))
+
+(: print-multilist (-> (multilist) unit))
+(define print-multilist (inst)
+    (case inst 
+        ([(cons-multi-int x xs) (begin (print-int x) (print-endline) (print-multilist xs))]
+          [(cons-multi-bool x xs) (begin (print-bool x) (print-endline) (print-multilist xs))]
+          [(nil-multilist) unit])))
+
+(: print-multilist-ints (-> (multilist) unit))
+(define print-multilist-ints (inst)
+    (case inst 
+        ([(cons-multi-int x xs) (begin (print-int x) (print-endline) (print-multilist-ints xs))]
+          [(cons-multi-bool _ xs) (print-multilist-ints xs)]
+          [_ unit])))
+
+;; Tests functionality of a twointlist datatype 
+(: test-twointlist (-> () unit))
+(define test-twointlist ()
+    (begin
+        (print-sym 'Starting twointlist test')
+        (print-endline)
+        (let 
+            ([inst1 (init-intlist)]
+            [inst2tmp (init-intlist)]
+            [inst2 (cons-int -1 inst2tmp)]
+            [inst (build inst1 inst2)])
+            (print-twointlist inst))
+        (print-sym 'Finishing twointlist test')
+        (print-endline)))
+
+(: print-twointlist (-> (twointlist) unit))
+(define print-twointlist (inst)
+    (case inst 
+        ([(build l1 l2) 
+            (begin 
+                (print-sym 'List 1:')
+                (print-endline)
+                (print-intlist l1) 
+                (print-sym 'List 2:')
+                (print-endline)
+                (print-intlist l2))])))  
+\end{minted}
+
+\textbf{LLVM:}
+
+\begin{minted}[breaklines, frame=single]{ocaml}
+; ModuleID = 'Compost'
+source_filename = "Compost"
+
+@sym_lit = global [2 x i8] c"\0A\00"
+@sym_lit.1 = global [5 x i8] c"Down\00"
+@sym_lit.2 = global [24 x i8] c"Finished direction test\00"
+@sym_lit.3 = global [22 x i8] c"Finished intlist test\00"
+@sym_lit.4 = global [24 x i8] c"Finished multilist test\00"
+@sym_lit.5 = global [19 x i8] c"Finishing bst test\00"
+@sym_lit.6 = global [26 x i8] c"Finishing twointlist test\00"
+@sym_lit.7 = global [5 x i8] c"Left\00"
+@sym_lit.8 = global [8 x i8] c"List 1:\00"
+@sym_lit.9 = global [8 x i8] c"List 2:\00"
+@sym_lit.10 = global [6 x i8] c"Right\00"
+@sym_lit.11 = global [18 x i8] c"Starting bst test\00"
+@sym_lit.12 = global [24 x i8] c"Starting direction test\00"
+@sym_lit.13 = global [22 x i8] c"Starting intlist test\00"
+@sym_lit.14 = global [24 x i8] c"Starting multilist test\00"
+@sym_lit.15 = global [25 x i8] c"Starting twointlist test\00"
+@sym_lit.16 = global [3 x i8] c"Up\00"
+@unit = private unnamed_addr constant [5 x i8] c"unit\00", align 1
+@true = private unnamed_addr constant [5 x i8] c"true\00", align 1
+@false = private unnamed_addr constant [6 x i8] c"false\00", align 1
+@fmt_char = private unnamed_addr constant [3 x i8] c"%c\00", align 1
+@fmt_int = private unnamed_addr constant [3 x i8] c"%d\00", align 1
+@newline = private unnamed_addr constant [2 x i8] c"\0A\00", align 1
+@err_msg = private unnamed_addr constant [38 x i8] c"IMPOSSIBLE: inexhaustive match in dup\00", align 1
+@err_msg.17 = private unnamed_addr constant [38 x i8] c"IMPOSSIBLE: inexhaustive match in dup\00", align 1
+@err_msg.18 = private unnamed_addr constant [38 x i8] c"IMPOSSIBLE: inexhaustive match in dup\00", align 1
+@err_msg.19 = private unnamed_addr constant [38 x i8] c"IMPOSSIBLE: inexhaustive match in dup\00", align 1
+@err_msg.20 = private unnamed_addr constant [38 x i8] c"IMPOSSIBLE: inexhaustive match in dup\00", align 1
+@err_msg.21 = private unnamed_addr constant [38 x i8] c"IMPOSSIBLE: inexhaustive match in dup\00", align 1
+@err_msg.22 = private unnamed_addr constant [38 x i8] c"IMPOSSIBLE: inexhaustive match in dup\00", align 1
+@err_msg.23 = private unnamed_addr constant [38 x i8] c"IMPOSSIBLE: inexhaustive match in dup\00", align 1
+@err_msg.24 = private unnamed_addr constant [38 x i8] c"IMPOSSIBLE: inexhaustive match in dup\00", align 1
+@err_msg.25 = private unnamed_addr constant [38 x i8] c"IMPOSSIBLE: inexhaustive match in dup\00", align 1
+@err_msg.26 = private unnamed_addr constant [21 x i8] c"pattern match failed\00", align 1
+@err_msg.27 = private unnamed_addr constant [21 x i8] c"pattern match failed\00", align 1
+@err_msg.28 = private unnamed_addr constant [21 x i8] c"pattern match failed\00", align 1
+@err_msg.29 = private unnamed_addr constant [21 x i8] c"pattern match failed\00", align 1
+@err_msg.30 = private unnamed_addr constant [21 x i8] c"pattern match failed\00", align 1
+
+declare void @abort()
+
+declare void @free(i8*)
+
+declare i32 @printf(i8*, ...)
+
+declare i32 @getchar()
+
+define i32 @"~"(i32 %0) {
+entry:
+  %tmp = xor i32 %0, -1
+  ret i32 %tmp
+}
+
+define i32 @">>"(i32 %0, i32 %1) {
+entry:
+  %tmp = lshr i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @"<<"(i32 %0, i32 %1) {
+entry:
+  %tmp = shl i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @"^"(i32 %0, i32 %1) {
+entry:
+  %tmp = xor i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @"|"(i32 %0, i32 %1) {
+entry:
+  %tmp = or i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @"&"(i32 %0, i32 %1) {
+entry:
+  %tmp = and i32 %0, %1
+  ret i32 %tmp
+}
+
+define i1 @xor(i1 %0, i1 %1) {
+entry:
+  %tmp = xor i1 %0, %1
+  ret i1 %tmp
+}
+
+define i1 @or(i1 %0, i1 %1) {
+entry:
+  %tmp = or i1 %0, %1
+  ret i1 %tmp
+}
+
+define i1 @and(i1 %0, i1 %1) {
+entry:
+  %tmp = and i1 %0, %1
+  ret i1 %tmp
+}
+
+define i1 @not(i1 %0) {
+entry:
+  %tmp = xor i1 %0, true
+  ret i1 %tmp
+}
+
+define i1 @"<="(i32 %0, i32 %1) {
+entry:
+  %tmp = icmp sle i32 %0, %1
+  ret i1 %tmp
+}
+
+define i1 @">="(i32 %0, i32 %1) {
+entry:
+  %tmp = icmp sge i32 %0, %1
+  ret i1 %tmp
+}
+
+define i1 @"<"(i32 %0, i32 %1) {
+entry:
+  %tmp = icmp slt i32 %0, %1
+  ret i1 %tmp
+}
+
+define i1 @">"(i32 %0, i32 %1) {
+entry:
+  %tmp = icmp sgt i32 %0, %1
+  ret i1 %tmp
+}
+
+define i32 @neg(i32 %0) {
+entry:
+  %tmp = sub i32 0, %0
+  ret i32 %tmp
+}
+
+define i32 @umod(i32 %0, i32 %1) {
+entry:
+  %tmp = urem i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @"%"(i32 %0, i32 %1) {
+entry:
+  %tmp = srem i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @udiv(i32 %0, i32 %1) {
+entry:
+  %tmp = udiv i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @"/"(i32 %0, i32 %1) {
+entry:
+  %tmp = sdiv i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @"*"(i32 %0, i32 %1) {
+entry:
+  %tmp = mul i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @-(i32 %0, i32 %1) {
+entry:
+  %tmp = sub i32 %0, %1
+  ret i32 %tmp
+}
+
+define i32 @"+"(i32 %0, i32 %1) {
+entry:
+  %tmp = add i32 %0, %1
+  ret i32 %tmp
+}
+
+define i1 @"=u"(i1 %0, i1 %1) {
+entry:
+  ret i1 true
+}
+
+define i1 @"=b"(i1 %0, i1 %1) {
+entry:
+  %tmp = icmp eq i1 %0, %1
+  ret i1 %tmp
+}
+
+define i1 @"=s"(i8* %0, i8* %1) {
+entry:
+  %tmp = icmp eq i8* %0, %1
+  ret i1 %tmp
+}
+
+define i1 @"=i"(i32 %0, i32 %1) {
+entry:
+  %tmp = icmp eq i32 %0, %1
+  ret i1 %tmp
+}
+
+define i32 @in() {
+entry:
+  %tmp = call i32 @getchar()
+  ret i32 %tmp
+}
+
+define i1 @print-unit(i1 %0) {
+entry:
+  %tmp = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([5 x i8], [5 x i8]* @unit, i32 0, i32 0))
+  ret i1 false
+}
+
+define i1 @print-bool(i1 %0) {
+entry:
+  %tmp = select i1 %0, i8* getelementptr inbounds ([5 x i8], [5 x i8]* @true, i32 0, i32 0), i8* getelementptr inbounds ([6 x i8], [6 x i8]* @false, i32 0, i32 0)
+  %tmp1 = call i32 (i8*, ...) @printf(i8* %tmp)
+  ret i1 false
+}
+
+define i1 @print-ascii(i32 %0) {
+entry:
+  %tmp = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @fmt_char, i32 0, i32 0), i32 %0)
+  ret i1 false
+}
+
+define i1 @print-int(i32 %0) {
+entry:
+  %tmp = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @fmt_int, i32 0, i32 0), i32 %0)
+  ret i1 false
+}
+
+define i1 @print-sym(i8* %0) {
+entry:
+  %tmp = call i32 (i8*, ...) @printf(i8* %0)
+  ret i1 false
+}
+
+define i1 @print-newline() {
+entry:
+  %tmp = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @newline, i32 0, i32 0))
+  ret i1 false
+}
+
+define i1 @_print-twointlist({ i32, i64, i64 }* %0) {
+entry:
+  %tag_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 0
+  %tag_val = load i32, i32* %tag_ptr, align 4
+  switch i32 %tag_val, label %default [
+    i32 0, label %case_branch
+  ]
+
+default:                                          ; preds = %entry
+  %apply_result9 = tail call i1 @free_twointlist({ i32, i64, i64 }* %0)
+  %tmp10 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([21 x i8], [21 x i8]* @err_msg.30, i32 0, i32 0))
+  tail call void @abort()
+  ret i1 true
+
+case_branch:                                      ; preds = %entry
+  %arg_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 1
+  %arg_val = load i64, i64* %arg_ptr, align 4
+  %tmp = inttoptr i64 %arg_val to { i32, i64, i64 }*
+  %arg_ptr1 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 2
+  %arg_val2 = load i64, i64* %arg_ptr1, align 4
+  %tmp3 = inttoptr i64 %arg_val2 to { i32, i64, i64 }*
+  %to_free = bitcast { i32, i64, i64 }* %0 to i8*
+  call void @free(i8* %to_free)
+  %apply_result = tail call i1 @print-sym(i8* getelementptr inbounds ([8 x i8], [8 x i8]* @sym_lit.8, i32 0, i32 0))
+  %apply_result4 = tail call i1 @_print-endline()
+  %apply_result5 = tail call i1 @_print-intlist({ i32, i64, i64 }* %tmp)
+  %apply_result6 = tail call i1 @print-sym(i8* getelementptr inbounds ([8 x i8], [8 x i8]* @sym_lit.9, i32 0, i32 0))
+  %apply_result7 = tail call i1 @_print-endline()
+  %apply_result8 = tail call i1 @_print-intlist({ i32, i64, i64 }* %tmp3)
+  ret i1 %apply_result8
+}
+
+define i1 @_test-twointlist() {
+entry:
+  %apply_result = tail call i1 @print-sym(i8* getelementptr inbounds ([25 x i8], [25 x i8]* @sym_lit.15, i32 0, i32 0))
+  %apply_result1 = tail call i1 @_print-endline()
+  %apply_result2 = tail call { i32, i64, i64 }* @_init-intlist()
+  %apply_result3 = tail call { i32, i64, i64 }* @_init-intlist()
+  %apply_result4 = tail call { i32, i64, i64 }* @_cons-int(i32 -1, { i32, i64, i64 }* %apply_result3)
+  %apply_result5 = tail call { i32, i64, i64 }* @_build({ i32, i64, i64 }* %apply_result2, { i32, i64, i64 }* %apply_result4)
+  %apply_result6 = tail call i1 @_print-twointlist({ i32, i64, i64 }* %apply_result5)
+  %apply_result7 = tail call i1 @print-sym(i8* getelementptr inbounds ([26 x i8], [26 x i8]* @sym_lit.6, i32 0, i32 0))
+  %apply_result8 = tail call i1 @_print-endline()
+  ret i1 %apply_result8
+}
+
+define i1 @_print-multilist-ints({ i32, i64, i64 }* %0) {
+entry:
+  %tag_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 0
+  %tag_val = load i32, i32* %tag_ptr, align 4
+  switch i32 %tag_val, label %default [
+    i32 0, label %case_branch
+    i32 1, label %case_branch6
+  ]
+
+default:                                          ; preds = %entry
+  %apply_result15 = tail call i1 @free_multilist({ i32, i64, i64 }* %0)
+  ret i1 false
+
+case_branch:                                      ; preds = %entry
+  %arg_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 1
+  %arg_val = load i64, i64* %arg_ptr, align 4
+  %tmp = trunc i64 %arg_val to i32
+  %arg_ptr1 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 2
+  %arg_val2 = load i64, i64* %arg_ptr1, align 4
+  %tmp3 = inttoptr i64 %arg_val2 to { i32, i64, i64 }*
+  %to_free = bitcast { i32, i64, i64 }* %0 to i8*
+  call void @free(i8* %to_free)
+  %apply_result = tail call i1 @print-int(i32 %tmp)
+  %apply_result4 = tail call i1 @_print-endline()
+  %apply_result5 = tail call i1 @_print-multilist-ints({ i32, i64, i64 }* %tmp3)
+  ret i1 %apply_result5
+
+case_branch6:                                     ; preds = %entry
+  %arg_ptr7 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 1
+  %arg_val8 = load i64, i64* %arg_ptr7, align 4
+  %tmp9 = trunc i64 %arg_val8 to i1
+  %arg_ptr10 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 2
+  %arg_val11 = load i64, i64* %arg_ptr10, align 4
+  %tmp12 = inttoptr i64 %arg_val11 to { i32, i64, i64 }*
+  %to_free13 = bitcast { i32, i64, i64 }* %0 to i8*
+  call void @free(i8* %to_free13)
+  %apply_result14 = tail call i1 @_print-multilist-ints({ i32, i64, i64 }* %tmp12)
+  ret i1 %apply_result14
+}
+
+define i1 @_print-multilist({ i32, i64, i64 }* %0) {
+entry:
+  %tag_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 0
+  %tag_val = load i32, i32* %tag_ptr, align 4
+  switch i32 %tag_val, label %default [
+    i32 0, label %case_branch
+    i32 1, label %case_branch6
+    i32 2, label %case_branch17
+  ]
+
+default:                                          ; preds = %entry
+  %apply_result19 = tail call i1 @free_multilist({ i32, i64, i64 }* %0)
+  %tmp20 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([21 x i8], [21 x i8]* @err_msg.29, i32 0, i32 0))
+  tail call void @abort()
+  ret i1 true
+
+case_branch:                                      ; preds = %entry
+  %arg_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 1
+  %arg_val = load i64, i64* %arg_ptr, align 4
+  %tmp = trunc i64 %arg_val to i32
+  %arg_ptr1 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 2
+  %arg_val2 = load i64, i64* %arg_ptr1, align 4
+  %tmp3 = inttoptr i64 %arg_val2 to { i32, i64, i64 }*
+  %to_free = bitcast { i32, i64, i64 }* %0 to i8*
+  call void @free(i8* %to_free)
+  %apply_result = tail call i1 @print-int(i32 %tmp)
+  %apply_result4 = tail call i1 @_print-endline()
+  %apply_result5 = tail call i1 @_print-multilist({ i32, i64, i64 }* %tmp3)
+  ret i1 %apply_result5
+
+case_branch6:                                     ; preds = %entry
+  %arg_ptr7 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 1
+  %arg_val8 = load i64, i64* %arg_ptr7, align 4
+  %tmp9 = trunc i64 %arg_val8 to i1
+  %arg_ptr10 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 2
+  %arg_val11 = load i64, i64* %arg_ptr10, align 4
+  %tmp12 = inttoptr i64 %arg_val11 to { i32, i64, i64 }*
+  %to_free13 = bitcast { i32, i64, i64 }* %0 to i8*
+  call void @free(i8* %to_free13)
+  %apply_result14 = tail call i1 @print-bool(i1 %tmp9)
+  %apply_result15 = tail call i1 @_print-endline()
+  %apply_result16 = tail call i1 @_print-multilist({ i32, i64, i64 }* %tmp12)
+  ret i1 %apply_result16
+
+case_branch17:                                    ; preds = %entry
+  %to_free18 = bitcast { i32, i64, i64 }* %0 to i8*
+  call void @free(i8* %to_free18)
+  ret i1 false
+}
+
+define { i32, i64, i64 }* @_init-multilist() {
+entry:
+  %apply_result = tail call { i32, i64, i64 }* @_nil-multilist()
+  %apply_result1 = tail call { i32, i64, i64 }* @_cons-multi-bool(i1 false, { i32, i64, i64 }* %apply_result)
+  %apply_result2 = tail call { i32, i64, i64 }* @_cons-multi-int(i32 2, { i32, i64, i64 }* %apply_result1)
+  %apply_result3 = tail call { i32, i64, i64 }* @_cons-multi-bool(i1 true, { i32, i64, i64 }* %apply_result2)
+  %apply_result4 = tail call { i32, i64, i64 }* @_cons-multi-int(i32 1, { i32, i64, i64 }* %apply_result3)
+  ret { i32, i64, i64 }* %apply_result4
+}
+
+define i1 @_test-multilist() {
+entry:
+  %apply_result = tail call i1 @print-sym(i8* getelementptr inbounds ([24 x i8], [24 x i8]* @sym_lit.14, i32 0, i32 0))
+  %apply_result1 = tail call i1 @_print-endline()
+  %apply_result2 = tail call { i32, i64, i64 }* @_init-multilist()
+  %apply_result3 = tail call { i32, i64, i64 }* @dup_multilist({ i32, i64, i64 }* %apply_result2)
+  %apply_result4 = tail call i1 @_print-multilist({ i32, i64, i64 }* %apply_result2)
+  %apply_result5 = tail call i1 @_print-multilist-ints({ i32, i64, i64 }* %apply_result3)
+  %apply_result6 = tail call i1 @print-sym(i8* getelementptr inbounds ([24 x i8], [24 x i8]* @sym_lit.4, i32 0, i32 0))
+  %apply_result7 = tail call i1 @_print-endline()
+  ret i1 %apply_result7
+}
+
+define i1 @_in-order-print({ i32, i64, i64, i64 }* %0) {
+entry:
+  %tag_ptr = getelementptr inbounds { i32, i64, i64, i64 }, { i32, i64, i64, i64 }* %0, i32 0, i32 0
+  %tag_val = load i32, i32* %tag_ptr, align 4
+  switch i32 %tag_val, label %default [
+    i32 1, label %case_branch
+    i32 0, label %case_branch1
+  ]
+
+default:                                          ; preds = %entry
+  %apply_result11 = tail call i1 @free_bst({ i32, i64, i64, i64 }* %0)
+  %tmp12 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([21 x i8], [21 x i8]* @err_msg.28, i32 0, i32 0))
+  tail call void @abort()
+  ret i1 true
+
+case_branch:                                      ; preds = %entry
+  %to_free = bitcast { i32, i64, i64, i64 }* %0 to i8*
+  call void @free(i8* %to_free)
+  ret i1 false
+
+case_branch1:                                     ; preds = %entry
+  %arg_ptr = getelementptr inbounds { i32, i64, i64, i64 }, { i32, i64, i64, i64 }* %0, i32 0, i32 1
+  %arg_val = load i64, i64* %arg_ptr, align 4
+  %tmp = trunc i64 %arg_val to i32
+  %arg_ptr2 = getelementptr inbounds { i32, i64, i64, i64 }, { i32, i64, i64, i64 }* %0, i32 0, i32 2
+  %arg_val3 = load i64, i64* %arg_ptr2, align 4
+  %tmp4 = inttoptr i64 %arg_val3 to { i32, i64, i64, i64 }*
+  %arg_ptr5 = getelementptr inbounds { i32, i64, i64, i64 }, { i32, i64, i64, i64 }* %0, i32 0, i32 3
+  %arg_val6 = load i64, i64* %arg_ptr5, align 4
+  %tmp7 = inttoptr i64 %arg_val6 to { i32, i64, i64, i64 }*
+  %to_free8 = bitcast { i32, i64, i64, i64 }* %0 to i8*
+  call void @free(i8* %to_free8)
+  %apply_result = tail call i1 @_in-order-print({ i32, i64, i64, i64 }* %tmp4)
+  %apply_result9 = tail call i1 @print-int(i32 %tmp)
+  %apply_result10 = tail call i1 @_in-order-print({ i32, i64, i64, i64 }* %tmp7)
+  ret i1 %apply_result10
+}
+
+define { i32, i64, i64, i64 }* @_init-bst() {
+entry:
+  %apply_result = tail call { i32, i64, i64, i64 }* @_nil-bst()
+  %apply_result1 = tail call { i32, i64, i64, i64 }* @_nil-bst()
+  %apply_result2 = tail call { i32, i64, i64, i64 }* @_buildbst(i32 0, { i32, i64, i64, i64 }* %apply_result, { i32, i64, i64, i64 }* %apply_result1)
+  %apply_result3 = tail call { i32, i64, i64, i64 }* @_nil-bst()
+  %apply_result4 = tail call { i32, i64, i64, i64 }* @_nil-bst()
+  %apply_result5 = tail call { i32, i64, i64, i64 }* @_buildbst(i32 2, { i32, i64, i64, i64 }* %apply_result3, { i32, i64, i64, i64 }* %apply_result4)
+  %apply_result6 = tail call { i32, i64, i64, i64 }* @_nil-bst()
+  %apply_result7 = tail call { i32, i64, i64, i64 }* @_nil-bst()
+  %apply_result8 = tail call { i32, i64, i64, i64 }* @_buildbst(i32 4, { i32, i64, i64, i64 }* %apply_result6, { i32, i64, i64, i64 }* %apply_result7)
+  %apply_result9 = tail call { i32, i64, i64, i64 }* @_buildbst(i32 1, { i32, i64, i64, i64 }* %apply_result2, { i32, i64, i64, i64 }* %apply_result5)
+  %apply_result10 = tail call { i32, i64, i64, i64 }* @_nil-bst()
+  %apply_result11 = tail call { i32, i64, i64, i64 }* @_buildbst(i32 5, { i32, i64, i64, i64 }* %apply_result8, { i32, i64, i64, i64 }* %apply_result10)
+  %apply_result12 = tail call { i32, i64, i64, i64 }* @_buildbst(i32 3, { i32, i64, i64, i64 }* %apply_result9, { i32, i64, i64, i64 }* %apply_result11)
+  ret { i32, i64, i64, i64 }* %apply_result12
+}
+
+define i1 @_test-bst() {
+entry:
+  %apply_result = tail call i1 @print-sym(i8* getelementptr inbounds ([18 x i8], [18 x i8]* @sym_lit.11, i32 0, i32 0))
+  %apply_result1 = tail call i1 @_print-endline()
+  %apply_result2 = tail call { i32, i64, i64, i64 }* @_init-bst()
+  %apply_result3 = tail call { i32, i64, i64, i64 }* @dup_bst({ i32, i64, i64, i64 }* %apply_result2)
+  %apply_result4 = tail call i1 @free_bst({ i32, i64, i64, i64 }* %apply_result2)
+  %apply_result5 = tail call i1 @_in-order-print({ i32, i64, i64, i64 }* %apply_result3)
+  %apply_result6 = tail call i1 @_print-endline()
+  %apply_result7 = tail call i1 @print-sym(i8* getelementptr inbounds ([19 x i8], [19 x i8]* @sym_lit.5, i32 0, i32 0))
+  %apply_result8 = tail call i1 @_print-endline()
+  ret i1 %apply_result8
+}
+
+define i1 @_print-dir({ i32 }* %0) {
+entry:
+  %tag_ptr = getelementptr inbounds { i32 }, { i32 }* %0, i32 0, i32 0
+  %tag_val = load i32, i32* %tag_ptr, align 4
+  switch i32 %tag_val, label %default [
+    i32 0, label %case_branch
+    i32 1, label %case_branch1
+    i32 2, label %case_branch4
+    i32 3, label %case_branch7
+  ]
+
+default:                                          ; preds = %entry
+  %apply_result10 = tail call i1 @free_direction({ i32 }* %0)
+  %tmp = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([21 x i8], [21 x i8]* @err_msg.27, i32 0, i32 0))
+  tail call void @abort()
+  br label %merge
+
+merge:                                            ; preds = %default, %case_branch7, %case_branch4, %case_branch1, %case_branch
+  %case_result = phi i1 [ %apply_result, %case_branch ], [ %apply_result3, %case_branch1 ], [ %apply_result6, %case_branch4 ], [ %apply_result9, %case_branch7 ], [ true, %default ]
+  %apply_result11 = tail call i1 @_print-endline()
+  ret i1 %apply_result11
+
+case_branch:                                      ; preds = %entry
+  %to_free = bitcast { i32 }* %0 to i8*
+  call void @free(i8* %to_free)
+  %apply_result = tail call i1 @print-sym(i8* getelementptr inbounds ([5 x i8], [5 x i8]* @sym_lit.7, i32 0, i32 0))
+  br label %merge
+
+case_branch1:                                     ; preds = %entry
+  %to_free2 = bitcast { i32 }* %0 to i8*
+  call void @free(i8* %to_free2)
+  %apply_result3 = tail call i1 @print-sym(i8* getelementptr inbounds ([6 x i8], [6 x i8]* @sym_lit.10, i32 0, i32 0))
+  br label %merge
+
+case_branch4:                                     ; preds = %entry
+  %to_free5 = bitcast { i32 }* %0 to i8*
+  call void @free(i8* %to_free5)
+  %apply_result6 = tail call i1 @print-sym(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @sym_lit.16, i32 0, i32 0))
+  br label %merge
+
+case_branch7:                                     ; preds = %entry
+  %to_free8 = bitcast { i32 }* %0 to i8*
+  call void @free(i8* %to_free8)
+  %apply_result9 = tail call i1 @print-sym(i8* getelementptr inbounds ([5 x i8], [5 x i8]* @sym_lit.1, i32 0, i32 0))
+  br label %merge
+}
+
+define i1 @_test-direction() {
+entry:
+  %apply_result = tail call i1 @print-sym(i8* getelementptr inbounds ([24 x i8], [24 x i8]* @sym_lit.12, i32 0, i32 0))
+  %apply_result1 = tail call i1 @_print-endline()
+  %apply_result2 = tail call { i32 }* @_left()
+  %apply_result3 = tail call { i32 }* @_right()
+  %apply_result4 = tail call { i32 }* @dup_direction({ i32 }* %apply_result2)
+  %apply_result5 = tail call i1 @_print-dir({ i32 }* %apply_result4)
+  %apply_result6 = tail call i1 @free_direction({ i32 }* %apply_result2)
+  %apply_result7 = tail call i1 @_print-dir({ i32 }* %apply_result3)
+  %apply_result8 = tail call i1 @print-sym(i8* getelementptr inbounds ([24 x i8], [24 x i8]* @sym_lit.2, i32 0, i32 0))
+  %apply_result9 = tail call i1 @_print-endline()
+  ret i1 %apply_result9
+}
+
+define i1 @_print-intlist({ i32, i64, i64 }* %0) {
+entry:
+  %tag_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 0
+  %tag_val = load i32, i32* %tag_ptr, align 4
+  switch i32 %tag_val, label %default [
+    i32 0, label %case_branch
+    i32 1, label %case_branch5
+  ]
+
+default:                                          ; preds = %entry
+  %apply_result8 = tail call i1 @free_intlist({ i32, i64, i64 }* %0)
+  %tmp9 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([21 x i8], [21 x i8]* @err_msg.26, i32 0, i32 0))
+  tail call void @abort()
+  ret i1 true
+
+case_branch:                                      ; preds = %entry
+  %arg_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 1
+  %arg_val = load i64, i64* %arg_ptr, align 4
+  %tmp = trunc i64 %arg_val to i32
+  %arg_ptr1 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 2
+  %arg_val2 = load i64, i64* %arg_ptr1, align 4
+  %tmp3 = inttoptr i64 %arg_val2 to { i32, i64, i64 }*
+  %to_free = bitcast { i32, i64, i64 }* %0 to i8*
+  call void @free(i8* %to_free)
+  %apply_result = tail call i1 @print-int(i32 %tmp)
+  %apply_result4 = tail call i1 @_print-intlist({ i32, i64, i64 }* %tmp3)
+  ret i1 %apply_result4
+
+case_branch5:                                     ; preds = %entry
+  %to_free6 = bitcast { i32, i64, i64 }* %0 to i8*
+  call void @free(i8* %to_free6)
+  %apply_result7 = tail call i1 @_print-endline()
+  ret i1 %apply_result7
+}
+
+define { i32, i64, i64 }* @_init-intlist() {
+entry:
+  %apply_result = tail call { i32, i64, i64 }* @_nil-intlist()
+  %apply_result1 = tail call { i32, i64, i64 }* @_cons-int(i32 2, { i32, i64, i64 }* %apply_result)
+  %apply_result2 = tail call { i32, i64, i64 }* @_cons-int(i32 1, { i32, i64, i64 }* %apply_result1)
+  %apply_result3 = tail call { i32, i64, i64 }* @_cons-int(i32 0, { i32, i64, i64 }* %apply_result2)
+  ret { i32, i64, i64 }* %apply_result3
+}
+
+define i1 @_test-intlist() {
+entry:
+  %apply_result = tail call i1 @print-sym(i8* getelementptr inbounds ([22 x i8], [22 x i8]* @sym_lit.13, i32 0, i32 0))
+  %apply_result1 = tail call i1 @_print-endline()
+  %apply_result2 = tail call { i32, i64, i64 }* @_init-intlist()
+  %apply_result3 = tail call { i32, i64, i64 }* @dup_intlist({ i32, i64, i64 }* %apply_result2)
+  %apply_result4 = tail call i1 @free_intlist({ i32, i64, i64 }* %apply_result2)
+  %apply_result5 = tail call i1 @_print-intlist({ i32, i64, i64 }* %apply_result3)
+  %apply_result6 = tail call i1 @print-sym(i8* getelementptr inbounds ([22 x i8], [22 x i8]* @sym_lit.3, i32 0, i32 0))
+  %apply_result7 = tail call i1 @_print-endline()
+  ret i1 %apply_result7
+}
+
+define i1 @main() {
+entry:
+  %apply_result = tail call i1 @_test-intlist()
+  %apply_result1 = tail call i1 @_test-direction()
+  %apply_result2 = tail call i1 @_test-bst()
+  %apply_result3 = tail call i1 @_test-multilist()
+  %apply_result4 = tail call i1 @_test-twointlist()
+  ret i1 %apply_result4
+}
+
+define i1 @_print-endline() {
+entry:
+  %apply_result = tail call i1 @print-sym(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @sym_lit, i32 0, i32 0))
+  ret i1 %apply_result
+}
+
+define { i32, i64, i64 }* @_build({ i32, i64, i64 }* %0, { i32, i64, i64 }* %1) {
+entry:
+  %malloccall = tail call i8* @malloc(i32 ptrtoint ({ i32, i64, i64 }* getelementptr ({ i32, i64, i64 }, { i32, i64, i64 }* null, i32 1) to i32))
+  %struct = bitcast i8* %malloccall to { i32, i64, i64 }*
+  %tag_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct, i32 0, i32 0
+  store i32 0, i32* %tag_ptr, align 4
+  %tmp = ptrtoint { i32, i64, i64 }* %0 to i64
+  %elem_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct, i32 0, i32 1
+  store i64 %tmp, i64* %elem_ptr, align 4
+  %tmp1 = ptrtoint { i32, i64, i64 }* %1 to i64
+  %elem_ptr2 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct, i32 0, i32 2
+  store i64 %tmp1, i64* %elem_ptr2, align 4
+  ret { i32, i64, i64 }* %struct
+}
+
+define i1 @free_twointlist({ i32, i64, i64 }* %0) {
+entry:
+  %tag_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 0
+  %tag_val = load i32, i32* %tag_ptr, align 4
+  switch i32 %tag_val, label %default [
+    i32 0, label %case_branch
+  ]
+
+default:                                          ; preds = %entry
+  %tmp5 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([38 x i8], [38 x i8]* @err_msg.25, i32 0, i32 0))
+  tail call void @abort()
+  ret i1 true
+
+case_branch:                                      ; preds = %entry
+  %arg_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 1
+  %arg_val = load i64, i64* %arg_ptr, align 4
+  %tmp = inttoptr i64 %arg_val to { i32, i64, i64 }*
+  %arg_ptr1 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 2
+  %arg_val2 = load i64, i64* %arg_ptr1, align 4
+  %tmp3 = inttoptr i64 %arg_val2 to { i32, i64, i64 }*
+  %to_free = bitcast { i32, i64, i64 }* %0 to i8*
+  call void @free(i8* %to_free)
+  %apply_result = tail call i1 @free_intlist({ i32, i64, i64 }* %tmp)
+  %apply_result4 = tail call i1 @free_intlist({ i32, i64, i64 }* %tmp3)
+  ret i1 %apply_result4
+}
+
+define { i32, i64, i64 }* @dup_twointlist({ i32, i64, i64 }* %0) {
+entry:
+  %tag_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 0
+  %tag_val = load i32, i32* %tag_ptr, align 4
+  switch i32 %tag_val, label %default [
+    i32 0, label %case_branch
+  ]
+
+default:                                          ; preds = %entry
+  %tmp9 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([38 x i8], [38 x i8]* @err_msg.24, i32 0, i32 0))
+  tail call void @abort()
+  ret { i32, i64, i64 }* inttoptr (i64 -1 to { i32, i64, i64 }*)
+
+case_branch:                                      ; preds = %entry
+  %arg_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 1
+  %arg_val = load i64, i64* %arg_ptr, align 4
+  %tmp = inttoptr i64 %arg_val to { i32, i64, i64 }*
+  %arg_ptr1 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 2
+  %arg_val2 = load i64, i64* %arg_ptr1, align 4
+  %tmp3 = inttoptr i64 %arg_val2 to { i32, i64, i64 }*
+  %malloccall = tail call i8* @malloc(i32 ptrtoint ({ i32, i64, i64 }* getelementptr ({ i32, i64, i64 }, { i32, i64, i64 }* null, i32 1) to i32))
+  %struct = bitcast i8* %malloccall to { i32, i64, i64 }*
+  %tag_ptr4 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct, i32 0, i32 0
+  store i32 0, i32* %tag_ptr4, align 4
+  %apply_result = tail call { i32, i64, i64 }* @dup_intlist({ i32, i64, i64 }* %tmp)
+  %tmp5 = ptrtoint { i32, i64, i64 }* %apply_result to i64
+  %elem_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct, i32 0, i32 1
+  store i64 %tmp5, i64* %elem_ptr, align 4
+  %apply_result6 = tail call { i32, i64, i64 }* @dup_intlist({ i32, i64, i64 }* %tmp3)
+  %tmp7 = ptrtoint { i32, i64, i64 }* %apply_result6 to i64
+  %elem_ptr8 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct, i32 0, i32 2
+  store i64 %tmp7, i64* %elem_ptr8, align 4
+  ret { i32, i64, i64 }* %struct
+}
+
+define { i32, i64, i64 }* @_nil-multilist() {
+entry:
+  %malloccall = tail call i8* @malloc(i32 ptrtoint ({ i32, i64, i64 }* getelementptr ({ i32, i64, i64 }, { i32, i64, i64 }* null, i32 1) to i32))
+  %struct = bitcast i8* %malloccall to { i32, i64, i64 }*
+  %tag_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct, i32 0, i32 0
+  store i32 2, i32* %tag_ptr, align 4
+  ret { i32, i64, i64 }* %struct
+}
+
+define { i32, i64, i64 }* @_cons-multi-bool(i1 %0, { i32, i64, i64 }* %1) {
+entry:
+  %malloccall = tail call i8* @malloc(i32 ptrtoint ({ i32, i64, i64 }* getelementptr ({ i32, i64, i64 }, { i32, i64, i64 }* null, i32 1) to i32))
+  %struct = bitcast i8* %malloccall to { i32, i64, i64 }*
+  %tag_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct, i32 0, i32 0
+  store i32 1, i32* %tag_ptr, align 4
+  %tmp = zext i1 %0 to i64
+  %elem_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct, i32 0, i32 1
+  store i64 %tmp, i64* %elem_ptr, align 4
+  %tmp1 = ptrtoint { i32, i64, i64 }* %1 to i64
+  %elem_ptr2 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct, i32 0, i32 2
+  store i64 %tmp1, i64* %elem_ptr2, align 4
+  ret { i32, i64, i64 }* %struct
+}
+
+define { i32, i64, i64 }* @_cons-multi-int(i32 %0, { i32, i64, i64 }* %1) {
+entry:
+  %malloccall = tail call i8* @malloc(i32 ptrtoint ({ i32, i64, i64 }* getelementptr ({ i32, i64, i64 }, { i32, i64, i64 }* null, i32 1) to i32))
+  %struct = bitcast i8* %malloccall to { i32, i64, i64 }*
+  %tag_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct, i32 0, i32 0
+  store i32 0, i32* %tag_ptr, align 4
+  %tmp = zext i32 %0 to i64
+  %elem_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct, i32 0, i32 1
+  store i64 %tmp, i64* %elem_ptr, align 4
+  %tmp1 = ptrtoint { i32, i64, i64 }* %1 to i64
+  %elem_ptr2 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct, i32 0, i32 2
+  store i64 %tmp1, i64* %elem_ptr2, align 4
+  ret { i32, i64, i64 }* %struct
+}
+
+define i1 @free_multilist({ i32, i64, i64 }* %0) {
+entry:
+  %tag_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 0
+  %tag_val = load i32, i32* %tag_ptr, align 4
+  switch i32 %tag_val, label %default [
+    i32 0, label %case_branch
+    i32 1, label %case_branch4
+    i32 2, label %case_branch13
+  ]
+
+default:                                          ; preds = %entry
+  %tmp15 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([38 x i8], [38 x i8]* @err_msg.23, i32 0, i32 0))
+  tail call void @abort()
+  ret i1 true
+
+case_branch:                                      ; preds = %entry
+  %arg_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 1
+  %arg_val = load i64, i64* %arg_ptr, align 4
+  %tmp = trunc i64 %arg_val to i32
+  %arg_ptr1 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 2
+  %arg_val2 = load i64, i64* %arg_ptr1, align 4
+  %tmp3 = inttoptr i64 %arg_val2 to { i32, i64, i64 }*
+  %to_free = bitcast { i32, i64, i64 }* %0 to i8*
+  call void @free(i8* %to_free)
+  %apply_result = tail call i1 @free_multilist({ i32, i64, i64 }* %tmp3)
+  ret i1 %apply_result
+
+case_branch4:                                     ; preds = %entry
+  %arg_ptr5 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 1
+  %arg_val6 = load i64, i64* %arg_ptr5, align 4
+  %tmp7 = trunc i64 %arg_val6 to i1
+  %arg_ptr8 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 2
+  %arg_val9 = load i64, i64* %arg_ptr8, align 4
+  %tmp10 = inttoptr i64 %arg_val9 to { i32, i64, i64 }*
+  %to_free11 = bitcast { i32, i64, i64 }* %0 to i8*
+  call void @free(i8* %to_free11)
+  %apply_result12 = tail call i1 @free_multilist({ i32, i64, i64 }* %tmp10)
+  ret i1 %apply_result12
+
+case_branch13:                                    ; preds = %entry
+  %to_free14 = bitcast { i32, i64, i64 }* %0 to i8*
+  call void @free(i8* %to_free14)
+  ret i1 false
+}
+
+define { i32, i64, i64 }* @dup_multilist({ i32, i64, i64 }* %0) {
+entry:
+  %tag_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 0
+  %tag_val = load i32, i32* %tag_ptr, align 4
+  switch i32 %tag_val, label %default [
+    i32 0, label %case_branch
+    i32 1, label %case_branch8
+    i32 2, label %case_branch23
+  ]
+
+default:                                          ; preds = %entry
+  %tmp27 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([38 x i8], [38 x i8]* @err_msg.22, i32 0, i32 0))
+  tail call void @abort()
+  ret { i32, i64, i64 }* inttoptr (i64 -1 to { i32, i64, i64 }*)
+
+case_branch:                                      ; preds = %entry
+  %arg_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 1
+  %arg_val = load i64, i64* %arg_ptr, align 4
+  %tmp = trunc i64 %arg_val to i32
+  %arg_ptr1 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 2
+  %arg_val2 = load i64, i64* %arg_ptr1, align 4
+  %tmp3 = inttoptr i64 %arg_val2 to { i32, i64, i64 }*
+  %malloccall = tail call i8* @malloc(i32 ptrtoint ({ i32, i64, i64 }* getelementptr ({ i32, i64, i64 }, { i32, i64, i64 }* null, i32 1) to i32))
+  %struct = bitcast i8* %malloccall to { i32, i64, i64 }*
+  %tag_ptr4 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct, i32 0, i32 0
+  store i32 0, i32* %tag_ptr4, align 4
+  %tmp5 = zext i32 %tmp to i64
+  %elem_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct, i32 0, i32 1
+  store i64 %tmp5, i64* %elem_ptr, align 4
+  %apply_result = tail call { i32, i64, i64 }* @dup_multilist({ i32, i64, i64 }* %tmp3)
+  %tmp6 = ptrtoint { i32, i64, i64 }* %apply_result to i64
+  %elem_ptr7 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct, i32 0, i32 2
+  store i64 %tmp6, i64* %elem_ptr7, align 4
+  ret { i32, i64, i64 }* %struct
+
+case_branch8:                                     ; preds = %entry
+  %arg_ptr9 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 1
+  %arg_val10 = load i64, i64* %arg_ptr9, align 4
+  %tmp11 = trunc i64 %arg_val10 to i1
+  %arg_ptr12 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 2
+  %arg_val13 = load i64, i64* %arg_ptr12, align 4
+  %tmp14 = inttoptr i64 %arg_val13 to { i32, i64, i64 }*
+  %malloccall15 = tail call i8* @malloc(i32 ptrtoint ({ i32, i64, i64 }* getelementptr ({ i32, i64, i64 }, { i32, i64, i64 }* null, i32 1) to i32))
+  %struct16 = bitcast i8* %malloccall15 to { i32, i64, i64 }*
+  %tag_ptr17 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct16, i32 0, i32 0
+  store i32 1, i32* %tag_ptr17, align 4
+  %tmp18 = zext i1 %tmp11 to i64
+  %elem_ptr19 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct16, i32 0, i32 1
+  store i64 %tmp18, i64* %elem_ptr19, align 4
+  %apply_result20 = tail call { i32, i64, i64 }* @dup_multilist({ i32, i64, i64 }* %tmp14)
+  %tmp21 = ptrtoint { i32, i64, i64 }* %apply_result20 to i64
+  %elem_ptr22 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct16, i32 0, i32 2
+  store i64 %tmp21, i64* %elem_ptr22, align 4
+  ret { i32, i64, i64 }* %struct16
+
+case_branch23:                                    ; preds = %entry
+  %malloccall24 = tail call i8* @malloc(i32 ptrtoint ({ i32, i64, i64 }* getelementptr ({ i32, i64, i64 }, { i32, i64, i64 }* null, i32 1) to i32))
+  %struct25 = bitcast i8* %malloccall24 to { i32, i64, i64 }*
+  %tag_ptr26 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct25, i32 0, i32 0
+  store i32 2, i32* %tag_ptr26, align 4
+  ret { i32, i64, i64 }* %struct25
+}
+
+define { i32, i64, i64, i64 }* @_nil-bst() {
+entry:
+  %malloccall = tail call i8* @malloc(i32 ptrtoint ({ i32, i64, i64, i64 }* getelementptr ({ i32, i64, i64, i64 }, { i32, i64, i64, i64 }* null, i32 1) to i32))
+  %struct = bitcast i8* %malloccall to { i32, i64, i64, i64 }*
+  %tag_ptr = getelementptr inbounds { i32, i64, i64, i64 }, { i32, i64, i64, i64 }* %struct, i32 0, i32 0
+  store i32 1, i32* %tag_ptr, align 4
+  ret { i32, i64, i64, i64 }* %struct
+}
+
+define { i32, i64, i64, i64 }* @_buildbst(i32 %0, { i32, i64, i64, i64 }* %1, { i32, i64, i64, i64 }* %2) {
+entry:
+  %malloccall = tail call i8* @malloc(i32 ptrtoint ({ i32, i64, i64, i64 }* getelementptr ({ i32, i64, i64, i64 }, { i32, i64, i64, i64 }* null, i32 1) to i32))
+  %struct = bitcast i8* %malloccall to { i32, i64, i64, i64 }*
+  %tag_ptr = getelementptr inbounds { i32, i64, i64, i64 }, { i32, i64, i64, i64 }* %struct, i32 0, i32 0
+  store i32 0, i32* %tag_ptr, align 4
+  %tmp = zext i32 %0 to i64
+  %elem_ptr = getelementptr inbounds { i32, i64, i64, i64 }, { i32, i64, i64, i64 }* %struct, i32 0, i32 1
+  store i64 %tmp, i64* %elem_ptr, align 4
+  %tmp1 = ptrtoint { i32, i64, i64, i64 }* %1 to i64
+  %elem_ptr2 = getelementptr inbounds { i32, i64, i64, i64 }, { i32, i64, i64, i64 }* %struct, i32 0, i32 2
+  store i64 %tmp1, i64* %elem_ptr2, align 4
+  %tmp3 = ptrtoint { i32, i64, i64, i64 }* %2 to i64
+  %elem_ptr4 = getelementptr inbounds { i32, i64, i64, i64 }, { i32, i64, i64, i64 }* %struct, i32 0, i32 3
+  store i64 %tmp3, i64* %elem_ptr4, align 4
+  ret { i32, i64, i64, i64 }* %struct
+}
+
+define i1 @free_bst({ i32, i64, i64, i64 }* %0) {
+entry:
+  %tag_ptr = getelementptr inbounds { i32, i64, i64, i64 }, { i32, i64, i64, i64 }* %0, i32 0, i32 0
+  %tag_val = load i32, i32* %tag_ptr, align 4
+  switch i32 %tag_val, label %default [
+    i32 0, label %case_branch
+    i32 1, label %case_branch8
+  ]
+
+default:                                          ; preds = %entry
+  %tmp10 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([38 x i8], [38 x i8]* @err_msg.21, i32 0, i32 0))
+  tail call void @abort()
+  ret i1 true
+
+case_branch:                                      ; preds = %entry
+  %arg_ptr = getelementptr inbounds { i32, i64, i64, i64 }, { i32, i64, i64, i64 }* %0, i32 0, i32 1
+  %arg_val = load i64, i64* %arg_ptr, align 4
+  %tmp = trunc i64 %arg_val to i32
+  %arg_ptr1 = getelementptr inbounds { i32, i64, i64, i64 }, { i32, i64, i64, i64 }* %0, i32 0, i32 2
+  %arg_val2 = load i64, i64* %arg_ptr1, align 4
+  %tmp3 = inttoptr i64 %arg_val2 to { i32, i64, i64, i64 }*
+  %arg_ptr4 = getelementptr inbounds { i32, i64, i64, i64 }, { i32, i64, i64, i64 }* %0, i32 0, i32 3
+  %arg_val5 = load i64, i64* %arg_ptr4, align 4
+  %tmp6 = inttoptr i64 %arg_val5 to { i32, i64, i64, i64 }*
+  %to_free = bitcast { i32, i64, i64, i64 }* %0 to i8*
+  call void @free(i8* %to_free)
+  %apply_result = tail call i1 @free_bst({ i32, i64, i64, i64 }* %tmp3)
+  %apply_result7 = tail call i1 @free_bst({ i32, i64, i64, i64 }* %tmp6)
+  ret i1 %apply_result7
+
+case_branch8:                                     ; preds = %entry
+  %to_free9 = bitcast { i32, i64, i64, i64 }* %0 to i8*
+  call void @free(i8* %to_free9)
+  ret i1 false
+}
+
+define { i32, i64, i64, i64 }* @dup_bst({ i32, i64, i64, i64 }* %0) {
+entry:
+  %tag_ptr = getelementptr inbounds { i32, i64, i64, i64 }, { i32, i64, i64, i64 }* %0, i32 0, i32 0
+  %tag_val = load i32, i32* %tag_ptr, align 4
+  switch i32 %tag_val, label %default [
+    i32 0, label %case_branch
+    i32 1, label %case_branch14
+  ]
+
+default:                                          ; preds = %entry
+  %tmp18 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([38 x i8], [38 x i8]* @err_msg.20, i32 0, i32 0))
+  tail call void @abort()
+  ret { i32, i64, i64, i64 }* inttoptr (i64 -1 to { i32, i64, i64, i64 }*)
+
+case_branch:                                      ; preds = %entry
+  %arg_ptr = getelementptr inbounds { i32, i64, i64, i64 }, { i32, i64, i64, i64 }* %0, i32 0, i32 1
+  %arg_val = load i64, i64* %arg_ptr, align 4
+  %tmp = trunc i64 %arg_val to i32
+  %arg_ptr1 = getelementptr inbounds { i32, i64, i64, i64 }, { i32, i64, i64, i64 }* %0, i32 0, i32 2
+  %arg_val2 = load i64, i64* %arg_ptr1, align 4
+  %tmp3 = inttoptr i64 %arg_val2 to { i32, i64, i64, i64 }*
+  %arg_ptr4 = getelementptr inbounds { i32, i64, i64, i64 }, { i32, i64, i64, i64 }* %0, i32 0, i32 3
+  %arg_val5 = load i64, i64* %arg_ptr4, align 4
+  %tmp6 = inttoptr i64 %arg_val5 to { i32, i64, i64, i64 }*
+  %malloccall = tail call i8* @malloc(i32 ptrtoint ({ i32, i64, i64, i64 }* getelementptr ({ i32, i64, i64, i64 }, { i32, i64, i64, i64 }* null, i32 1) to i32))
+  %struct = bitcast i8* %malloccall to { i32, i64, i64, i64 }*
+  %tag_ptr7 = getelementptr inbounds { i32, i64, i64, i64 }, { i32, i64, i64, i64 }* %struct, i32 0, i32 0
+  store i32 0, i32* %tag_ptr7, align 4
+  %tmp8 = zext i32 %tmp to i64
+  %elem_ptr = getelementptr inbounds { i32, i64, i64, i64 }, { i32, i64, i64, i64 }* %struct, i32 0, i32 1
+  store i64 %tmp8, i64* %elem_ptr, align 4
+  %apply_result = tail call { i32, i64, i64, i64 }* @dup_bst({ i32, i64, i64, i64 }* %tmp3)
+  %tmp9 = ptrtoint { i32, i64, i64, i64 }* %apply_result to i64
+  %elem_ptr10 = getelementptr inbounds { i32, i64, i64, i64 }, { i32, i64, i64, i64 }* %struct, i32 0, i32 2
+  store i64 %tmp9, i64* %elem_ptr10, align 4
+  %apply_result11 = tail call { i32, i64, i64, i64 }* @dup_bst({ i32, i64, i64, i64 }* %tmp6)
+  %tmp12 = ptrtoint { i32, i64, i64, i64 }* %apply_result11 to i64
+  %elem_ptr13 = getelementptr inbounds { i32, i64, i64, i64 }, { i32, i64, i64, i64 }* %struct, i32 0, i32 3
+  store i64 %tmp12, i64* %elem_ptr13, align 4
+  ret { i32, i64, i64, i64 }* %struct
+
+case_branch14:                                    ; preds = %entry
+  %malloccall15 = tail call i8* @malloc(i32 ptrtoint ({ i32, i64, i64, i64 }* getelementptr ({ i32, i64, i64, i64 }, { i32, i64, i64, i64 }* null, i32 1) to i32))
+  %struct16 = bitcast i8* %malloccall15 to { i32, i64, i64, i64 }*
+  %tag_ptr17 = getelementptr inbounds { i32, i64, i64, i64 }, { i32, i64, i64, i64 }* %struct16, i32 0, i32 0
+  store i32 1, i32* %tag_ptr17, align 4
+  ret { i32, i64, i64, i64 }* %struct16
+}
+
+define { i32 }* @_down() {
+entry:
+  %malloccall = tail call i8* @malloc(i32 ptrtoint ({ i32 }* getelementptr ({ i32 }, { i32 }* null, i32 1) to i32))
+  %struct = bitcast i8* %malloccall to { i32 }*
+  %tag_ptr = getelementptr inbounds { i32 }, { i32 }* %struct, i32 0, i32 0
+  store i32 3, i32* %tag_ptr, align 4
+  ret { i32 }* %struct
+}
+
+define { i32 }* @_up() {
+entry:
+  %malloccall = tail call i8* @malloc(i32 ptrtoint ({ i32 }* getelementptr ({ i32 }, { i32 }* null, i32 1) to i32))
+  %struct = bitcast i8* %malloccall to { i32 }*
+  %tag_ptr = getelementptr inbounds { i32 }, { i32 }* %struct, i32 0, i32 0
+  store i32 2, i32* %tag_ptr, align 4
+  ret { i32 }* %struct
+}
+
+define { i32 }* @_right() {
+entry:
+  %malloccall = tail call i8* @malloc(i32 ptrtoint ({ i32 }* getelementptr ({ i32 }, { i32 }* null, i32 1) to i32))
+  %struct = bitcast i8* %malloccall to { i32 }*
+  %tag_ptr = getelementptr inbounds { i32 }, { i32 }* %struct, i32 0, i32 0
+  store i32 1, i32* %tag_ptr, align 4
+  ret { i32 }* %struct
+}
+
+define { i32 }* @_left() {
+entry:
+  %malloccall = tail call i8* @malloc(i32 ptrtoint ({ i32 }* getelementptr ({ i32 }, { i32 }* null, i32 1) to i32))
+  %struct = bitcast i8* %malloccall to { i32 }*
+  %tag_ptr = getelementptr inbounds { i32 }, { i32 }* %struct, i32 0, i32 0
+  store i32 0, i32* %tag_ptr, align 4
+  ret { i32 }* %struct
+}
+
+define i1 @free_direction({ i32 }* %0) {
+entry:
+  %tag_ptr = getelementptr inbounds { i32 }, { i32 }* %0, i32 0, i32 0
+  %tag_val = load i32, i32* %tag_ptr, align 4
+  switch i32 %tag_val, label %default [
+    i32 0, label %case_branch
+    i32 1, label %case_branch1
+    i32 2, label %case_branch3
+    i32 3, label %case_branch5
+  ]
+
+default:                                          ; preds = %entry
+  %tmp = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([38 x i8], [38 x i8]* @err_msg.19, i32 0, i32 0))
+  tail call void @abort()
+  ret i1 true
+
+case_branch:                                      ; preds = %entry
+  %to_free = bitcast { i32 }* %0 to i8*
+  call void @free(i8* %to_free)
+  ret i1 false
+
+case_branch1:                                     ; preds = %entry
+  %to_free2 = bitcast { i32 }* %0 to i8*
+  call void @free(i8* %to_free2)
+  ret i1 false
+
+case_branch3:                                     ; preds = %entry
+  %to_free4 = bitcast { i32 }* %0 to i8*
+  call void @free(i8* %to_free4)
+  ret i1 false
+
+case_branch5:                                     ; preds = %entry
+  %to_free6 = bitcast { i32 }* %0 to i8*
+  call void @free(i8* %to_free6)
+  ret i1 false
+}
+
+define { i32 }* @dup_direction({ i32 }* %0) {
+entry:
+  %tag_ptr = getelementptr inbounds { i32 }, { i32 }* %0, i32 0, i32 0
+  %tag_val = load i32, i32* %tag_ptr, align 4
+  switch i32 %tag_val, label %default [
+    i32 0, label %case_branch
+    i32 1, label %case_branch2
+    i32 2, label %case_branch6
+    i32 3, label %case_branch10
+  ]
+
+default:                                          ; preds = %entry
+  %tmp = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([38 x i8], [38 x i8]* @err_msg.18, i32 0, i32 0))
+  tail call void @abort()
+  ret { i32 }* inttoptr (i64 -1 to { i32 }*)
+
+case_branch:                                      ; preds = %entry
+  %malloccall = tail call i8* @malloc(i32 ptrtoint ({ i32 }* getelementptr ({ i32 }, { i32 }* null, i32 1) to i32))
+  %struct = bitcast i8* %malloccall to { i32 }*
+  %tag_ptr1 = getelementptr inbounds { i32 }, { i32 }* %struct, i32 0, i32 0
+  store i32 0, i32* %tag_ptr1, align 4
+  ret { i32 }* %struct
+
+case_branch2:                                     ; preds = %entry
+  %malloccall3 = tail call i8* @malloc(i32 ptrtoint ({ i32 }* getelementptr ({ i32 }, { i32 }* null, i32 1) to i32))
+  %struct4 = bitcast i8* %malloccall3 to { i32 }*
+  %tag_ptr5 = getelementptr inbounds { i32 }, { i32 }* %struct4, i32 0, i32 0
+  store i32 1, i32* %tag_ptr5, align 4
+  ret { i32 }* %struct4
+
+case_branch6:                                     ; preds = %entry
+  %malloccall7 = tail call i8* @malloc(i32 ptrtoint ({ i32 }* getelementptr ({ i32 }, { i32 }* null, i32 1) to i32))
+  %struct8 = bitcast i8* %malloccall7 to { i32 }*
+  %tag_ptr9 = getelementptr inbounds { i32 }, { i32 }* %struct8, i32 0, i32 0
+  store i32 2, i32* %tag_ptr9, align 4
+  ret { i32 }* %struct8
+
+case_branch10:                                    ; preds = %entry
+  %malloccall11 = tail call i8* @malloc(i32 ptrtoint ({ i32 }* getelementptr ({ i32 }, { i32 }* null, i32 1) to i32))
+  %struct12 = bitcast i8* %malloccall11 to { i32 }*
+  %tag_ptr13 = getelementptr inbounds { i32 }, { i32 }* %struct12, i32 0, i32 0
+  store i32 3, i32* %tag_ptr13, align 4
+  ret { i32 }* %struct12
+}
+
+define { i32, i64, i64 }* @_nil-intlist() {
+entry:
+  %malloccall = tail call i8* @malloc(i32 ptrtoint ({ i32, i64, i64 }* getelementptr ({ i32, i64, i64 }, { i32, i64, i64 }* null, i32 1) to i32))
+  %struct = bitcast i8* %malloccall to { i32, i64, i64 }*
+  %tag_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct, i32 0, i32 0
+  store i32 1, i32* %tag_ptr, align 4
+  ret { i32, i64, i64 }* %struct
+}
+
+define { i32, i64, i64 }* @_cons-int(i32 %0, { i32, i64, i64 }* %1) {
+entry:
+  %malloccall = tail call i8* @malloc(i32 ptrtoint ({ i32, i64, i64 }* getelementptr ({ i32, i64, i64 }, { i32, i64, i64 }* null, i32 1) to i32))
+  %struct = bitcast i8* %malloccall to { i32, i64, i64 }*
+  %tag_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct, i32 0, i32 0
+  store i32 0, i32* %tag_ptr, align 4
+  %tmp = zext i32 %0 to i64
+  %elem_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct, i32 0, i32 1
+  store i64 %tmp, i64* %elem_ptr, align 4
+  %tmp1 = ptrtoint { i32, i64, i64 }* %1 to i64
+  %elem_ptr2 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct, i32 0, i32 2
+  store i64 %tmp1, i64* %elem_ptr2, align 4
+  ret { i32, i64, i64 }* %struct
+}
+
+define i1 @free_intlist({ i32, i64, i64 }* %0) {
+entry:
+  %tag_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 0
+  %tag_val = load i32, i32* %tag_ptr, align 4
+  switch i32 %tag_val, label %default [
+    i32 0, label %case_branch
+    i32 1, label %case_branch4
+  ]
+
+default:                                          ; preds = %entry
+  %tmp6 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([38 x i8], [38 x i8]* @err_msg.17, i32 0, i32 0))
+  tail call void @abort()
+  ret i1 true
+
+case_branch:                                      ; preds = %entry
+  %arg_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 1
+  %arg_val = load i64, i64* %arg_ptr, align 4
+  %tmp = trunc i64 %arg_val to i32
+  %arg_ptr1 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 2
+  %arg_val2 = load i64, i64* %arg_ptr1, align 4
+  %tmp3 = inttoptr i64 %arg_val2 to { i32, i64, i64 }*
+  %to_free = bitcast { i32, i64, i64 }* %0 to i8*
+  call void @free(i8* %to_free)
+  %apply_result = tail call i1 @free_intlist({ i32, i64, i64 }* %tmp3)
+  ret i1 %apply_result
+
+case_branch4:                                     ; preds = %entry
+  %to_free5 = bitcast { i32, i64, i64 }* %0 to i8*
+  call void @free(i8* %to_free5)
+  ret i1 false
+}
+
+define { i32, i64, i64 }* @dup_intlist({ i32, i64, i64 }* %0) {
+entry:
+  %tag_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 0
+  %tag_val = load i32, i32* %tag_ptr, align 4
+  switch i32 %tag_val, label %default [
+    i32 0, label %case_branch
+    i32 1, label %case_branch8
+  ]
+
+default:                                          ; preds = %entry
+  %tmp12 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([38 x i8], [38 x i8]* @err_msg, i32 0, i32 0))
+  tail call void @abort()
+  ret { i32, i64, i64 }* inttoptr (i64 -1 to { i32, i64, i64 }*)
+
+case_branch:                                      ; preds = %entry
+  %arg_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 1
+  %arg_val = load i64, i64* %arg_ptr, align 4
+  %tmp = trunc i64 %arg_val to i32
+  %arg_ptr1 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %0, i32 0, i32 2
+  %arg_val2 = load i64, i64* %arg_ptr1, align 4
+  %tmp3 = inttoptr i64 %arg_val2 to { i32, i64, i64 }*
+  %malloccall = tail call i8* @malloc(i32 ptrtoint ({ i32, i64, i64 }* getelementptr ({ i32, i64, i64 }, { i32, i64, i64 }* null, i32 1) to i32))
+  %struct = bitcast i8* %malloccall to { i32, i64, i64 }*
+  %tag_ptr4 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct, i32 0, i32 0
+  store i32 0, i32* %tag_ptr4, align 4
+  %tmp5 = zext i32 %tmp to i64
+  %elem_ptr = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct, i32 0, i32 1
+  store i64 %tmp5, i64* %elem_ptr, align 4
+  %apply_result = tail call { i32, i64, i64 }* @dup_intlist({ i32, i64, i64 }* %tmp3)
+  %tmp6 = ptrtoint { i32, i64, i64 }* %apply_result to i64
+  %elem_ptr7 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct, i32 0, i32 2
+  store i64 %tmp6, i64* %elem_ptr7, align 4
+  ret { i32, i64, i64 }* %struct
+
+case_branch8:                                     ; preds = %entry
+  %malloccall9 = tail call i8* @malloc(i32 ptrtoint ({ i32, i64, i64 }* getelementptr ({ i32, i64, i64 }, { i32, i64, i64 }* null, i32 1) to i32))
+  %struct10 = bitcast i8* %malloccall9 to { i32, i64, i64 }*
+  %tag_ptr11 = getelementptr inbounds { i32, i64, i64 }, { i32, i64, i64 }* %struct10, i32 0, i32 0
+  store i32 1, i32* %tag_ptr11, align 4
+  ret { i32, i64, i64 }* %struct10
+}
+
+declare noalias i8* @malloc(i32)
+  
+\end{minted}
 
 % LESSONS LEARNED
 
@@ -1535,7 +3763,7 @@ Returns the integer representation of a single ASCII character read from stdin.
     to split up the work. 
     \\\\
     Also, use the OCaml language server to help with development. I was embarrassingly unaware of its existence 
-    until two weeks before the end of the semester (and have been coding without syntax highlighting up until 
+    until two weeks before the end of the semester (and have coded without syntax highlighting up until 
     then).
 }
 
