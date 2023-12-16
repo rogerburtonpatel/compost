@@ -1464,10 +1464,16 @@ Returns the integer representation of a single ASCII character read from stdin.
   Under the hood, datatype values are pointers to structs of 64-bit integers,
   the first field representing the value's constructor and the remaining fields
   the arguments the constructor is applied to.
+  \\\\
+  A \texttt{case} expression compiles to a switch on the first value of the
+  scrutinee struct.
+  Each branch extracts the contents of each field into local variables and deallocates
+  the struct.
+  \\\\
   To implement abstract data types, 3 kinds of functions need to be automatically
   generated: allocation, deallocation, and deep copy.
   \\\\
-  An allocation function is generated for every variant constructor 
+  An allocation function is generated for every variant constructor
   defined for each datatype; this function simply allocates a struct on the heap, 
   stores an identifier for the constructor in the first field of the struct, and 
   stores the values of the applied arguments in the remaining fields. Any call 
@@ -1493,11 +1499,22 @@ Returns the integer representation of a single ASCII character read from stdin.
 \subsection{Other Miscellaneous Features}
 
 \subsubsection{Tailcall Optimization} {
-
+  Our main code generator function, which generates code for a given expression, is
+  passed a boolean telling it if the expression it is generating code for is in tail
+  position.
+  As an example, if we are generating code for a \texttt{let}, the generator function
+  is called on its second subexpression with this flag set to true if the \texttt{let}
+  is in tail position.
+  Likewise, if we are generating code for an \texttt{if} in tail position, the generator
+  function is called on both of its branches with the flag set to true.
+  If we are generating code for a function call in tail position, we use the LLVM API
+  to mark it for tail call optimization.
 }
 
 \subsubsection{Higher Order Functions} {
-    
+  Function values in Compost are simply function pointers, which can be used in the same
+  ways as any other value except they cannot be created inline.
+  In this way, we have higher order functions but no closures, limiting their utility.
 }
 
 \subsubsection{Importing External Files} {
