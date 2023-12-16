@@ -140,7 +140,7 @@ let rec typeof gamma delta expr =
   | U.If (e1, e2, e3) ->     
     (match (typ e1, typ e2, typ e3) with 
                           | (U.Bool, t1, t2) -> 
-                            if t1 = t2 
+                            if eqType t1 t2
                             then t1 
                             else raise 
                                (TypeError "mismatched types in if branches")

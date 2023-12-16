@@ -49,7 +49,11 @@ let primitives =
     ("<<", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Int));
     (">>", Uast.FunTy ([Uast.Int; Uast.Int], Uast.Int));
     ("~", Uast.FunTy ([Uast.Int], Uast.Int));
+    
+    (* Error *)
+    ("error", Uast.FunTy ([Uast.Sym], Uast.Unit));
   ]
+
 
 let primitive_tys =
   [

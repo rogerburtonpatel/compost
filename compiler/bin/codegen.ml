@@ -79,7 +79,6 @@ let codegen program =
             let _ = L.build_call printf_func [| newline |] "tmp" builder in
             unit_value
           | _ -> raise (Impossible "print-sym has 1 parameter")
-
       );
       ("print-sym", fun builder ->
           function
@@ -266,6 +265,13 @@ let codegen program =
           function
           | [| a |] -> L.build_not a "tmp" builder
           | _ -> raise (Impossible "~ has 1 parameter")
+      );
+      ("error", fun builder ->
+        function 
+        | [| s |] -> let _ = L.build_call printf_func [| s |] "tmp" builder in
+                     let _ = L.build_call abort_func [||] "" builder in 
+                      unit_value
+        | _ -> raise (Impossible "error has no parameters")
       );
     ]
   in
