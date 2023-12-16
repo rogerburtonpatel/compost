@@ -1,0 +1,30 @@
+(: is-even (-> (int) bool))
+(define is-even (x)
+  (if (=i x 0)
+      true
+      (not (is-odd x))
+  )
+)
+
+(: is-odd (-> (int) bool))
+(define is-odd (x)
+  (if (=i x 1)
+      true
+      (is-even (- x 1))
+  )
+)
+
+(val endline '
+')
+
+(: main (-> () unit))
+(define main ()
+    (begin
+        (print-bool (is-even 10))
+        (print-sym endline)
+        (print-bool (is-even 11))
+        (print-sym endline)
+        (print-bool (is-odd 11))
+        (print-sym endline)
+        (print-bool (is-odd 12))
+        (print-sym endline)))

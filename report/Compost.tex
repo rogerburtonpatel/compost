@@ -3801,7 +3801,35 @@ declare noalias i8* @malloc(i32)
 }
 
 \subsection{Roger Burtonpatel} {
-
+  I had three main takeaways from this project. 
+  \\\\
+  1. While I enjoyed OCaml, I can confidently say I don't think having every 
+  construct be let-bound is easy to read or particularly fun to program in. 
+  I prefer the syntax Standard ML, and wish I could have used ML with the 
+  tooling and features that OCaml has. Specifically, or-patterns, pattern 
+  side conditions, and the advanced OCaml language server were all great- 
+  just wish ML had modern FP language features. 
+  \\\\
+  2. Designing good error messages makes testing much easier. I spent 
+  most of my effort in the type checker ensuring that failure had access 
+  to as much information as possible from the context to give expressive 
+  diagnostics. I even explored adding nuanced features, like colored warnings 
+  and printing function type names, to make programming in Compost as easy 
+  as possible given the restrictions. This made testing almost trivial: errors 
+  were always diagnosed in the place they occured. In future compiler design, 
+  I will continue to pay close attention to error messages; they saved me 
+  many times the amount of time they took to write. 
+  \\\\
+  3. Having to add a bit of type information to declare a function isn't bad at
+  all. Not having polymorphism really is. This was what I underestimated as far
+  as detriments of no Hindly-Milner: redeclaring functions for every type is a
+  pain. Because we didn't fully have HOFs with lambda, it wasn't so bad, but it
+  still was annoying. Advice I'd give to a future team (and myself, if I were to
+  redo this project) would be to ask to collaborate with someone else to build
+  out full polymorphic type inference. I didn't have the time to do and debug it
+  myself, and in hindsight I should have asked for help. Still, I'm proud of our
+  group's work, and I look forward to seeing what all of us will build in the
+  future.  
 }
 
 \subsection{Randy Dang} {
