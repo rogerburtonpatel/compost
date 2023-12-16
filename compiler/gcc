@@ -14,4 +14,4 @@ if [ -n "$2" ] ; then
     OUTPUT="$2"
 fi
 
-dune exec "$COMPILER" "$TARGET" | llc -relocation-model=pic | clang-17 -x assembler -o $OUTPUT -
+dune exec "$COMPILER" "$TARGET" | llc -relocation-model=pic | cc -x assembler -o $OUTPUT -
