@@ -1388,15 +1388,85 @@ Returns the integer representation of a single ASCII character read from stdin.
     In the following sections, we summarize how we implemented Compost's most interesting features.
 }
 
-\subsection{Feature 1: Memory Safety under Affine Type System!} {
-
+\subsection{Feature 1: Memory Safety with Affine Types} {
+  The killer feature of Compost is memory safety with no garbage collection.
+  Importantly, we guarantee memory safety on a per-function basis.
+  Any heap objects that a function allocates or is passed \textbf{will} be freed
+  by that function unless they are returned from it or passed to another
+  function.
+  \\\\
+  Our aim is to accomplish this by inserting ``free'' directives at
+  \textit{compile} time.
+  To do this, we need to exactly when heap values become unreachable, and are thus fair game
+  to dispose of.
+  However, this is undecidable in general.
+  \\\\
+  To remedy this, we turn a semantic property into a syntactic one, by enforcing
+  a particular way of using variables that allows us to know this at compile time.
+  That is, a variable cannot be referenced if it \textbf{could} have been referenced
+  by a previously evaluated expression.
+  By \textbf{could} we mean that even if it appears in only one of many branches of some previously
+  evaluated expression, it is off-limits to reference.
+  \\\\
+  References to variables sent their values elsewhere, either returning them to the caller,
+  passing them to another function, or binding them to other variables.
+  With this restriction, which treats variables containing heap values as \textbf{affine-typed},
+  a function can send a variable's value to only one place.
+  As a result, only one reference to a value is ever live at one time, and if a variable
+  goes out of scope without being referenced, its value is guaranteed never to be referenced
+  again.
+  \\\\
+  The last property is key to our automatic insertion of ``free'' directives.
+  Our algorithm traverses the AST, keeping track of those variables that become unusable
+  after the current expression is evaluated.
+  If we reach a terminal (a name, a function application, or a literal), any names that
+  have yet to be referenced are freed, since we know that this is the point at which
+  their values will never be referenced again.
 }
 
 \subsection{Feature 2: Partial Type Inference} {
-
+  Because of time constraints, we elected not to implement full Hindley-Milner type
+  inference but instead a lightweight version that requires some extra annotation.
+  \\\\
+  We require the programmer to annotate each function with a type.
+  With this information, we begin with an initial typing environment, in which the
+  names of formal parameters and all functions declared in the program are assigned
+  types.
+  When evaluating a given expression, the type inference function is passed the
+  \\\\
+  If the current expression binds any variables, their types will become apparent
+  after recursively inferring the type of a subexpression.
+  In the case of a \texttt{let} expression, inferring the type of the right-hand
+  side of the binding gives the type of the bound name and in a \texttt{case} expression,
+  the type of the scrutinee and the constructor named in a given branch gives the types of
+  the newly bound names in that branch.
+  One or more modified typing environments are created with these new bindings,
+  which are then used to infer the type of the appropriate subexpresison.
+  \\\\
+  Any non-terminal expression's type relies on the type of one of its subexpressions,
+  a function application depends on the type of the called function, for example.
+  When the type inference function determines this type, it is returned as the
+  result of the function.
+  \\\\
+  For any terminal expression, the type is either given by an axiom or the
+  typing environment.
+  References to variables have the type of the variable in the current typing
+  environment, and each kind of literal is associated with one type.
+  \\\\
+  With this, we can check the types of functions with only a single
+  annotation per function and infer the types of any declared local variables.
 }
 
-\subsection{Feature 3: Custom ADTs and Top-Level Pattern Matching} {
+\subsection{Feature 3: ADTs and Top-Level Pattern Matching} {
+  We support recursive abstract data types in a similar manner to ML and a
+  minimally expressive pattern matching mechanism.
+  \\\\
+  Under the hood, datatype values are pointers to structs of 64-bit integers,
+  the first field representing the value's constructor and the remaining fields
+  the arguments the constructor is applied to.
+  To implement abstract data types, 3 kinds of functions need to be automatically
+  generated: allocation, deallocation, and deep copy.
+  % TODO
 
 }
 
