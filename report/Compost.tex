@@ -1391,7 +1391,7 @@ Returns the integer representation of a single ASCII character read from stdin.
   \\\\
   Our aim is to accomplish this by inserting ``free'' directives at
   \textit{compile} time.
-  To do this, we need to exactly when heap values become unreachable, and are thus fair game
+  To do this, we need to know exactly when heap values become unreachable, and are thus fair game
   to dispose of.
   However, this is undecidable in general.
   \\\\
@@ -1399,7 +1399,7 @@ Returns the integer representation of a single ASCII character read from stdin.
   a particular way of using variables that allows us to know this at compile time.
   That is, a variable cannot be referenced if it \textbf{could} have been referenced
   by a previously evaluated expression.
-  By \textbf{could} we mean that even if it appears in only one of many branches of some previously
+  By \textbf{could}, we mean that even if it appears in only one of many branches of some previously
   evaluated expression, it is off-limits to reference.
   \\\\
   References to variables sent their values elsewhere, either returning them to the caller,
@@ -1426,7 +1426,8 @@ Returns the integer representation of a single ASCII character read from stdin.
   With this information, we begin with an initial typing environment, in which the
   names of formal parameters and all functions declared in the program are assigned
   types.
-  When evaluating a given expression, the type inference function is passed the
+  When evaluating a given expression, the type inference function is passed this 
+  environment.
   \\\\
   If the current expression binds any variables, their types will become apparent
   after recursively inferring the type of a subexpression.
@@ -1437,8 +1438,8 @@ Returns the integer representation of a single ASCII character read from stdin.
   One or more modified typing environments are created with these new bindings,
   which are then used to infer the type of the appropriate subexpresison.
   \\\\
-  Any non-terminal expression's type relies on the type of one of its subexpressions,
-  a function application depends on the type of the called function, for example.
+  Any non-terminal expression's type relies on the type of one of its subexpressions;
+  for example, a function application depends on the type of the called function.
   When the type inference function determines this type, it is returned as the
   result of the function.
   \\\\
@@ -1452,12 +1453,12 @@ Returns the integer representation of a single ASCII character read from stdin.
 }
 
 \subsection{Feature 3: ADTs and Top-Level Pattern Matching} {
-  We support recursive abstract data types in a similar manner to ML and a
+  We support recursive abstract data types in a manner similar to ML and a
   minimally expressive pattern matching mechanism.
   \\\\
   Under the hood, datatype values are pointers to structs of 64-bit integers,
-  the first field representing the value's constructor and the remaining fields
-  the arguments the constructor is applied to.
+  with the first field representing the value's constructor and the remaining fields
+  holding the arguments the constructor is applied to.
   \\\\
   A \texttt{case} expression compiles to a switch on the first value of the
   scrutinee struct.
@@ -1494,7 +1495,7 @@ Returns the integer representation of a single ASCII character read from stdin.
 
 \subsubsection{Tailcall Optimization} {
   Our main code generator function, which generates code for a given expression, is
-  passed a boolean telling it if the expression it is generating code for is in tail
+  passed a boolean telling it if the expression that it is generating code for is in tail
   position.
   As an example, if we are generating code for a \texttt{let}, the generator function
   is called on its second subexpression with this flag set to true if the \texttt{let}
@@ -1502,12 +1503,12 @@ Returns the integer representation of a single ASCII character read from stdin.
   Likewise, if we are generating code for an \texttt{if} in tail position, the generator
   function is called on both of its branches with the flag set to true.
   If we are generating code for a function call in tail position, we use the LLVM API
-  to mark it for tail call optimization.
+  to mark it for a tail call optimization.
 }
 
 \subsubsection{Higher Order Functions} {
   Function values in Compost are simply function pointers, which can be used in the same
-  ways as any other value except they cannot be created inline.
+  ways as any other value except that they cannot be created inline.
   In this way, we have higher order functions but no closures, limiting their utility.
 }
 
