@@ -61,17 +61,17 @@ let rec check_affine live dead =
     List.iter check_name (n :: ns);
     List.fold_right (fun n acc -> S.add n acc) (n :: ns) dead
 
-let rec not_free =
+let rec referenced_in =
   function
   | N.Err _ -> S.empty
   | N.Local n -> S.singleton n
   | N.Global _ -> S.empty
   | N.Dup _ -> S.empty
   | N.Literal _ -> S.empty
-  | N.If (n, e1, e2) -> S.add n (unions [not_free e1; not_free e2])
-  | N.Let (n, _, e, body) -> S.add n (unions [not_free e; not_free body])
+  | N.If (n, e1, e2) -> S.add n (unions [referenced_in e1; referenced_in e2])
+  | N.Let (n, _, e, body) -> S.remove n (unions [referenced_in e; referenced_in body])
   | N.Apply (n, ns) -> S.of_list (n :: ns)
-  | N.Case (_, n, branches) -> S.add n (unions (List.map (function (_, branch) -> not_free branch) branches))
+  | N.Case (_, n, branches) -> S.add n (unions (List.map (function (_, branch) -> referenced_in branch) branches))
 
 
 let merge = StringMap.union
@@ -111,7 +111,7 @@ let rec insert_frees to_consume =
     in
     F.Case (F.Local scrutinee, List.map branch branches)
   | N.Let (n, ty, e, body) ->
-    let consumed_in_e = not_free e in
+    let consumed_in_e = referenced_in e in
     let to_consume_e = StringMap.filter (fun n _ -> S.mem n consumed_in_e) to_consume in
     let to_consume_body = StringMap.add n ty
         (StringMap.filter (fun n _ -> not (S.mem n consumed_in_e)) to_consume)
