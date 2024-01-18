@@ -69,7 +69,7 @@ let rec not_free =
   | N.Dup _ -> S.empty
   | N.Literal _ -> S.empty
   | N.If (n, e1, e2) -> S.add n (unions [not_free e1; not_free e2])
-  | N.Let (_, _, e, body) -> unions [not_free e; not_free body]
+  | N.Let (n, _, e, body) -> S.add n (unions [not_free e; not_free body])
   | N.Apply (n, ns) -> S.of_list (n :: ns)
   | N.Case (_, n, branches) -> S.add n (unions (List.map (function (_, branch) -> not_free branch) branches))
 
